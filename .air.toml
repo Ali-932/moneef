@@ -1,0 +1,15 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -tags sqlite_fts5 -o ./tmp/main ./cmd/api/"  # Builds your main package
+bin = "./tmp/main"                        # Runs this binary
+include_ext = ["go", "tpl", "tmpl", "html"]  # Watch these file types
+exclude_regex = ["_test.go"]              # Ignore test files
+delay = 1000                              # Debounce time (ms) before rebuild
+stop_watch = ["tmp/"]                     # Ignore changes in tmp dir
+
+[log]
+time = true                               # Show timestamps in logs
+[misc]
+clean_on_exit = true                      # Clean up tmp files on exit

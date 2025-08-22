@@ -1,0 +1,6 @@
+/main
+/tmp
+/app.log
+/*.sqlite
+/*.sqlite3
+/.idea/
