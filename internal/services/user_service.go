@@ -25,5 +25,5 @@ func CheckUserCredentials(username, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return user.Username, nil
+	return user.Email, nil
 }

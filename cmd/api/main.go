@@ -4,7 +4,6 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"goMangaObserver/internal"
 	"goMangaObserver/internal/db"
-	"goMangaObserver/internal/models"
 	"goMangaObserver/internal/routes"
 	"log"
 	"net/http"
@@ -36,7 +35,7 @@ func run() error {
 			log.Println("Error closing log file:", err)
 		}
 	}()
-	err = database.AutoMigrate(&models.User{})
+	err = db.MigrateModels(database)
 	log.Println("Done migrations")
 	mux := routes.SetupRoutes()
 	wrappedMux := SessionManager.LoadAndSave(mux)
