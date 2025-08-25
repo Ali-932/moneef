@@ -5,8 +5,8 @@ import (
 	"moneef/internal/handlers"
 )
 
-func UserRoutes() chi.Router {
+func TransactionRoutes() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/login", handlers.LoginUserHandler)
+	r.Post("/create", handlers.CreateTransactionHandler)
 	return r
 }

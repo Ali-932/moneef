@@ -2,33 +2,29 @@ package db
 
 import (
 	"fmt"
-	"goMangaObserver/internal/models"
 	"gorm.io/gorm"
+	"moneef/internal/models"
+	"reflect"
 )
 
 func MigrateModels(database *gorm.DB) error {
-	if err := database.AutoMigrate(&models.User{}); err != nil {
-		return fmt.Errorf("failed to migrate User model: %w", err)
+	modelsToMigrate := []interface{}{
+		&models.User{},
+		&models.UserSettings{},
+		&models.Profile{},
+		&models.Category{},
+		&models.Transaction{},
+		&models.Pattern{},
+		&models.Currency{},
+		&models.RecurrenceTemplate{},
+		&models.Currency{},
 	}
 
-	if err := database.AutoMigrate(&models.UserSettings{}); err != nil {
-		return fmt.Errorf("failed to migrate UserSettings model: %w", err)
-	}
-
-	if err := database.AutoMigrate(&models.Transaction{}); err != nil {
-		return fmt.Errorf("failed to migrate Transaction model: %w", err)
-	}
-
-	if err := database.AutoMigrate(&models.Profile{}); err != nil {
-		return fmt.Errorf("Faild to migrate Profile model: %w", err)
-	}
-
-	if err := database.AutoMigrate(&models.Category{}); err != nil {
-		return fmt.Errorf("Faild to migrate Category model: %w", err)
-	}
-
-	if err := DB.AutoMigrate(&models.Pattern{}); err != nil {
-		return fmt.Errorf("Faild to migrate Pattern model: %w", err)
+	for _, model := range modelsToMigrate {
+		if err := database.AutoMigrate(model); err != nil {
+			modelName := reflect.TypeOf(model).Elem().Name()
+			return fmt.Errorf("failed to migrate %s model: %w", modelName, err)
+		}
 	}
 
 	return nil

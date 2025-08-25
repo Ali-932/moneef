@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
-	"goMangaObserver/internal/services"
-	"goMangaObserver/pkg/utils"
+	"moneef/internal/services"
+	"moneef/pkg/utils"
 	"net/http"
 	"time"
 )

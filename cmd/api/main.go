@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/alexedwards/scs/v2"
-	"goMangaObserver/internal"
-	"goMangaObserver/internal/db"
-	"goMangaObserver/internal/routes"
 	"log"
+	"moneef/internal"
+	"moneef/internal/db"
+	"moneef/internal/routes"
 	"net/http"
 )
 
@@ -36,7 +36,14 @@ func run() error {
 		}
 	}()
 	err = db.MigrateModels(database)
+	if err != nil {
+		return err
+	}
 	log.Println("Done migrations")
+	log.Println("Seeding essential data")
+	if err := db.Seed(database); err != nil {
+		return err
+	}
 	mux := routes.SetupRoutes()
 	wrappedMux := SessionManager.LoadAndSave(mux)
 	log.Printf("Server running at http://localhost%s\n", config.Port)

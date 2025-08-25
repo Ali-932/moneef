@@ -2,10 +2,9 @@ package middleware
 
 import (
 	"context"
-	"goMangaObserver/internal"
-	"goMangaObserver/internal/db"
-	"goMangaObserver/internal/models"
-	"goMangaObserver/pkg/utils"
+	"moneef/internal/db"
+	"moneef/internal/models"
+	"moneef/pkg/utils"
 	"net/http"
 	"strings"
 )
@@ -13,10 +12,6 @@ import (
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		AuthHeader := r.Header.Get("Authorization")
-		if AuthHeader == internal.GetConfig().JWT_PC_TOKEN {
-			next.ServeHTTP(w, r)
-			return
-		}
 		if !strings.HasPrefix(AuthHeader, "Bearer") {
 			utils.WriteJsonError(w, http.StatusUnauthorized, "Missing token")
 			return

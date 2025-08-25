@@ -1,4 +1,4 @@
-module goMangaObserver
+module moneef
 
 go 1.24
 

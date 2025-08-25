@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"goMangaObserver/internal/db"
-	"goMangaObserver/internal/models"
-	"goMangaObserver/pkg/utils"
+	"moneef/internal/db"
+	"moneef/internal/models"
+	"moneef/pkg/utils"
 )
 
 func GetUserByUsername(username string) (*models.User, error) {

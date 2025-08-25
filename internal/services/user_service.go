@@ -2,8 +2,8 @@ package services
 
 import (
 	"errors"
-	"goMangaObserver/internal/repository"
 	"gorm.io/gorm"
+	"moneef/internal/repository"
 )
 
 func CheckUsernameExist(username string) (bool, error) {
