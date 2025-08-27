@@ -2,8 +2,12 @@ package db
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
+
 	"gorm.io/gorm"
 	"moneef/internal/models"
+	"moneef/pkg/utils"
 )
 
 // Seed inserts essential/default data into the database.
@@ -14,6 +18,72 @@ func Seed(database *gorm.DB) error {
 	}
 	if err := seedCurrencies(database); err != nil {
 		return fmt.Errorf("seeding currencies: %w", err)
+	}
+	if err := seedUsersAndProfiles(database); err != nil {
+		return fmt.Errorf("seeding users and profiles: %w", err)
+	}
+	return nil
+}
+
+func seedUsersAndProfiles(database *gorm.DB) error {
+	rand.Seed(time.Now().UnixNano())
+
+	type userSeed struct {
+		Email     string
+		Password  string
+		FirstName string
+		LastName  string
+	}
+	const userPassword string = "Password123!"
+	users := []userSeed{
+		{Email: "alice@example.com", Password: userPassword, FirstName: "Alice", LastName: "Johnson"},
+		{Email: "bob@example.com", Password: userPassword, FirstName: "Bob", LastName: "Smith"},
+		{Email: "carol@example.com", Password: userPassword, FirstName: "Carol", LastName: "Williams"},
+		{Email: "dave@example.com", Password: userPassword, FirstName: "Dave", LastName: "Brown"},
+		{Email: "eve@example.com", Password: userPassword, FirstName: "Eve", LastName: "Davis"},
+	}
+
+	for _, u := range users {
+		var existing int64
+		if err := database.Model(&models.User{}).Where("email = ?", u.Email).Count(&existing).Error; err != nil {
+			return err
+		}
+		if existing > 0 {
+			continue
+		}
+
+		hashed, err := utils.HashPassword(u.Password)
+		if err != nil {
+			return fmt.Errorf("hashing password for %s: %w", u.Email, err)
+		}
+
+		user := models.User{
+			Email:    u.Email,
+			Password: string(hashed),
+			IsStaff:  "false",
+		}
+		if err := database.Create(&user).Error; err != nil {
+			return fmt.Errorf("creating user %s: %w", u.Email, err)
+		}
+
+		profile := models.Profile{
+			FirstName: u.FirstName,
+			LastName:  u.LastName,
+			UserID:    user.ID,
+		}
+		if err := database.Create(&profile).Error; err != nil {
+			return fmt.Errorf("creating profile for %s: %w", u.Email, err)
+		}
+
+		settings := models.UserSettings{
+			UserID:                user.ID,
+			Locale:                "en-US",
+			IsNotificationEnabled: true,
+			IsDarkMode:            rand.Intn(2) == 0,
+		}
+		if err := database.Create(&settings).Error; err != nil {
+			return fmt.Errorf("creating user settings for %s: %w", u.Email, err)
+		}
 	}
 	return nil
 }

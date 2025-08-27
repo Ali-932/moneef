@@ -15,6 +15,9 @@ func (m *Money) Scan(value interface{}) error {
 
 // Go → Database
 func (m *Money) Value() (driver.Value, error) {
+	if m == nil {
+		return nil, nil
+	}
 	return decimal.Decimal(*m).Value()
 }
 
@@ -23,5 +26,8 @@ func (m *Money) MathOperation(other Money, operation func(decimal.Decimal, decim
 }
 
 func (m *Money) String() string {
+	if m == nil {
+		return ""
+	}
 	return "$" + decimal.Decimal(*m).String()
 }

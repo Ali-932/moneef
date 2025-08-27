@@ -46,9 +46,10 @@ type RecurrenceTemplate struct {
 	NextDate             time.Time    `gorm:"not null"`
 	NextPaymentAmount    *types.Money `gorm:"type:decimal(19,4);not null"`
 	AmountPaidPreviously *types.Money `gorm:"type:decimal(19,4);not null;default:0"`
-	AmountLeftToPay      *types.Money `gorm:"type:decimal(19,4);not null"`
-	TotalAmountToPay     *types.Money `gorm:"type:decimal(19,4);not null"`
+	AmountLeftToPay      *types.Money `gorm:"type:decimal(19,4)"`
+	TotalAmountToPay     *types.Money `gorm:"type:decimal(19,4)"`
 	EndDate              *time.Time
+	StartDate            *time.Time
 	HasEndDate           bool          `gorm:"default:false"`
 	IsActive             bool          `gorm:"default:true"`
 	Transactions         []Transaction `gorm:"foreignKey:RecurrenceTemplateID"`

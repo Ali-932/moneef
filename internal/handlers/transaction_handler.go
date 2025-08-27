@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/shopspring/decimal"
+	"log"
 	"moneef/internal/services"
 	"moneef/pkg/utils"
 	"net/http"
@@ -27,9 +28,8 @@ type TransactionRequest struct {
 	MerchantName            *string           `json:"merchant_name"`
 	Notes                   *string           `json:"notes"`
 	IsRecurrent             *bool             `json:"is_recurrent"`
-	RecurrentFreq           *string           `json:"recurrent_freq" validate:"oneof=daily weekly bi-weekly monthly yearly"`
+	RecurrentFreq           *string           `json:"recurrent_freq" validate:"omitempty,oneof=daily weekly bi-weekly monthly yearly"`
 	IsActiveRecurrent       *bool             `json:"is_active_recurrent"`
-	RecurrentAmountPaid     *decimal.Decimal  `json:"recurrent_amount_paid"`
 	RecurrentTotalAmount    *decimal.Decimal  `json:"recurrent_total_amount"`
 	RecurrentPaidPreviously *decimal.Decimal  `json:"recurrent_paid_previously"`
 	RecurrentHasEndDate     *bool             `json:"recurrent_has_end_date"`
@@ -70,21 +70,27 @@ func (tr *TransactionRequest) Validate() error {
 	return nil
 }
 func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
+
 	var req TransactionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("❌ [HANDLER] Failed to decode request body: %v", err)
 		utils.WriteJsonError(w, http.StatusBadRequest, "Invalid Input")
 		return
 	}
+
 	validate := validator.New()
 	if err := validate.Struct(req); err != nil {
+		log.Printf("❌ [HANDLER] Validation failed: %v", err)
 		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := req.Validate(); err != nil {
+		log.Printf("❌ [HANDLER] Custom validation failed: %v", err)
 		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
 	categoryIDs := make([]uint, 0, len(req.Categories))
 	for _, c := range req.Categories {
 		categoryIDs = append(categoryIDs, c.ID)
@@ -104,16 +110,18 @@ func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
 		CategoryIDs:          categoryIDs,
 		IsRecurrent:          req.IsRecurrent,
 		Frequency:            req.RecurrentFreq,
-		AmountPaidPreviously: req.RecurrentAmountPaid,
+		AmountPaidPreviously: req.RecurrentPaidPreviously,
 		TotalAmountToPay:     req.RecurrentTotalAmount,
 		EndDate:              req.RecurrentEndDate,
 		HasEndDate:           req.RecurrentHasEndDate,
 		IsActive:             req.IsActiveRecurrent,
 	}); err != nil {
+		log.Printf("❌ [HANDLER] Service layer failed: %v", err)
 		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	log.Printf("✅ [HANDLER] Transaction '%s' created successfully", req.TransactionName)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "transaction created"})
