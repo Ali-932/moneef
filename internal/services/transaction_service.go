@@ -90,6 +90,7 @@ func HandleTransactionCreation(params TransactionCreationParams) error {
 				Color:                params.Color,
 				MerchantName:         params.MerchantName,
 				Notes:                params.Notes,
+				CategoryIDs:          params.CategoryIDs,
 				Frequency:            freq,
 				HasEndDate:           hasEnd,
 				EndDate:              params.EndDate,
@@ -188,6 +189,7 @@ type CreateTransactionRecurrentParams struct {
 	Color                string
 	MerchantName         *string
 	Notes                *string
+	CategoryIDs          []uint
 	Frequency            string
 	HasEndDate           bool
 	EndDate              *time.Time
@@ -200,6 +202,11 @@ type CreateTransactionRecurrentParams struct {
 
 func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentParams) (uint, error) {
 	amt := types.Money(p.Amount)
+
+	categories, err := repository.GetCategoriesByIDs(p.CategoryIDs)
+	if err != nil {
+		return 0, err
+	}
 
 	nextDate, err := utils.CalculateNextOccurrence(p.StartDate, p.Frequency)
 	if err != nil {
@@ -236,6 +243,7 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentP
 		Color:        p.Color,
 		MerchantName: p.MerchantName,
 		Notes:        p.Notes,
+		Category:     categories,
 		Frequency:    p.Frequency,
 		NextDate:     nextDate,
 		HasEndDate:   p.HasEndDate,

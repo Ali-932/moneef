@@ -42,6 +42,7 @@ type RecurrenceTemplate struct {
 	Color                string       `gorm:"type:varchar(255);"`
 	MerchantName         *string      `gorm:"type:varchar(255);"`
 	Notes                *string      `gorm:"type:varchar(255);"`
+	Category             []*Category  `gorm:"many2many:category_recurrence_template;"`
 	Frequency            string       `gorm:"type:varchar(255);not null;check:frequency IN ('daily', 'weekly', 'bi-weekly', 'monthly', 'yearly')"`
 	NextDate             time.Time    `gorm:"not null"`
 	NextPaymentAmount    *types.Money `gorm:"type:decimal(19,4);not null"`
