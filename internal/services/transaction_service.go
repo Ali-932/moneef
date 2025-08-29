@@ -37,9 +37,8 @@ type TransactionCreationParams struct {
 }
 
 func HandleTransactionCreation(params TransactionCreationParams) error {
-	log.Printf("🔧 [SERVICE] Starting transaction creation orchestration for '%s'", params.Name)
-	log.Printf("🔧 [SERVICE] Transaction details - Type: %s, Amount: %s %s, Date: %s",
-		params.Type, params.Amount.String(), params.CurrencyCode, params.Date.Format("2006-01-02"))
+	log.Printf("🔧 [SERVICE] recived transaction '%s'Transaction details - Type: %s, Amount: %s %s, Date: %s ",
+		params.Name, params.Type, params.Amount.String(), params.CurrencyCode, params.Date.Format("2006-01-02"))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -55,7 +54,6 @@ func HandleTransactionCreation(params TransactionCreationParams) error {
 		return err
 	}
 	return db.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		log.Println("🔄 [SERVICE] Starting database transaction")
 		var (
 			recID    uint
 			recIDPtr *uint
@@ -148,7 +146,7 @@ type CreateTransactionParams struct {
 }
 
 func CreateTransactionWithTx(tx *gorm.DB, p CreateTransactionParams) error {
-	categories, err := repository.GetCategoriesByIDs(p.CategoryIDs)
+	categories, err := repository.GetCategoriesByIDs(tx, p.CategoryIDs)
 	if err != nil {
 		log.Printf("❌ [SERVICE] Failed to fetch categories %v: %v", p.CategoryIDs, err)
 		return err
@@ -170,7 +168,7 @@ func CreateTransactionWithTx(tx *gorm.DB, p CreateTransactionParams) error {
 		RecurrenceTemplateID: p.RecurrenceTemplateID,
 	}
 
-	if err := repository.CreateTransactionWithTx(tx, trx); err != nil {
+	if err := repository.CreateTransaction(tx, trx); err != nil {
 		log.Printf("❌ [SERVICE] Database persistence failed: %v", err)
 		return err
 	}
@@ -203,7 +201,7 @@ type CreateTransactionRecurrentParams struct {
 func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentParams) (uint, error) {
 	amt := types.Money(p.Amount)
 
-	categories, err := repository.GetCategoriesByIDs(p.CategoryIDs)
+	categories, err := repository.GetCategoriesByIDs(tx, p.CategoryIDs)
 	if err != nil {
 		return 0, err
 	}
@@ -257,7 +255,7 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentP
 		StartDate:            &p.StartDate,
 	}
 
-	id, err := repository.CreateTransactionRecurrentWithTx(tx, trxRecurrent)
+	id, err := repository.CreateTransactionRecurrent(tx, trxRecurrent)
 
 	if err != nil {
 		log.Printf("❌ [SERVICE] Failed to persist recurrence template: %v", err)

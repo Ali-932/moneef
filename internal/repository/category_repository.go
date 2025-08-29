@@ -2,12 +2,12 @@ package repository
 
 import (
 	"fmt"
+	"gorm.io/gorm"
 	"log"
-	"moneef/internal/db"
 	"moneef/internal/models"
 )
 
-func GetCategoriesByIDs(ids []uint) ([]*models.Category, error) {
+func GetCategoriesByIDs(tx *gorm.DB, ids []uint) ([]*models.Category, error) {
 	log.Printf("🏷️ [REPOSITORY] Fetching categories by IDs: %v", ids)
 
 	var categories []*models.Category
@@ -16,7 +16,7 @@ func GetCategoriesByIDs(ids []uint) ([]*models.Category, error) {
 		return categories, nil
 	}
 
-	result := db.DB.Where("id IN ?", ids).Find(&categories)
+	result := tx.Where("id IN ?", ids).Find(&categories)
 	if result.Error != nil {
 		log.Printf("❌ [REPOSITORY] Failed to fetch categories: %v", result.Error)
 		return nil, result.Error
