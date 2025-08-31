@@ -6,12 +6,6 @@ import (
 	"time"
 )
 
-type Currency struct {
-	Code   string `gorm:"primaryKey;type:char(3)"` // USD, EUR, etc.
-	Name   string `gorm:"type:varchar(100)"`       // US Dollar, Euro
-	Symbol string `gorm:"type:varchar(10)"`        // $, €, £
-}
-
 type Transaction struct {
 	gorm.Model
 	ProfileID            uint                `gorm:"not null;index"`

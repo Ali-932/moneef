@@ -18,6 +18,7 @@ func MigrateModels(database *gorm.DB) error {
 		&models.Currency{},
 		&models.RecurrenceTemplate{},
 		&models.Currency{},
+		&models.CurrencyExchangeRate{},
 	}
 
 	for _, model := range modelsToMigrate {
