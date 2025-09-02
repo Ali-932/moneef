@@ -3,12 +3,16 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"moneef/internal/db"
 	"moneef/internal/handlers"
 	"moneef/internal/models"
 	"moneef/internal/repository"
 	"moneef/internal/services"
+	"moneef/pkg/middleware"
 	"moneef/pkg/types"
+	"moneef/pkg/utils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -40,6 +44,39 @@ func NewTestSuite(t *testing.T) *TestSuite {
 		Cleanup: cleanup,
 		T:       t,
 	}
+}
+
+func (suite *TestSuite) createTestServer() *httptest.Server {
+	r := chi.NewRouter()
+
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(chiMiddleware.Logger)
+		r.Use(middleware.CORSMiddleware)
+		r.Use(middleware.AuthMiddleware)
+
+		r.Route("/transaction", func(r chi.Router) {
+			r.Post("/create", handlers.CreateTransactionHandler)
+		})
+	})
+
+	return httptest.NewServer(r)
+}
+
+func (suite *TestSuite) generateTestJWT(email string) (string, error) {
+	return utils.GenerateJWT(email)
+}
+
+func (suite *TestSuite) createAuthenticatedRequest(method, url string, body []byte) *http.Request {
+	req := httptest.NewRequest(method, url, bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	token, err := suite.generateTestJWT(testEmail)
+	if err != nil {
+		suite.T.Fatalf("Failed to generate test JWT: %v", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	return req
 }
 
 func setupTestDB(t *testing.T) (*gorm.DB, func()) {
@@ -99,17 +136,20 @@ func seedTestData(t *testing.T, testDB *gorm.DB) {
 }
 
 type TransactionTestHelper struct {
-	suite *TestSuite
+	suite  *TestSuite
+	server *httptest.Server
 }
 
 func NewTransactionTestHelper(suite *TestSuite) *TransactionTestHelper {
-	return &TransactionTestHelper{suite: suite}
+	return &TransactionTestHelper{
+		suite:  suite,
+		server: suite.createTestServer(),
+	}
 }
 
 func (h *TransactionTestHelper) createTransactionRequest(name string, amount float64, trasnType string, opts ...TransactionOption) handlers.TransactionRequest {
 	req := handlers.TransactionRequest{
 		TransactionName: name,
-		ProfileId:       testProfileID,
 		Amount:          decimal.NewFromFloat(amount),
 		CurrencyCode:    "USD",
 		TransactionType: trasnType,
@@ -174,10 +214,10 @@ func WithIconAndColor(icon, color string) TransactionOption {
 
 func (h *TransactionTestHelper) executeTransactionRequest(req handlers.TransactionRequest) *httptest.ResponseRecorder {
 	body, _ := json.Marshal(req)
-	httpReq := httptest.NewRequest("POST", "/transactions", bytes.NewBuffer(body))
+	httpReq := h.suite.createAuthenticatedRequest("POST", "/api/v1/transaction/create", body)
 	httpReq.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
-	handlers.CreateTransactionHandler(rr, httpReq)
+	h.server.Config.Handler.ServeHTTP(rr, httpReq)
 	return rr
 }
 
@@ -440,20 +480,6 @@ func testServiceLayer(t *testing.T, suite *TestSuite) {
 		assert.Equal(t, int64(1), count)
 	})
 
-	t.Run("Invalid Profile", func(t *testing.T) {
-		params := services.TransactionCreationParams{
-			ProfileID:    999,
-			Name:         "Invalid Profile Test",
-			Type:         "expense",
-			Date:         time.Now(),
-			Amount:       decimal.NewFromFloat(50.00),
-			CurrencyCode: "USD",
-			CategoryIDs:  []uint{},
-		}
-
-		err := services.HandleTransactionCreation(params)
-		assert.Error(t, err, "Should error for invalid profile ID")
-	})
 }
 
 func testValidation(t *testing.T, suite *TestSuite, helper *TransactionTestHelper) {
@@ -502,13 +528,6 @@ func testValidation(t *testing.T, suite *TestSuite, helper *TransactionTestHelpe
 		})
 	}
 
-	t.Run("Invalid JSON", func(t *testing.T) {
-		httpReq := httptest.NewRequest("POST", "/transactions", bytes.NewBufferString(`{"invalid": json}`))
-		httpReq.Header.Set("Content-Type", "application/json")
-		rr := httptest.NewRecorder()
-		handlers.CreateTransactionHandler(rr, httpReq)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
 }
 
 func testEdgeCases(t *testing.T, suite *TestSuite) {

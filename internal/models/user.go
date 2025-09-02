@@ -2,19 +2,20 @@ package models
 
 import (
 	"gorm.io/gorm"
+	"time"
 )
 
 type User struct {
 	gorm.Model
 	Password     string       `gorm:"type:varchar(255);not null"`
 	Email        string       `gorm:"type:varchar(255);not null;unique"`
-	IsStaff      string       `gorm:"default:false"`
-	isActive     string       `gorm:"default:true"`
-	isSuperUser  string       `gorm:"default:false"`
+	IsStaff      bool         `gorm:"default:false"`
+	IsActive     bool         `gorm:"default:true"`
+	IsSuperUser  bool         `gorm:"default:false"`
 	Profile      Profile      `gorm:"foreignKey:UserID"`
 	UserSettings UserSettings `gorm:"foreignKey:UserID"`
+	Birthday     *time.Time
 }
-
 type Profile struct {
 	gorm.Model
 	FirstName    string         `gorm:"type:varchar(255)"`

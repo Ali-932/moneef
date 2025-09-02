@@ -1,19 +1,25 @@
-package db
+/*
+Copyright © 2025 NAME HERE <EMAIL ADDRESS>
+*/
+package cmd
 
 import (
 	"fmt"
+	"gorm.io/gorm"
+	"log"
 	"math/rand"
 	"moneef/internal"
-	"time"
-
-	"gorm.io/gorm"
+	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/pkg/utils"
+	"time"
+
+	"github.com/spf13/cobra"
 )
 
-// Seed inserts essential/default data into the database.
-// It is safe to call multiple times; it will not duplicate records.
-func Seed(database *gorm.DB) error {
+func Seed(cmd *cobra.Command, args []string) error {
+	log.Printf("Starting database seeding...")
+	database := db.DB
 	if err := seedCategories(database); err != nil {
 		return fmt.Errorf("seeding categories: %w", err)
 	}
@@ -23,10 +29,12 @@ func Seed(database *gorm.DB) error {
 	if err := seedUsersAndProfiles(database); err != nil {
 		return fmt.Errorf("seeding users and profiles: %w", err)
 	}
+	log.Printf("Database seeding completed successfully!")
 	return nil
 }
 
 func seedUsersAndProfiles(database *gorm.DB) error {
+	log.Printf("Seeding users and profiles...")
 	rand.Seed(time.Now().UnixNano())
 
 	type userSeed struct {
@@ -61,11 +69,13 @@ func seedUsersAndProfiles(database *gorm.DB) error {
 		user := models.User{
 			Email:    u.Email,
 			Password: string(hashed),
-			IsStaff:  "false",
+			IsStaff:  false,
 		}
 		if err := database.Create(&user).Error; err != nil {
 			return fmt.Errorf("creating user %s: %w", u.Email, err)
 		}
+
+		log.Printf("Created user: %s", u.Email)
 
 		profile := models.Profile{
 			FirstName: u.FirstName,
@@ -90,6 +100,7 @@ func seedUsersAndProfiles(database *gorm.DB) error {
 }
 
 func seedCategories(database *gorm.DB) error {
+	log.Printf("Seeding categories...")
 	tExpense := "expense"
 	tIncome := "income"
 	type defaultCategory struct {
@@ -153,6 +164,7 @@ func seedCategories(database *gorm.DB) error {
 }
 
 func seedCurrencies(database *gorm.DB) error {
+	log.Printf("Seeding currencies...")
 
 	for _, d := range internal.Currencies {
 		var count int64
@@ -175,4 +187,19 @@ func seedCurrencies(database *gorm.DB) error {
 		}
 	}
 	return nil
+}
+
+var seedCmd = &cobra.Command{
+	Use:   "seed",
+	Short: "This seeds the database with initial data",
+	Long:  ``,
+	RunE:  Seed,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		_, err := db.Connect()
+		return err
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(seedCmd)
 }

@@ -40,10 +40,6 @@ func run() error {
 		return err
 	}
 	log.Println("Done migrations")
-	log.Println("Seeding essential data")
-	if err := db.Seed(database); err != nil {
-		return err
-	}
 	mux := routes.SetupRoutes()
 	wrappedMux := SessionManager.LoadAndSave(mux)
 	log.Printf("Server running at http://localhost%s\n", config.Port)

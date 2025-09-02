@@ -18,7 +18,6 @@ type CategoryRequest struct {
 
 type TransactionRequest struct {
 	TransactionName         string            `json:"transaction_name" validate:"required"`
-	ProfileId               uint              `json:"profile_id" validate:"required"`
 	Amount                  decimal.Decimal   `json:"amount" validate:"required"`
 	CurrencyCode            string            `json:"currency_code" validate:"required,len=3"`
 	TransactionType         string            `json:"transaction_type" validate:"required,oneof=expense income"`
@@ -39,6 +38,7 @@ type TransactionRequest struct {
 
 func (tr *TransactionRequest) Validate() error {
 	validate := validator.New()
+
 	if err := validate.Struct(tr); err != nil {
 		return err
 	}
@@ -70,7 +70,13 @@ func (tr *TransactionRequest) Validate() error {
 	return nil
 }
 func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
-
+	profileID, ok := r.Context().Value("profileID").(uint)
+	log.Printf("%v", profileID)
+	if !ok {
+		log.Printf("❌ [HANDLER] profileID not found in context")
+		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
 	var req TransactionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("❌ [HANDLER] Failed to decode request body: %v", err)
@@ -97,7 +103,7 @@ func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := services.HandleTransactionCreation(services.TransactionCreationParams{
-		ProfileID:            req.ProfileId,
+		ProfileID:            profileID,
 		Name:                 req.TransactionName,
 		Type:                 req.TransactionType,
 		Date:                 req.Date,

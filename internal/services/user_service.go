@@ -3,11 +3,12 @@ package services
 import (
 	"errors"
 	"gorm.io/gorm"
+	"moneef/internal/models"
 	"moneef/internal/repository"
 )
 
-func CheckUsernameExist(username string) (bool, error) {
-	user, err := repository.GetUserByUsername(username)
+func CheckEmailExist(email string) (bool, error) {
+	user, err := repository.GetUserByEmail(email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
@@ -20,8 +21,15 @@ func CheckUsernameExist(username string) (bool, error) {
 	return true, nil
 }
 
-func CheckUserCredentials(username, password string) (string, error) {
-	user, err := repository.CheckCredentialsMatch(username, password)
+func CreateUser(user *models.User) error {
+	if err := repository.CreateUser(user); err != nil {
+		return err
+	}
+	return nil
+}
+
+func CheckUserCredentials(email, password string) (string, error) {
+	user, err := repository.CheckCredentialsMatch(email, password)
 	if err != nil {
 		return "", err
 	}

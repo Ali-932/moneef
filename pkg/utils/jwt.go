@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-func GenerateJWT(username string) (string, error) {
+func GenerateJWT(email string) (string, error) {
 	config := internal.GetConfig()
 	var JwtKey = []byte(config.JWTSecret)
 	claims := jwt.MapClaims{
-		"username": username,
-		"exp":      time.Now().Add(time.Hour * 672).Unix(), // expires in a month
+		"email": email,
+		"exp":   time.Now().Add(time.Hour * 672).Unix(), // expires in a month
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	SignedToken, err := token.SignedString(JwtKey)

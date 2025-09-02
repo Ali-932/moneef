@@ -6,17 +6,17 @@ import (
 	"moneef/pkg/utils"
 )
 
-func GetUserByUsername(username string) (*models.User, error) {
+func GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
-	result := db.DB.Where("username = ?", username).First(&user)
+	result := db.DB.Where("email = ?", email).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	return &user, nil
 }
 
-func CheckCredentialsMatch(username, password string) (*models.User, error) {
-	user, err := GetUserByUsername(username)
+func CheckCredentialsMatch(email, password string) (*models.User, error) {
+	user, err := GetUserByEmail(email)
 	if err != nil {
 		return nil, err
 	}
@@ -25,4 +25,8 @@ func CheckCredentialsMatch(username, password string) (*models.User, error) {
 		return nil, err
 	}
 	return user, nil
+}
+
+func CreateUser(user *models.User) error {
+	return db.DB.Create(user).Error
 }
