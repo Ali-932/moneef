@@ -88,7 +88,7 @@ func seedUsersAndProfiles(database *gorm.DB) error {
 
 		settings := models.UserSettings{
 			UserID:                user.ID,
-			Locale:                "en-US",
+			Language:              "en",
 			IsNotificationEnabled: true,
 			IsDarkMode:            rand.Intn(2) == 0,
 		}

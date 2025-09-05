@@ -1,0 +1,9 @@
+POST http://localhost:8000/api/v1/analysis/get_spending_by_category
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZXhwIjoxNzU5MjUyMTI0fQ.NS_Vu36lmwu59bLYmHFspL-XF-k0ViZ9IRvY1yY3Ib0
+
+{
+  "start_date": "2025-01-01T00:00:00Z",
+  "end_date": "2025-12-31T23:59:59Z"
+}
+

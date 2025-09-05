@@ -28,8 +28,10 @@ type Profile struct {
 
 type UserSettings struct {
 	gorm.Model
-	UserID                uint   `gorm:"not null;"`
-	Locale                string `gorm:"not null;"`
-	IsNotificationEnabled bool   `gorm:"default:true"`
-	IsDarkMode            bool   `gorm:"default:false"`
+	UserID                uint      `gorm:"not null;"`
+	CurrencyCode          string    `gorm:"type:char(3);not null;index; default:'USD'"`
+	Currency              *Currency `gorm:"foreignKey:CurrencyCode;references:Code"`
+	Language              string    `gorm:"type:varchar(10);not null;default:'en';check:language IN ('en','ar')"`
+	IsNotificationEnabled bool      `gorm:"default:true"`
+	IsDarkMode            bool      `gorm:"default:false"`
 }

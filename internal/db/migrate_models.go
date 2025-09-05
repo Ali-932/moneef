@@ -14,9 +14,11 @@ func MigrateModels(database *gorm.DB) error {
 		&models.Profile{},
 		&models.Category{},
 		&models.Transaction{},
+		&models.TransactionCategory{},
 		&models.Pattern{},
 		&models.Currency{},
 		&models.RecurrenceTemplate{},
+		&models.RecurrenceTemplateCategory{},
 		&models.Currency{},
 		&models.CurrencyExchangeRate{},
 	}
