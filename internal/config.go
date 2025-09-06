@@ -67,6 +67,9 @@ var Currencies = []defaultCurrencies{
 	{Code: "TRY", Symbol: "₺", Name: "Turkish Lira"},
 }
 
+var AmountRounding int32 = 2
+var CategoriesOthersThreshold = 7
+
 func GetConfig() *Config {
 	once.Do(func() {
 		_ = godotenv.Load()

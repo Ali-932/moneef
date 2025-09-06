@@ -23,7 +23,7 @@ type Profile struct {
 	UserID       uint           `gorm:"not null;"`
 	Categories   *[]Category    `gorm:"foreignKey:ProfileID;"`
 	Patterns     *[]Pattern     `gorm:"foreignKey:ProfileID;"`
-	Transactions *[]Transaction `gorm:"foreignKey:ProfileID;"`
+	Transactions *[]Transaction `gorm:"foreignKey:ProfileID;references:ID;constraint:OnDelete:CASCADE;"`
 }
 
 type UserSettings struct {

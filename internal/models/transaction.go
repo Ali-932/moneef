@@ -26,9 +26,10 @@ type TransactionCategory struct {
 	gorm.Model
 	TransactionID uint         `gorm:"not null"`
 	CategoryID    uint         `gorm:"not null;"`
-	Category      Category     `gorm:"foreignKey:CategoryID"`
+	Category      Category     `gorm:"foreignKey:CategoryID;references:ID;constraint:OnDelete:CASCADE"`
 	Amount        *types.Money `gorm:"type:decimal(10,2);not null"`
-	Transaction   Transaction  `gorm:"foreignKey:TransactionID"`
+
+	Transaction Transaction `gorm:"foreignKey:TransactionID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 type RecurrenceTemplate struct {
@@ -60,7 +61,7 @@ type RecurrenceTemplateCategory struct {
 	gorm.Model
 	RecurrenceTemplateID uint               `gorm:"not null"`
 	CategoryID           uint               `gorm:"not null;"`
-	Category             Category           `gorm:"foreignKey:CategoryID"`
+	Category             Category           `gorm:"foreignKey:CategoryID;;constraint:OnDelete:CASCADE"`
 	Amount               *types.Money       `gorm:"type:decimal(10,2);not null"`
-	RecurrenceTemplate   RecurrenceTemplate `gorm:"foreignKey:RecurrenceTemplateID"`
+	RecurrenceTemplate   RecurrenceTemplate `gorm:"foreignKey:RecurrenceTemplateID;references:ID;constraint:OnDelete:CASCADE"`
 }

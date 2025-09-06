@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
+	"github.com/shopspring/decimal"
 	"log"
 	"moneef/internal/repository"
 	"moneef/internal/services"
@@ -17,7 +18,7 @@ type SpendByCategoryChartRequest struct {
 }
 type SpendByCategoryChartResponse struct {
 	Categories []repository.CategorySummary `json:"categories"`
-	Total      float64                      `json:"total"`
+	Total      decimal.Decimal              `json:"total"`
 	StartDate  time.Time
 	EndDate    time.Time
 }

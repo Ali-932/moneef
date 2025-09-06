@@ -25,7 +25,7 @@ func Connect() (*gorm.DB, error) {
 		},
 	)
 
-	db, err := gorm.Open(sqlite.Open("db.sqlite"), &gorm.Config{Logger: logCfg})
+	db, err := gorm.Open(sqlite.Open("db.sqlite?_foreign_keys=on"), &gorm.Config{Logger: logCfg, DisableForeignKeyConstraintWhenMigrating: false})
 	if err != nil {
 		return nil, fmt.Errorf("connot connect to the database %w", err)
 	}

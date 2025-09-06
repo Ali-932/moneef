@@ -1,14 +1,16 @@
 package repository
 
 import (
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"time"
 )
 
 type CategorySummary struct {
-	CategoryID   uint    `json:"category_id"`
-	CategoryName string  `json:"category_name"`
-	TotalAmount  float64 `json:"total_amount"`
+	CategoryID   uint            `json:"category_id"`
+	CategoryName string          `json:"category_name"`
+	TotalAmount  decimal.Decimal `json:"total_amount"`
+	Percentage   decimal.Decimal `json:"percentage"`
 }
 
 func GetTransactionsGroupedByCategory(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) ([]CategorySummary, error) {
@@ -20,6 +22,7 @@ func GetTransactionsGroupedByCategory(tx *gorm.DB, profileId uint, startDate, en
 		Joins("LEFT JOIN currency_exchange_rates cer ON t.currency_code = cer.currency_code1 AND cer.currency_code2 = (Select code FROM currencies WHERE code = ?)", baseCurrency).
 		Where("t.profile_id = ? AND t.date >= ? AND t.date <= ? AND t.type = 'expense'", profileId, startDate, endDate).
 		Group("c.id, c.name").
+		Order("total_amount DESC").
 		Scan(&results).Error
 	if err != nil {
 		return nil, err
@@ -27,14 +30,16 @@ func GetTransactionsGroupedByCategory(tx *gorm.DB, profileId uint, startDate, en
 	return results, nil
 }
 
-func GetTransactionTotalExpense(tx *gorm.DB, profileId uint, startDate, endDate time.Time) (float64, error) {
-	var totalExpense float64
+func GetTransactionTotalExpense(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) (decimal.Decimal, error) {
+	var totalExpense decimal.Decimal
 	err := tx.Table("transactions t").
-		Where("profile_id = ? AND date >= ? AND date <= ? AND type='expense'", profileId, startDate, endDate).
+		Select("SUM(tc.amount * COALESCE(cer.rate, 1)) as total_expense").
 		Joins("JOIN transaction_categories tc ON t.id = tc.transaction_id").
-		Select("SUM(tc.amount)").Scan(&totalExpense).Error
+		Joins("LEFT JOIN currency_exchange_rates cer ON t.currency_code = cer.currency_code1 AND cer.currency_code2 = (Select code FROM currencies WHERE code = ?)", baseCurrency).
+		Where("t.profile_id = ? AND t.date >= ? AND t.date <= ? AND t.type = 'expense'", profileId, startDate, endDate).
+		Scan(&totalExpense).Error
 	if err != nil {
-		return 0, err
+		return decimal.Zero, err
 	}
 	return totalExpense, nil
 }

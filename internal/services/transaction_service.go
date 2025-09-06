@@ -270,6 +270,7 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentP
 			RecurrenceTemplateID: id,
 		})
 	}
+
 	err = repository.CreateTransactionCategoryRecurrentBulk(tx, transactionCategories)
 	if err != nil {
 		log.Printf("❌ [SERVICE] Failed to create transaction-category associations: %v", err)
