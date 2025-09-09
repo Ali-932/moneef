@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/alexedwards/scs/v2"
 	"log"
-	"moneef/internal"
+	"moneef/internal/config"
 	"moneef/internal/db"
 	"moneef/internal/routes"
 	"net/http"
@@ -22,14 +22,14 @@ func run() error {
 	log.Println("Connecting to the database")
 	database, err := db.Connect()
 	log.Println("Loading Config")
-	config := internal.GetConfig()
+	configEnv := config.GetConfig()
 	if err != nil {
 		log.Fatal("can ot connect to the database")
 	}
 	log.Println("Setting up sessions")
-	SessionManager = internal.SetUpSessions()
+	SessionManager = config.SetUpSessions()
 	log.Printf("Setting up logs")
-	logFile := internal.SetUpLogs()
+	logFile := config.SetUpLogs()
 	defer func() {
 		if err := logFile.Close(); err != nil {
 			log.Println("Error closing log file:", err)
@@ -42,6 +42,6 @@ func run() error {
 	log.Println("Done migrations")
 	mux := routes.SetupRoutes()
 	wrappedMux := SessionManager.LoadAndSave(mux)
-	log.Printf("Server running at http://localhost%s\n", config.Port)
-	return http.ListenAndServe(config.Port, wrappedMux)
+	log.Printf("Server running at http://localhost%s\n", configEnv.Port)
+	return http.ListenAndServe(configEnv.Port, wrappedMux)
 }

@@ -6,10 +6,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"moneef/internal/db"
-	"moneef/internal/handlers"
 	"moneef/internal/models"
-	"moneef/internal/repository"
-	"moneef/internal/services"
+	"moneef/internal/transactions"
 	"moneef/pkg/middleware"
 	"moneef/pkg/types"
 	"moneef/pkg/utils"
@@ -55,7 +53,7 @@ func (suite *TestSuite) createTestServer() *httptest.Server {
 		r.Use(middleware.AuthMiddleware)
 
 		r.Route("/transaction", func(r chi.Router) {
-			r.Post("/create", handlers.CreateTransactionHandler)
+			r.Post("/create", transactions.CreateTransactionHandler)
 		})
 	})
 
@@ -149,13 +147,13 @@ func NewTransactionTestHelper(suite *TestSuite) *TransactionTestHelper {
 	}
 }
 
-func (h *TransactionTestHelper) createTransactionRequest(name string, amount float64, trasnType string, opts ...TransactionOption) handlers.TransactionRequest {
-	req := handlers.TransactionRequest{
+func (h *TransactionTestHelper) createTransactionRequest(name string, amount float64, trasnType string, opts ...TransactionOption) transactions.TransactionRequest {
+	req := transactions.TransactionRequest{
 		TransactionName: name,
 		CurrencyCode:    "USD",
 		TransactionType: trasnType,
 		Date:            time.Now(),
-		TransactionCategories: []handlers.TransactionCategoryRequest{
+		TransactionCategories: []transactions.TransactionCategoryRequest{
 			{CategoryId: 1, Amount: decimal.NewFromFloat(amount)},
 		},
 	}
@@ -167,7 +165,7 @@ func (h *TransactionTestHelper) createTransactionRequest(name string, amount flo
 	return req
 }
 
-type TransactionOption func(*handlers.TransactionRequest)
+type TransactionOption func(*transactions.TransactionRequest)
 
 type CategoryAmount struct {
 	ID     uint
@@ -175,10 +173,10 @@ type CategoryAmount struct {
 }
 
 func WithCategories(categories ...CategoryAmount) TransactionOption {
-	return func(r *handlers.TransactionRequest) {
-		r.TransactionCategories = make([]handlers.TransactionCategoryRequest, len(categories))
+	return func(r *transactions.TransactionRequest) {
+		r.TransactionCategories = make([]transactions.TransactionCategoryRequest, len(categories))
 		for i, cat := range categories {
-			r.TransactionCategories[i] = handlers.TransactionCategoryRequest{
+			r.TransactionCategories[i] = transactions.TransactionCategoryRequest{
 				CategoryId: cat.ID,
 				Amount:     cat.Amount,
 			}
@@ -187,7 +185,7 @@ func WithCategories(categories ...CategoryAmount) TransactionOption {
 }
 
 func WithRecurrence(frequency string, active bool) TransactionOption {
-	return func(r *handlers.TransactionRequest) {
+	return func(r *transactions.TransactionRequest) {
 		r.IsRecurrent = ptrBool(true)
 		r.RecurrentFreq = ptrString(frequency)
 		r.IsActiveRecurrent = ptrBool(active)
@@ -196,7 +194,7 @@ func WithRecurrence(frequency string, active bool) TransactionOption {
 }
 
 func WithRecurrenceEndDate(endDate time.Time, totalAmount, paidPreviously float64) TransactionOption {
-	return func(r *handlers.TransactionRequest) {
+	return func(r *transactions.TransactionRequest) {
 		r.RecurrentHasEndDate = ptrBool(true)
 		r.RecurrentEndDate = &endDate
 		r.RecurrentTotalAmount = ptrDecimal(decimal.NewFromFloat(totalAmount))
@@ -205,25 +203,25 @@ func WithRecurrenceEndDate(endDate time.Time, totalAmount, paidPreviously float6
 }
 
 func WithMerchant(name string) TransactionOption {
-	return func(r *handlers.TransactionRequest) {
+	return func(r *transactions.TransactionRequest) {
 		r.MerchantName = ptrString(name)
 	}
 }
 
 func WithNotes(notes string) TransactionOption {
-	return func(r *handlers.TransactionRequest) {
+	return func(r *transactions.TransactionRequest) {
 		r.Notes = ptrString(notes)
 	}
 }
 
 func WithIconAndColor(icon, color string) TransactionOption {
-	return func(r *handlers.TransactionRequest) {
+	return func(r *transactions.TransactionRequest) {
 		r.Icon = icon
 		r.Color = color
 	}
 }
 
-func (h *TransactionTestHelper) executeTransactionRequest(req handlers.TransactionRequest) *httptest.ResponseRecorder {
+func (h *TransactionTestHelper) executeTransactionRequest(req transactions.TransactionRequest) *httptest.ResponseRecorder {
 	body, _ := json.Marshal(req)
 	httpReq := h.suite.createAuthenticatedRequest("POST", "/api/v1/transaction/create", body)
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -473,7 +471,7 @@ func testRepositoryOperations(t *testing.T, suite *TestSuite) {
 		}
 
 		err := suite.DB.Transaction(func(tx *gorm.DB) error {
-			_, err := repository.CreateTransaction(tx, transaction)
+			_, err := transactions.CreateTransaction(tx, transaction)
 			return err
 		})
 
@@ -485,7 +483,7 @@ func testRepositoryOperations(t *testing.T, suite *TestSuite) {
 func testServiceLayer(t *testing.T, suite *TestSuite) {
 	t.Run("Create Without Categories", func(t *testing.T) {
 		err := suite.DB.Transaction(func(tx *gorm.DB) error {
-			params := services.CreateTransactionParams{
+			params := transactions.CreateTransactionParams{
 				ProfileID:             testProfileID,
 				Name:                  "Service Test",
 				Type:                  "expense",
@@ -495,7 +493,7 @@ func testServiceLayer(t *testing.T, suite *TestSuite) {
 				Color:                 "#FF5722",
 				CategoriesTransaction: map[uint]decimal.Decimal{},
 			}
-			return services.CreateTransactionWithTx(tx, params)
+			return transactions.CreateTransactionWithTx(tx, params)
 		})
 
 		assert.NoError(t, err)
@@ -510,41 +508,41 @@ func testServiceLayer(t *testing.T, suite *TestSuite) {
 func testValidation(t *testing.T, suite *TestSuite, helper *TransactionTestHelper) {
 	testCases := []struct {
 		name           string
-		modifyRequest  func(*handlers.TransactionRequest)
+		modifyRequest  func(*transactions.TransactionRequest)
 		expectedStatus int
 	}{
 		{
 			name: "Zero Amount",
-			modifyRequest: func(r *handlers.TransactionRequest) {
+			modifyRequest: func(r *transactions.TransactionRequest) {
 				r.TransactionCategories[0].Amount = decimal.Zero
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "Negative Amount",
-			modifyRequest: func(r *handlers.TransactionRequest) {
+			modifyRequest: func(r *transactions.TransactionRequest) {
 				r.TransactionCategories[0].Amount = decimal.NewFromFloat(-10.00)
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "Empty Name",
-			modifyRequest: func(r *handlers.TransactionRequest) {
+			modifyRequest: func(r *transactions.TransactionRequest) {
 				r.TransactionName = ""
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "Invalid Transaction Type",
-			modifyRequest: func(r *handlers.TransactionRequest) {
+			modifyRequest: func(r *transactions.TransactionRequest) {
 				r.TransactionType = "invalid"
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "Empty Categories",
-			modifyRequest: func(r *handlers.TransactionRequest) {
-				r.TransactionCategories = []handlers.TransactionCategoryRequest{}
+			modifyRequest: func(r *transactions.TransactionRequest) {
+				r.TransactionCategories = []transactions.TransactionCategoryRequest{}
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -586,7 +584,7 @@ func testEdgeCases(t *testing.T, suite *TestSuite) {
 			}
 
 			err := suite.DB.Transaction(func(tx *gorm.DB) error {
-				_, err := repository.CreateTransaction(tx, transaction)
+				_, err := transactions.CreateTransaction(tx, transaction)
 				if err != nil {
 					return err
 				}
@@ -599,7 +597,7 @@ func testEdgeCases(t *testing.T, suite *TestSuite) {
 					Amount:        &categoryAmount,
 				}
 
-				return repository.CreateTransactionCategoryBulk(tx, []*models.TransactionCategory{transactionCategory})
+				return transactions.CreateTransactionCategoryBulk(tx, []*models.TransactionCategory{transactionCategory})
 			})
 			assert.NoError(t, err, "Failed to create transaction: %s", tc.name)
 		})

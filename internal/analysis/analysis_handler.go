@@ -1,27 +1,12 @@
-package handlers
+package analysis
 
 import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
-	"github.com/shopspring/decimal"
 	"log"
-	"moneef/internal/repository"
-	"moneef/internal/services"
 	"moneef/pkg/utils"
 	"net/http"
-	"time"
 )
-
-type SpendByCategoryChartRequest struct {
-	StartDate time.Time `json:"start_date" validate:"required"`
-	EndDate   time.Time `json:"end_date" validate:"required,gtfield=StartDate"`
-}
-type SpendByCategoryChartResponse struct {
-	Categories []repository.CategorySummary `json:"categories"`
-	Total      decimal.Decimal              `json:"total"`
-	StartDate  time.Time
-	EndDate    time.Time
-}
 
 func SpendByCategoryChartHandler(w http.ResponseWriter, r *http.Request) {
 	profileID, ok := r.Context().Value("profileID").(uint)
@@ -42,7 +27,7 @@ func SpendByCategoryChartHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	res, err := services.GetSpendByCategoryChart(profileID, req.StartDate, req.EndDate)
+	res, err := GetSpendByCategoryChart(profileID, req.StartDate, req.EndDate)
 	if err != nil {
 		log.Printf("❌ [HANDLER] Service error: %v", err)
 		utils.WriteJsonError(w, http.StatusInternalServerError, "Internal Server Error")

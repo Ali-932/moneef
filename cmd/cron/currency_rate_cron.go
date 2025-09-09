@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"moneef/internal"
-	"moneef/internal/services"
+	"moneef/internal/config"
+	"moneef/internal/transactions"
 	"net/http"
 	"time"
 )
@@ -21,7 +21,7 @@ func main() error {
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
-	for _, currencyObject := range internal.Currencies {
+	for _, currencyObject := range config.Currencies {
 		log.Printf("🌐 [CRON] Supported currency: %s", currencyObject.Code)
 		endpoint := fmt.Sprintf("https://v6.exchangerate-api.com/v6/f5b4aaa9448c0f9a060ca1ef/latest/%s", currencyObject.Code)
 		resp, err := client.Get(endpoint)
@@ -40,7 +40,7 @@ func main() error {
 		if apiResponse.Result != "success" {
 			return fmt.Errorf("API request failed: %s", apiResponse.Result)
 		}
-		err = services.CreateUpdateCurrencyRates(apiResponse.BaseCode, apiResponse.ConversionRates)
+		err = transactions.CreateUpdateCurrencyRates(apiResponse.BaseCode, apiResponse.ConversionRates)
 
 		if err != nil {
 			log.Printf("Error reading response: %v", err)

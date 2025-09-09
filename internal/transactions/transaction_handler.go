@@ -1,4 +1,4 @@
-package handlers
+package transactions
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/shopspring/decimal"
 	"log"
-	"moneef/internal/services"
 	"moneef/pkg/utils"
 	"net/http"
 	"time"
@@ -44,7 +43,6 @@ func (tr *TransactionRequest) Validate() error {
 	}
 	seenCategories := make(map[uint]bool)
 	for _, c := range tr.TransactionCategories {
-		// Check for duplicate categories
 		if seenCategories[c.CategoryId] {
 			return errors.New("duplicate category_id found in transaction_categories")
 		}
@@ -116,7 +114,7 @@ func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
 		CategoriesTransaction[c.CategoryId] = c.Amount
 	}
 
-	if err := services.HandleTransactionCreation(services.TransactionCreationParams{
+	if err := HandleTransactionCreation(TransactionCreationParams{
 		ProfileID:             profileID,
 		Name:                  req.TransactionName,
 		Type:                  req.TransactionType,

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"moneef/internal/auth"
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/pkg/utils"
@@ -18,7 +19,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 		token := strings.TrimPrefix(AuthHeader, "Bearer ")
 
-		claims, err := utils.ValidateJWT(token)
+		claims, err := auth.ValidateJWT(token)
 		if err != nil {
 			utils.WriteJsonError(w, http.StatusUnauthorized, err.Error())
 

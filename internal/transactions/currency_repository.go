@@ -1,4 +1,4 @@
-package repository
+package transactions
 
 import (
 	"moneef/internal/db"

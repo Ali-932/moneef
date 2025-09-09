@@ -1,11 +1,10 @@
-package handlers
+package auth
 
 import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
 	"moneef/internal/models"
-	"moneef/internal/services"
 	"moneef/pkg/utils"
 	"net/http"
 	"time"
@@ -33,7 +32,7 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	emailExist, err := services.CheckEmailExist(req.Email)
+	emailExist, err := CheckEmailExist(req.Email)
 	if err != nil {
 		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
 		return
@@ -42,12 +41,12 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJsonError(w, http.StatusConflict, "Email already exists")
 		return
 	}
-	hashedPassword, err := utils.HashPassword(req.Password)
+	hashedPassword, err := HashPassword(req.Password)
 	if err != nil {
 		utils.WriteJsonError(w, http.StatusBadRequest, "Could not hash password")
 		return
 	}
-	err = services.CreateUser(&models.User{
+	err = CreateUser(&models.User{
 		Model:    gorm.Model{},
 		Email:    req.Email,
 		Password: string(hashedPassword),
@@ -69,12 +68,12 @@ func LoginUserHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	_, err := services.CheckUserCredentials(req.Email, req.Password)
+	_, err := CheckUserCredentials(req.Email, req.Password)
 	if err != nil {
 		utils.WriteJsonError(w, http.StatusBadRequest, "Wrong email or password")
 		return
 	}
-	token, err := utils.GenerateJWT(req.Email)
+	token, err := GenerateJWT(req.Email)
 	if err != nil {
 		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
 		return

@@ -1,14 +1,14 @@
-package utils
+package auth
 
 import (
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
-	"moneef/internal"
+	"moneef/internal/config"
 	"time"
 )
 
 func GenerateJWT(email string) (string, error) {
-	config := internal.GetConfig()
+	config := config.GetConfig()
 	var JwtKey = []byte(config.JWTSecret)
 	claims := jwt.MapClaims{
 		"email": email,
@@ -23,7 +23,7 @@ func GenerateJWT(email string) (string, error) {
 }
 
 func ValidateJWT(tokenString string) (jwt.MapClaims, error) {
-	config := internal.GetConfig()
+	config := config.GetConfig()
 	secret := []byte(config.JWTSecret)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

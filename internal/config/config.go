@@ -1,4 +1,4 @@
-package internal
+package config
 
 import (
 	"flag"
@@ -66,9 +66,6 @@ var Currencies = []defaultCurrencies{
 	{Code: "IRR", Symbol: "﷼", Name: "Iranian Rial"},
 	{Code: "TRY", Symbol: "₺", Name: "Turkish Lira"},
 }
-
-var AmountRounding int32 = 2
-var CategoriesOthersThreshold = 7
 
 func GetConfig() *Config {
 	once.Do(func() {

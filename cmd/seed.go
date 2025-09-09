@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"math/rand"
-	"moneef/internal"
+	"moneef/internal/config"
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/pkg/utils"
@@ -166,7 +166,7 @@ func seedCategories(database *gorm.DB) error {
 func seedCurrencies(database *gorm.DB) error {
 	log.Printf("Seeding currencies...")
 
-	for _, d := range internal.Currencies {
+	for _, d := range config.Currencies {
 		var count int64
 		if err := database.Model(&models.Currency{}).
 			Where("code = ?", d.Code).

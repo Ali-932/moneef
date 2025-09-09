@@ -1,14 +1,13 @@
-package services
+package auth
 
 import (
 	"errors"
 	"gorm.io/gorm"
 	"moneef/internal/models"
-	"moneef/internal/repository"
 )
 
 func CheckEmailExist(email string) (bool, error) {
-	user, err := repository.GetUserByEmail(email)
+	user, err := GetUserByEmail(email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, nil
@@ -21,15 +20,15 @@ func CheckEmailExist(email string) (bool, error) {
 	return true, nil
 }
 
-func CreateUser(user *models.User) error {
-	if err := repository.CreateUser(user); err != nil {
+func CreateUserService(user *models.User) error {
+	if err := CreateUser(user); err != nil {
 		return err
 	}
 	return nil
 }
 
 func CheckUserCredentials(email, password string) (string, error) {
-	user, err := repository.CheckCredentialsMatch(email, password)
+	user, err := CheckCredentialsMatch(email, password)
 	if err != nil {
 		return "", err
 	}

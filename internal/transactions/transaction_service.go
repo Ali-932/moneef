@@ -1,4 +1,4 @@
-package services
+package transactions
 
 import (
 	"context"
@@ -6,9 +6,9 @@ import (
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"log"
+	"moneef/internal/auth"
 	"moneef/internal/db"
 	"moneef/internal/models"
-	"moneef/internal/repository"
 	"moneef/pkg/types"
 	"moneef/pkg/utils"
 	"time"
@@ -41,7 +41,7 @@ func HandleTransactionCreation(params TransactionCreationParams) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	userExist, err := repository.ProfileByIdExist(params.ProfileID)
+	userExist, err := auth.ProfileByIdExist(params.ProfileID)
 	if err != nil {
 		log.Printf("❌ [SERVICE] Error while retriving user information %v", err)
 		return err
@@ -155,7 +155,7 @@ func CreateTransactionWithTx(tx *gorm.DB, p CreateTransactionParams) error {
 		RecurrenceTemplateID: p.RecurrenceTemplateID,
 	}
 
-	Id, err := repository.CreateTransaction(tx, trx)
+	Id, err := CreateTransaction(tx, trx)
 	if err != nil {
 		log.Printf("❌ [SERVICE] Database persistence failed: %v", err)
 		return err
@@ -170,7 +170,7 @@ func CreateTransactionWithTx(tx *gorm.DB, p CreateTransactionParams) error {
 			TransactionID: *Id,
 		})
 	}
-	err = repository.CreateTransactionCategoryBulk(tx, transactionCategory)
+	err = CreateTransactionCategoryBulk(tx, transactionCategory)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentP
 		StartDate:            &p.StartDate,
 	}
 
-	id, err := repository.CreateTransactionRecurrent(tx, trxRecurrent)
+	id, err := CreateTransactionRecurrent(tx, trxRecurrent)
 
 	if err != nil {
 		log.Printf("❌ [SERVICE] Failed to persist recurrence template: %v", err)
@@ -271,7 +271,7 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentP
 		})
 	}
 
-	err = repository.CreateTransactionCategoryRecurrentBulk(tx, transactionCategories)
+	err = CreateTransactionCategoryRecurrentBulk(tx, transactionCategories)
 	if err != nil {
 		log.Printf("❌ [SERVICE] Failed to create transaction-category associations: %v", err)
 		return 0, err

@@ -1,17 +1,10 @@
-package repository
+package analysis
 
 import (
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"time"
 )
-
-type CategorySummary struct {
-	CategoryID   uint            `json:"category_id"`
-	CategoryName string          `json:"category_name"`
-	TotalAmount  decimal.Decimal `json:"total_amount"`
-	Percentage   decimal.Decimal `json:"percentage"`
-}
 
 func GetTransactionsGroupedByCategory(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) ([]CategorySummary, error) {
 	var results []CategorySummary
