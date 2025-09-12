@@ -1,4 +1,4 @@
-package transactions
+package service
 
 import (
 	"context"
@@ -9,33 +9,14 @@ import (
 	"moneef/internal/auth"
 	"moneef/internal/db"
 	"moneef/internal/models"
+	"moneef/internal/transactions/dto"
+	"moneef/internal/transactions/repository"
 	"moneef/pkg/types"
 	"moneef/pkg/utils"
 	"time"
 )
 
-type TransactionCreationParams struct {
-	ProfileID             uint
-	Name                  string
-	Type                  string
-	Date                  time.Time
-	CurrencyCode          string
-	Icon                  string
-	Color                 string
-	MerchantName          *string
-	Notes                 *string
-	CategoriesTransaction map[uint]decimal.Decimal
-	RecurrenceTemplateID  *uint
-	IsRecurrent           *bool
-	Frequency             *string
-	AmountPaidPreviously  *decimal.Decimal
-	TotalAmountToPay      *decimal.Decimal
-	EndDate               *time.Time
-	HasEndDate            *bool
-	IsActive              *bool
-}
-
-func HandleTransactionCreation(params TransactionCreationParams) error {
+func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 	log.Printf("🔧 [SERVICE] recived transaction '%s'Transaction details - Type: %s, Date: %s ",
 		params.Name, params.Type, params.Date.Format("2006-01-02"))
 
@@ -76,7 +57,7 @@ func HandleTransactionCreation(params TransactionCreationParams) error {
 			log.Printf("🔄 [SERVICE] Recurrence config - Frequency: %s, HasEndDate: %t, IsActive: %t",
 				freq, hasEnd, isActive)
 
-			p := CreateTransactionRecurrentParams{
+			p := dto.CreateTransactionRecurrentParams{
 				ProfileID:             params.ProfileID,
 				Name:                  params.Name,
 				CurrencyCode:          params.CurrencyCode,
@@ -104,7 +85,7 @@ func HandleTransactionCreation(params TransactionCreationParams) error {
 			log.Printf("✅ [SERVICE] Created recurrence template with ID: %d", recID)
 		}
 
-		if err := CreateTransactionWithTx(tx, CreateTransactionParams{
+		if err := CreateTransactionWithTx(tx, dto.CreateTransactionParams{
 			ProfileID:             params.ProfileID,
 			Name:                  params.Name,
 			CurrencyCode:          params.CurrencyCode,
@@ -126,21 +107,7 @@ func HandleTransactionCreation(params TransactionCreationParams) error {
 	})
 }
 
-type CreateTransactionParams struct {
-	ProfileID             uint
-	Name                  string
-	CurrencyCode          string
-	Type                  string
-	Date                  time.Time
-	Icon                  string
-	Color                 string
-	MerchantName          *string
-	Notes                 *string
-	CategoriesTransaction map[uint]decimal.Decimal
-	RecurrenceTemplateID  *uint
-}
-
-func CreateTransactionWithTx(tx *gorm.DB, p CreateTransactionParams) error {
+func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) error {
 
 	trx := &models.Transaction{
 		ProfileID:            p.ProfileID,
@@ -155,7 +122,7 @@ func CreateTransactionWithTx(tx *gorm.DB, p CreateTransactionParams) error {
 		RecurrenceTemplateID: p.RecurrenceTemplateID,
 	}
 
-	Id, err := CreateTransaction(tx, trx)
+	Id, err := repository.CreateTransaction(tx, trx)
 	if err != nil {
 		log.Printf("❌ [SERVICE] Database persistence failed: %v", err)
 		return err
@@ -170,7 +137,7 @@ func CreateTransactionWithTx(tx *gorm.DB, p CreateTransactionParams) error {
 			TransactionID: *Id,
 		})
 	}
-	err = CreateTransactionCategoryBulk(tx, transactionCategory)
+	err = repository.CreateTransactionCategoryBulk(tx, transactionCategory)
 	if err != nil {
 		return err
 	}
@@ -178,28 +145,7 @@ func CreateTransactionWithTx(tx *gorm.DB, p CreateTransactionParams) error {
 	return nil
 }
 
-type CreateTransactionRecurrentParams struct {
-	ProfileID             uint
-	Name                  string
-	CurrencyCode          string
-	Type                  string
-	StartDate             time.Time
-	Icon                  string
-	Color                 string
-	MerchantName          *string
-	Notes                 *string
-	CategoriesTransaction map[uint]decimal.Decimal
-	Frequency             string
-	HasEndDate            bool
-	EndDate               *time.Time
-	IsActive              bool
-	NextPaymentAmount     *decimal.Decimal
-	AmountPaidPreviously  *decimal.Decimal
-	AmountLeftToPay       *decimal.Decimal
-	TotalAmountToPay      *decimal.Decimal
-}
-
-func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentParams) (uint, error) {
+func CreateTransactionRecurrentWithTx(tx *gorm.DB, p dto.CreateTransactionRecurrentParams) (uint, error) {
 	TransactionTotalAmount := decimal.NewFromInt(0)
 	for _, amt := range p.CategoriesTransaction {
 		TransactionTotalAmount = TransactionTotalAmount.Add(amt)
@@ -255,7 +201,7 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentP
 		StartDate:            &p.StartDate,
 	}
 
-	id, err := CreateTransactionRecurrent(tx, trxRecurrent)
+	id, err := repository.CreateTransactionRecurrent(tx, trxRecurrent)
 
 	if err != nil {
 		log.Printf("❌ [SERVICE] Failed to persist recurrence template: %v", err)
@@ -271,7 +217,7 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p CreateTransactionRecurrentP
 		})
 	}
 
-	err = CreateTransactionCategoryRecurrentBulk(tx, transactionCategories)
+	err = repository.CreateTransactionCategoryRecurrentBulk(tx, transactionCategories)
 	if err != nil {
 		log.Printf("❌ [SERVICE] Failed to create transaction-category associations: %v", err)
 		return 0, err

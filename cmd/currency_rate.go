@@ -7,7 +7,7 @@ import (
 	"log"
 	"moneef/internal/config"
 	"moneef/internal/db"
-	"moneef/internal/transactions"
+	"moneef/internal/transactions/service"
 	"moneef/pkg/utils"
 	"net/http"
 	"time"
@@ -47,7 +47,7 @@ func fetchCurrencyRates(cmd *cobra.Command, args []string) error {
 		if apiResponse.Result != "success" {
 			return fmt.Errorf("API request failed: %s", apiResponse.Result)
 		}
-		err = transactions.CreateUpdateCurrencyRates(apiResponse.BaseCode, apiResponse.ConversionRates)
+		err = service.CreateUpdateCurrencyRates(apiResponse.BaseCode, apiResponse.ConversionRates)
 
 		if err != nil {
 			log.Printf("Error reading response: %v", err)

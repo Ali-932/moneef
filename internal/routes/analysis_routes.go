@@ -7,6 +7,6 @@ import (
 
 func AnalysisRoute() chi.Router {
 	r := chi.NewRouter()
-	r.Post("/get_spending_by_category", analysis.SpendByCategoryChartHandler)
+	r.Post("/get_spending_by_category", analysis.GetAllAnalysisCharts)
 	return r
 }

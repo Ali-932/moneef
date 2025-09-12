@@ -1,6 +1,7 @@
-package transactions
+package service
 
 import (
+	"moneef/internal/transactions/repository"
 	"moneef/pkg/utils"
 )
 
@@ -10,11 +11,11 @@ func CreateUpdateCurrencyRates(base string, currencyList map[string]float64) err
 		if utils.IsSupportedCurrency(code) == false {
 			continue
 		}
-		err = CreateUpdateCurrencyRate(base, code, rate)
+		err = repository.CreateUpdateCurrencyRate(base, code, rate)
 		if err != nil {
 			return err
 		}
-		err = CreateUpdateCurrencyRate(code, base, 1/rate)
+		err = repository.CreateUpdateCurrencyRate(code, base, 1/rate)
 		if err != nil {
 			return err
 		}

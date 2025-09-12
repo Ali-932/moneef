@@ -6,7 +6,7 @@ import (
 	"io"
 	"log"
 	"moneef/internal/config"
-	"moneef/internal/transactions"
+	"moneef/internal/transactions/service"
 	"net/http"
 	"time"
 )
@@ -40,7 +40,7 @@ func main() error {
 		if apiResponse.Result != "success" {
 			return fmt.Errorf("API request failed: %s", apiResponse.Result)
 		}
-		err = transactions.CreateUpdateCurrencyRates(apiResponse.BaseCode, apiResponse.ConversionRates)
+		err = service.CreateUpdateCurrencyRates(apiResponse.BaseCode, apiResponse.ConversionRates)
 
 		if err != nil {
 			log.Printf("Error reading response: %v", err)

@@ -8,6 +8,8 @@ import (
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/internal/transactions"
+	"moneef/internal/transactions/repository"
+	"moneef/internal/transactions/service"
 	"moneef/pkg/middleware"
 	"moneef/pkg/types"
 	"moneef/pkg/utils"
@@ -471,7 +473,7 @@ func testRepositoryOperations(t *testing.T, suite *TestSuite) {
 		}
 
 		err := suite.DB.Transaction(func(tx *gorm.DB) error {
-			_, err := transactions.CreateTransaction(tx, transaction)
+			_, err := repository.CreateTransaction(tx, transaction)
 			return err
 		})
 
@@ -483,7 +485,7 @@ func testRepositoryOperations(t *testing.T, suite *TestSuite) {
 func testServiceLayer(t *testing.T, suite *TestSuite) {
 	t.Run("Create Without Categories", func(t *testing.T) {
 		err := suite.DB.Transaction(func(tx *gorm.DB) error {
-			params := transactions.CreateTransactionParams{
+			params := service.CreateTransactionParams{
 				ProfileID:             testProfileID,
 				Name:                  "Service Test",
 				Type:                  "expense",
@@ -493,7 +495,7 @@ func testServiceLayer(t *testing.T, suite *TestSuite) {
 				Color:                 "#FF5722",
 				CategoriesTransaction: map[uint]decimal.Decimal{},
 			}
-			return transactions.CreateTransactionWithTx(tx, params)
+			return service.CreateTransactionWithTx(tx, params)
 		})
 
 		assert.NoError(t, err)
@@ -584,7 +586,7 @@ func testEdgeCases(t *testing.T, suite *TestSuite) {
 			}
 
 			err := suite.DB.Transaction(func(tx *gorm.DB) error {
-				_, err := transactions.CreateTransaction(tx, transaction)
+				_, err := repository.CreateTransaction(tx, transaction)
 				if err != nil {
 					return err
 				}
@@ -597,7 +599,7 @@ func testEdgeCases(t *testing.T, suite *TestSuite) {
 					Amount:        &categoryAmount,
 				}
 
-				return transactions.CreateTransactionCategoryBulk(tx, []*models.TransactionCategory{transactionCategory})
+				return repository.CreateTransactionCategoryBulk(tx, []*models.TransactionCategory{transactionCategory})
 			})
 			assert.NoError(t, err, "Failed to create transaction: %s", tc.name)
 		})
