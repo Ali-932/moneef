@@ -1,0 +1,189 @@
+package tests
+
+import (
+	"bytes"
+	"fmt"
+	"moneef/internal/analysis"
+	"moneef/internal/auth"
+	"moneef/internal/transactions"
+	"moneef/tests/datasets"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/require"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+
+	"moneef/internal/db"
+	"moneef/internal/models"
+	"moneef/pkg/middleware"
+	"moneef/pkg/types"
+)
+
+// Shared test constants
+const (
+	testUserID    = uint(1)
+	testProfileID = uint(1)
+	testEmail     = "test@example.com"
+)
+
+type TestSuite struct {
+	DB      *gorm.DB
+	Cleanup func()
+	T       *testing.T
+}
+
+func NewTestSuite(t *testing.T) *TestSuite {
+	testDB, cleanup := setupTestDB(t)
+	return &TestSuite{
+		DB:      testDB,
+		Cleanup: cleanup,
+		T:       t,
+	}
+}
+
+func (suite *TestSuite) createTestServer() *httptest.Server {
+	r := chi.NewRouter()
+
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Use(chiMiddleware.Logger)
+		r.Use(middleware.CORSMiddleware)
+		r.Use(middleware.AuthMiddleware)
+
+		r.Route("/transaction", func(r chi.Router) {
+			r.Post("/create", transactions.CreateTransactionHandler)
+		})
+		r.Route("/analysis", func(r chi.Router) {
+			r.Post("/get_spending_by_category", analysis.GetAllAnalysisCharts)
+		})
+	})
+
+	return httptest.NewServer(r)
+}
+
+func (suite *TestSuite) generateTestJWT(email string) (string, error) {
+	return auth.GenerateJWT(email)
+}
+
+func (suite *TestSuite) createAuthenticatedRequest(method, url string, body []byte) *http.Request {
+	req := httptest.NewRequest(method, url, bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	token, err := suite.generateTestJWT(testEmail)
+	if err != nil {
+		suite.T.Fatalf("Failed to generate test JWT: %v", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	return req
+}
+
+func setupTestDB(t *testing.T) (*gorm.DB, func()) {
+	dbName := fmt.Sprintf("file:memdb_%d?mode=memory&cache=shared", time.Now().UnixNano())
+	testDB, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
+	require.NoError(t, err, "Failed to connect to test database")
+
+	err = testDB.AutoMigrate(
+		&models.User{},
+		&models.Profile{},
+		&models.UserSettings{},
+		&models.Category{},
+		&models.Transaction{},
+		&models.TransactionCategory{},
+		&models.RecurrenceTemplate{},
+		&models.RecurrenceTemplateCategory{},
+		&models.Currency{},
+		&models.CurrencyExchangeRate{},
+	)
+	require.NoError(t, err, "Failed to migrate test database")
+
+	seedTestData(t, testDB)
+
+	originalDB := db.DB
+	db.DB = testDB
+
+	return testDB, func() { db.DB = originalDB }
+}
+
+func seedTestData(t *testing.T, testDB *gorm.DB) {
+	user := &models.User{
+		Model:    gorm.Model{ID: testUserID},
+		Email:    testEmail,
+		Password: "hashedpassword",
+	}
+	require.NoError(t, testDB.Create(user).Error)
+
+	profile := &models.Profile{
+		Model:     gorm.Model{ID: testProfileID},
+		FirstName: "Test",
+		LastName:  "User",
+		UserID:    testUserID,
+	}
+	require.NoError(t, testDB.Create(profile).Error)
+
+	categories := []models.Category{
+		{Model: gorm.Model{ID: 1}, Name: "Food", Icon: "🍔", Color: "#FF6B6B"},
+		{Model: gorm.Model{ID: 2}, Name: "Transport", Icon: "🚗", Color: "#4ECDC4"},
+		{Model: gorm.Model{ID: 3}, Name: "Utilities", Icon: "⚡", Color: "#96CEB4"},
+		{Model: gorm.Model{ID: 4}, Name: "Entertainment", Icon: "🎬", Color: "#45B7D1"},
+		{Model: gorm.Model{ID: 5}, Name: "Shopping", Icon: "🛍️", Color: "#FFEAA7"},
+		{Model: gorm.Model{ID: 8}, Name: "Travel", Icon: "✈️", Color: "#74B9FF"},
+		{Model: gorm.Model{ID: 12}, Name: "Business", Icon: "💼", Color: "#A29BFE"},
+	}
+	for _, cat := range categories {
+		require.NoError(t, testDB.Create(&cat).Error)
+	}
+
+	currency := &models.Currency{
+		Code:   "USD",
+		Name:   "US Dollar",
+		Symbol: "$",
+	}
+	require.NoError(t, testDB.Create(currency).Error)
+}
+
+// MoneyEqual checks if two Money values are equal
+func MoneyEqual(a, b types.Money) bool {
+	return decimal.Decimal(a).Equal(decimal.Decimal(b))
+}
+
+// MoneyFromFloat creates Money from float64
+func MoneyFromFloat(value float64) types.Money {
+	return types.Money(decimal.NewFromFloat(value))
+}
+
+func (suite *TestSuite) CleanupTestData() {
+	// Delete in reverse order of foreign key dependencies
+	suite.DB.Unscoped().Delete(&models.RecurrenceTemplateCategory{})
+	suite.DB.Unscoped().Delete(&models.TransactionCategory{})
+	suite.DB.Unscoped().Delete(&models.Transaction{})
+	suite.DB.Unscoped().Delete(&models.RecurrenceTemplate{})
+	suite.DB.Unscoped().Delete(&models.CurrencyExchangeRate{})
+	suite.DB.Unscoped().Delete(&models.Currency{})
+	suite.DB.Unscoped().Delete(&models.Category{})
+	suite.DB.Unscoped().Delete(&models.UserSettings{})
+	suite.DB.Unscoped().Delete(&models.Profile{})
+	suite.DB.Unscoped().Delete(&models.User{})
+}
+
+func PtrBool(b bool) *bool                          { return &b }
+func PtrString(s string) *string                    { return &s }
+func PtrFloat64(f float64) *float64                 { return &f }
+func PtrDecimal(d decimal.Decimal) *decimal.Decimal { return &d }
+func PtrTime(t time.Time) *time.Time                { return &t }
+func PtrUint(u uint) *uint                          { return &u }
+func PtrInt64(i int64) *int64                       { return &i }
+func PtrMoney(m types.Money) *types.Money           { return &m }
+
+// CreateAnalysisTestDataSet creates a comprehensive set of test data for analysis testing
+func (suite *TestSuite) CreateAnalysisTestDataSet() {
+	// Create dataset using the new datasets package
+	dataset := datasets.NewAnalysisDataset()
+	creator := datasets.NewDatasetCreator(suite.DB, suite.T)
+	creator.CreateAnalysisDataset(dataset)
+}

@@ -8,10 +8,10 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"math/rand"
+	"moneef/internal/auth"
 	"moneef/internal/config"
 	"moneef/internal/db"
 	"moneef/internal/models"
-	"moneef/pkg/utils"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -61,7 +61,7 @@ func seedUsersAndProfiles(database *gorm.DB) error {
 			continue
 		}
 
-		hashed, err := utils.HashPassword(u.Password)
+		hashed, err := auth.HashPassword(u.Password)
 		if err != nil {
 			return fmt.Errorf("hashing password for %s: %w", u.Email, err)
 		}

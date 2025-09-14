@@ -1,18 +1,12 @@
 package tests
 
 import (
-	"bytes"
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	chiMiddleware "github.com/go-chi/chi/v5/middleware"
-	"moneef/internal/db"
 	"moneef/internal/models"
-	"moneef/internal/transactions"
+	"moneef/internal/transactions/dto"
 	"moneef/internal/transactions/repository"
 	"moneef/internal/transactions/service"
-	"moneef/pkg/middleware"
 	"moneef/pkg/types"
-	"moneef/pkg/utils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,121 +15,8 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
-
-const (
-	testUserID    = uint(1)
-	testProfileID = uint(1)
-	testEmail     = "test@example.com"
-)
-
-type TestSuite struct {
-	DB      *gorm.DB
-	Cleanup func()
-	T       *testing.T
-}
-
-func NewTestSuite(t *testing.T) *TestSuite {
-	testDB, cleanup := setupTestDB(t)
-	return &TestSuite{
-		DB:      testDB,
-		Cleanup: cleanup,
-		T:       t,
-	}
-}
-
-func (suite *TestSuite) createTestServer() *httptest.Server {
-	r := chi.NewRouter()
-
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Use(chiMiddleware.Logger)
-		r.Use(middleware.CORSMiddleware)
-		r.Use(middleware.AuthMiddleware)
-
-		r.Route("/transaction", func(r chi.Router) {
-			r.Post("/create", transactions.CreateTransactionHandler)
-		})
-	})
-
-	return httptest.NewServer(r)
-}
-
-func (suite *TestSuite) generateTestJWT(email string) (string, error) {
-	return utils.GenerateJWT(email)
-}
-
-func (suite *TestSuite) createAuthenticatedRequest(method, url string, body []byte) *http.Request {
-	req := httptest.NewRequest(method, url, bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-
-	token, err := suite.generateTestJWT(testEmail)
-	if err != nil {
-		suite.T.Fatalf("Failed to generate test JWT: %v", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-	return req
-}
-
-func setupTestDB(t *testing.T) (*gorm.DB, func()) {
-	testDB, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	require.NoError(t, err, "Failed to connect to test database")
-
-	err = testDB.AutoMigrate(
-		&models.User{},
-		&models.Profile{},
-		&models.UserSettings{},
-		&models.Category{},
-		&models.Transaction{},
-		&models.TransactionCategory{},
-		&models.RecurrenceTemplate{},
-		&models.RecurrenceTemplateCategory{},
-		&models.Currency{},
-	)
-	require.NoError(t, err, "Failed to migrate test database")
-
-	seedTestData(t, testDB)
-
-	originalDB := db.DB
-	db.DB = testDB
-
-	return testDB, func() { db.DB = originalDB }
-}
-
-func seedTestData(t *testing.T, testDB *gorm.DB) {
-	user := &models.User{
-		Model:    gorm.Model{ID: testUserID},
-		Email:    testEmail,
-		Password: "hashedpassword",
-	}
-	require.NoError(t, testDB.Create(user).Error)
-
-	profile := &models.Profile{
-		Model:     gorm.Model{ID: testProfileID},
-		FirstName: "Test",
-		LastName:  "User",
-		UserID:    testUserID,
-	}
-	require.NoError(t, testDB.Create(profile).Error)
-
-	categories := []models.Category{
-		{Model: gorm.Model{ID: 1}, Name: "Food", Icon: "🍔", Color: "#FF6B6B"},
-		{Model: gorm.Model{ID: 2}, Name: "Transport", Icon: "🚗", Color: "#4ECDC4"},
-		{Model: gorm.Model{ID: 3}, Name: "Entertainment", Icon: "🎬", Color: "#45B7D1"},
-	}
-	for _, cat := range categories {
-		require.NoError(t, testDB.Create(&cat).Error)
-	}
-
-	currency := &models.Currency{
-		Code:   "USD",
-		Name:   "US Dollar",
-		Symbol: "$",
-	}
-	require.NoError(t, testDB.Create(currency).Error)
-}
 
 type TransactionTestHelper struct {
 	suite  *TestSuite
@@ -149,13 +30,13 @@ func NewTransactionTestHelper(suite *TestSuite) *TransactionTestHelper {
 	}
 }
 
-func (h *TransactionTestHelper) createTransactionRequest(name string, amount float64, trasnType string, opts ...TransactionOption) transactions.TransactionRequest {
-	req := transactions.TransactionRequest{
+func (h *TransactionTestHelper) createTransactionRequest(name string, amount float64, trasnType string, opts ...TransactionOption) dto.TransactionRequest {
+	req := dto.TransactionRequest{
 		TransactionName: name,
 		CurrencyCode:    "USD",
 		TransactionType: trasnType,
 		Date:            time.Now(),
-		TransactionCategories: []transactions.TransactionCategoryRequest{
+		TransactionCategories: []dto.TransactionCategoryRequest{
 			{CategoryId: 1, Amount: decimal.NewFromFloat(amount)},
 		},
 	}
@@ -167,7 +48,7 @@ func (h *TransactionTestHelper) createTransactionRequest(name string, amount flo
 	return req
 }
 
-type TransactionOption func(*transactions.TransactionRequest)
+type TransactionOption func(*dto.TransactionRequest)
 
 type CategoryAmount struct {
 	ID     uint
@@ -175,10 +56,10 @@ type CategoryAmount struct {
 }
 
 func WithCategories(categories ...CategoryAmount) TransactionOption {
-	return func(r *transactions.TransactionRequest) {
-		r.TransactionCategories = make([]transactions.TransactionCategoryRequest, len(categories))
+	return func(r *dto.TransactionRequest) {
+		r.TransactionCategories = make([]dto.TransactionCategoryRequest, len(categories))
 		for i, cat := range categories {
-			r.TransactionCategories[i] = transactions.TransactionCategoryRequest{
+			r.TransactionCategories[i] = dto.TransactionCategoryRequest{
 				CategoryId: cat.ID,
 				Amount:     cat.Amount,
 			}
@@ -187,43 +68,43 @@ func WithCategories(categories ...CategoryAmount) TransactionOption {
 }
 
 func WithRecurrence(frequency string, active bool) TransactionOption {
-	return func(r *transactions.TransactionRequest) {
-		r.IsRecurrent = ptrBool(true)
-		r.RecurrentFreq = ptrString(frequency)
-		r.IsActiveRecurrent = ptrBool(active)
-		r.RecurrentHasEndDate = ptrBool(false)
+	return func(r *dto.TransactionRequest) {
+		r.IsRecurrent = PtrBool(true)
+		r.RecurrentFreq = PtrString(frequency)
+		r.IsActiveRecurrent = PtrBool(active)
+		r.RecurrentHasEndDate = PtrBool(false)
 	}
 }
 
 func WithRecurrenceEndDate(endDate time.Time, totalAmount, paidPreviously float64) TransactionOption {
-	return func(r *transactions.TransactionRequest) {
-		r.RecurrentHasEndDate = ptrBool(true)
+	return func(r *dto.TransactionRequest) {
+		r.RecurrentHasEndDate = PtrBool(true)
 		r.RecurrentEndDate = &endDate
-		r.RecurrentTotalAmount = ptrDecimal(decimal.NewFromFloat(totalAmount))
-		r.RecurrentPaidPreviously = ptrDecimal(decimal.NewFromFloat(paidPreviously))
+		r.RecurrentTotalAmount = PtrDecimal(decimal.NewFromFloat(totalAmount))
+		r.RecurrentPaidPreviously = PtrDecimal(decimal.NewFromFloat(paidPreviously))
 	}
 }
 
 func WithMerchant(name string) TransactionOption {
-	return func(r *transactions.TransactionRequest) {
-		r.MerchantName = ptrString(name)
+	return func(r *dto.TransactionRequest) {
+		r.MerchantName = PtrString(name)
 	}
 }
 
 func WithNotes(notes string) TransactionOption {
-	return func(r *transactions.TransactionRequest) {
-		r.Notes = ptrString(notes)
+	return func(r *dto.TransactionRequest) {
+		r.Notes = PtrString(notes)
 	}
 }
 
 func WithIconAndColor(icon, color string) TransactionOption {
-	return func(r *transactions.TransactionRequest) {
+	return func(r *dto.TransactionRequest) {
 		r.Icon = icon
 		r.Color = color
 	}
 }
 
-func (h *TransactionTestHelper) executeTransactionRequest(req transactions.TransactionRequest) *httptest.ResponseRecorder {
+func (h *TransactionTestHelper) executeTransactionRequest(req dto.TransactionRequest) *httptest.ResponseRecorder {
 	body, _ := json.Marshal(req)
 	httpReq := h.suite.createAuthenticatedRequest("POST", "/api/v1/transaction/create", body)
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -485,7 +366,7 @@ func testRepositoryOperations(t *testing.T, suite *TestSuite) {
 func testServiceLayer(t *testing.T, suite *TestSuite) {
 	t.Run("Create Without Categories", func(t *testing.T) {
 		err := suite.DB.Transaction(func(tx *gorm.DB) error {
-			params := service.CreateTransactionParams{
+			params := dto.CreateTransactionParams{
 				ProfileID:             testProfileID,
 				Name:                  "Service Test",
 				Type:                  "expense",
@@ -510,41 +391,41 @@ func testServiceLayer(t *testing.T, suite *TestSuite) {
 func testValidation(t *testing.T, suite *TestSuite, helper *TransactionTestHelper) {
 	testCases := []struct {
 		name           string
-		modifyRequest  func(*transactions.TransactionRequest)
+		modifyRequest  func(*dto.TransactionRequest)
 		expectedStatus int
 	}{
 		{
 			name: "Zero Amount",
-			modifyRequest: func(r *transactions.TransactionRequest) {
+			modifyRequest: func(r *dto.TransactionRequest) {
 				r.TransactionCategories[0].Amount = decimal.Zero
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "Negative Amount",
-			modifyRequest: func(r *transactions.TransactionRequest) {
+			modifyRequest: func(r *dto.TransactionRequest) {
 				r.TransactionCategories[0].Amount = decimal.NewFromFloat(-10.00)
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "Empty Name",
-			modifyRequest: func(r *transactions.TransactionRequest) {
+			modifyRequest: func(r *dto.TransactionRequest) {
 				r.TransactionName = ""
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "Invalid Transaction Type",
-			modifyRequest: func(r *transactions.TransactionRequest) {
+			modifyRequest: func(r *dto.TransactionRequest) {
 				r.TransactionType = "invalid"
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "Empty Categories",
-			modifyRequest: func(r *transactions.TransactionRequest) {
-				r.TransactionCategories = []transactions.TransactionCategoryRequest{}
+			modifyRequest: func(r *dto.TransactionRequest) {
+				r.TransactionCategories = []dto.TransactionCategoryRequest{}
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -605,7 +486,3 @@ func testEdgeCases(t *testing.T, suite *TestSuite) {
 		})
 	}
 }
-
-func ptrBool(b bool) *bool                          { return &b }
-func ptrString(s string) *string                    { return &s }
-func ptrDecimal(d decimal.Decimal) *decimal.Decimal { return &d }

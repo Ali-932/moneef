@@ -1,10 +1,10 @@
 package repository
 
 import (
-	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"moneef/internal/analysis/dto"
 	"moneef/internal/config"
+	"moneef/pkg/types"
 	"time"
 )
 
@@ -25,8 +25,8 @@ func GetTransactionsGroupedByCategory(tx *gorm.DB, profileId uint, startDate, en
 	return results, nil
 }
 
-func GetTransactionTotalExpense(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) (decimal.Decimal, error) {
-	var totalExpense decimal.Decimal
+func GetTransactionTotalExpense(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) (types.Money, error) {
+	var totalExpense types.Money
 	err := tx.Table("transactions t").
 		Select("COALESCE(SUM(tc.amount * COALESCE(cer.rate, 1)),0) as total_expense").
 		Joins("JOIN transaction_categories tc ON t.id = tc.transaction_id").
@@ -34,7 +34,7 @@ func GetTransactionTotalExpense(tx *gorm.DB, profileId uint, startDate, endDate 
 		Where("t.profile_id = ? AND t.date >= ? AND t.date <= ? AND t.type = 'expense'", profileId, startDate, endDate).
 		Scan(&totalExpense).Error
 	if err != nil {
-		return decimal.Zero, err
+		return types.MoneyZero(), err
 	}
 	return totalExpense, nil
 }

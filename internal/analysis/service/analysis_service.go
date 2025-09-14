@@ -2,12 +2,12 @@ package service
 
 import (
 	"context"
-	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
 	"moneef/internal/analysis/dto"
 	"moneef/internal/analysis/repository"
 	"moneef/internal/analysis/utils"
 	"moneef/internal/db"
+	"moneef/pkg/types"
 	"sync"
 	"time"
 )
@@ -24,7 +24,7 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time) (
 		spendByCategoryLastPeriod []dto.CategorySummary
 		spendPerDay               []dto.AmountPerDay
 		spendPerDayLastPeriod     []dto.AmountPerDay
-		total                     decimal.Decimal
+		total                     types.Money
 		nextRecurringTransactions []dto.NextRecurringTransactions
 	)
 	g, _ := errgroup.WithContext(context.Background())

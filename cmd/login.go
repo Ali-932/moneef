@@ -5,17 +5,16 @@ package cmd
 
 import (
 	"fmt"
-	"moneef/internal/db"
-	"moneef/pkg/utils"
-
 	"github.com/spf13/cobra"
+	"moneef/internal/auth"
+	"moneef/internal/db"
 )
 
 func LoginUser(cmd *cobra.Command, args []string) error {
 	var (
 		email string = "alice@example.com"
 	)
-	token, err := utils.GenerateJWT(email)
+	token, err := auth.GenerateJWT(email)
 	if err != nil {
 		return fmt.Errorf("failed to generate token: %w", err)
 	}

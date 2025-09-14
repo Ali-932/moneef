@@ -27,7 +27,6 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 		log.Printf("❌ [SERVICE] Error while retriving user information %v", err)
 		return err
 	}
-	fmt.Printf("%v", userExist)
 	if userExist == false {
 		err = fmt.Errorf("❌ [SERVICE] This Profile Id does not exist in the database")
 		log.Printf("❌ [SERVICE] This Profile Id does not exist in the database")

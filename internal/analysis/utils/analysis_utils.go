@@ -1,45 +1,42 @@
 package utils
 
 import (
-	"github.com/shopspring/decimal"
-	"log"
 	"moneef/internal/analysis/dto"
 	"moneef/internal/config"
+	"moneef/pkg/types"
 	"sort"
 	"time"
 )
 
-func GetCategoriesSlicedAndSorted(allCategories []dto.CategorySummary, total decimal.Decimal) []dto.CategorySummary {
+func GetCategoriesSlicedAndSorted(allCategories []dto.CategorySummary, total types.Money) []dto.CategorySummary {
 	var finalCategories []dto.CategorySummary
 	topCategories := allCategories
 	if len(allCategories) > config.CategoriesOthersThreshold {
 		topCategories = allCategories[:config.CategoriesOthersThreshold]
 	}
 	for _, category := range topCategories {
-		category.Percentage = decimal.NewFromInt(100).Mul(category.TotalAmount.Div(total)).Round(config.AmountRounding)
-		log.Printf("%v", category.Percentage)
+		category.Percentage = types.MoneyFromInt(100).Mul(category.TotalAmount.Div(total))
 
 		finalCategories = append(finalCategories, category)
 	}
 	if len(allCategories) > config.CategoriesOthersThreshold {
-		othersTotal := decimal.Zero
+		othersTotal := types.MoneyZero()
 		for _, category := range allCategories[config.CategoriesOthersThreshold:] {
 			othersTotal = othersTotal.Add(category.TotalAmount)
 		}
-		if othersTotal.GreaterThan(decimal.Zero) {
+		if othersTotal.GreaterThan(types.MoneyZero()) {
 			othersCategory := dto.CategorySummary{
 				CategoryID:   0,
 				CategoryName: "Others",
 				TotalAmount:  othersTotal,
-				Percentage:   decimal.NewFromInt(100).Mul(othersTotal.Div(total)).Round(config.AmountRounding),
+				Percentage:   types.MoneyFromInt(100).Mul(othersTotal.Div(total)),
 			}
 			finalCategories = append(finalCategories, othersCategory)
 		}
 	}
 
 	for _, category := range finalCategories {
-		category.TotalAmount = category.TotalAmount.Round(config.AmountRounding)
-		category.Percentage = decimal.NewFromInt(100).Mul(category.TotalAmount.Div(total)).Round(config.AmountRounding)
+		category.Percentage = types.MoneyFromInt(100).Mul(category.TotalAmount.Div(total))
 	}
 	return finalCategories
 }
@@ -56,7 +53,7 @@ func FillMissingDates(amountsPerDay []dto.AmountPerDay, startDate, endDate time.
 		}
 		amountsPerDay = append(amountsPerDay, dto.AmountPerDay{
 			Date:   d,
-			Amount: decimal.Zero,
+			Amount: types.MoneyZero(),
 		})
 		datesAvailable[key] = true
 
