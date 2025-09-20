@@ -38,6 +38,10 @@ func (m *Money) String() string {
 	}
 	return "$" + decimal.Decimal(*m).String()
 }
+func (m Money) Float64() float64 {
+	f, _ := decimal.Decimal(m).Float64()
+	return f
+}
 
 func (m Money) GreaterThan(other Money) bool {
 	return decimal.Decimal(m).GreaterThan(decimal.Decimal(other))

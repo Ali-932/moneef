@@ -22,6 +22,24 @@ type Transaction struct {
 	RecurrenceTemplateID *uint                 `gorm:"index"`
 	RecurrenceTemplate   *RecurrenceTemplate   `gorm:"foreignKey:RecurrenceTemplateID"`
 }
+
+func (t *Transaction) GetTotal(db *gorm.DB) (*types.Money, error) {
+	if len(t.TransactionCategory) == 0 {
+		if err := db.Preload("TransactionCategory").First(t, t.ID).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	var total types.Money
+	for _, tc := range t.TransactionCategory {
+		if tc.Amount != nil {
+			total.Add(*tc.Amount)
+		}
+	}
+
+	return &total, nil
+}
+
 type TransactionCategory struct {
 	gorm.Model
 	TransactionID uint         `gorm:"not null"`
