@@ -224,3 +224,64 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p dto.CreateTransactionRecurr
 	log.Printf("✅ [SERVICE] Recurrence template persisted with ID: %d", id)
 	return id, nil
 }
+
+func GetTransaction(id uint, profileID uint) (*models.Transaction, error) {
+	return repository.GetTransactionByID(db.DB, id, profileID)
+}
+
+func ListTransactions(profileID uint, txType string, categoryID uint, dateFrom, dateTo string, sort string) *gorm.DB {
+	return repository.ListTransactionsQuery(db.DB, profileID, txType, categoryID, dateFrom, dateTo, sort)
+}
+
+func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest, categoriesMap map[uint]decimal.Decimal) error {
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		updates := make(map[string]interface{})
+		if req.TransactionName != "" {
+			updates["name"] = req.TransactionName
+		}
+		if req.CurrencyCode != "" {
+			updates["currency_code"] = req.CurrencyCode
+		}
+		if req.TransactionType != "" {
+			updates["type"] = req.TransactionType
+		}
+		if req.MerchantName != nil {
+			updates["merchant_name"] = *req.MerchantName
+		}
+		if req.Notes != nil {
+			updates["notes"] = *req.Notes
+		}
+
+		if len(updates) > 0 {
+			if err := repository.UpdateTransaction(tx, id, profileID, updates); err != nil {
+				return err
+			}
+		}
+
+		if len(categoriesMap) > 0 {
+			var newCategories []*models.TransactionCategory
+			for catID, catAmt := range categoriesMap {
+				c := types.Money(catAmt)
+				newCategories = append(newCategories, &models.TransactionCategory{
+					CategoryID:    catID,
+					Amount:        &c,
+					TransactionID: id,
+				})
+			}
+			if err := repository.ReplaceTransactionCategories(tx, id, newCategories); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func DeleteTransaction(id uint, profileID uint) error {
+	return db.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("transaction_id = ?", id).Delete(&models.TransactionCategory{}).Error; err != nil {
+			return err
+		}
+		return repository.DeleteTransaction(tx, id, profileID)
+	})
+}

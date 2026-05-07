@@ -31,6 +31,41 @@ type TransactionRequest struct {
 	TransactionCategories   []TransactionCategoryRequest `json:"transaction_categories" validate:"required,min=1,dive"`
 }
 
+type TransactionUpdateRequest struct {
+	TransactionName       string                       `json:"transaction_name"`
+	CurrencyCode          string                       `json:"currency_code" validate:"omitempty,len=3"`
+	TransactionType       string                       `json:"transaction_type" validate:"omitempty,oneof=expense income"`
+	Date                  time.Time                    `json:"date"`
+	Icon                  string                       `json:"icon"`
+	Color                 string                       `json:"color"`
+	MerchantName          *string                      `json:"merchant_name"`
+	Notes                 *string                      `json:"notes"`
+	TransactionCategories []TransactionCategoryRequest `json:"transaction_categories" validate:"omitempty,min=1,dive"`
+}
+
+func (tr *TransactionUpdateRequest) Validate() error {
+	validate := validator.New()
+	if err := validate.Struct(tr); err != nil {
+		return err
+	}
+	if len(tr.TransactionCategories) > 0 {
+		seenCategories := make(map[uint]bool)
+		for _, c := range tr.TransactionCategories {
+			if seenCategories[c.CategoryId] {
+				return errors.New("duplicate category_id found in transaction_categories")
+			}
+			seenCategories[c.CategoryId] = true
+			if c.Amount.IsZero() {
+				return errors.New("amount must be greater than zero in transaction_categories")
+			}
+			if c.Amount.IsNegative() {
+				return errors.New("amount must be a positive value in transaction_categories")
+			}
+		}
+	}
+	return nil
+}
+
 func (tr *TransactionRequest) Validate() error {
 	validate := validator.New()
 
