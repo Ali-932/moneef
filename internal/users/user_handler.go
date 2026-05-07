@@ -3,8 +3,6 @@ package users
 import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
-	"gorm.io/gorm"
-	"moneef/internal/models"
 	"moneef/internal/users/dto"
 	"moneef/internal/users/service"
 	"moneef/pkg/utils"
@@ -36,13 +34,9 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJsonError(w, http.StatusBadRequest, "Could not hash password")
 		return
 	}
-	err = service.CreateUserService(&models.User{
-		Model:    gorm.Model{},
-		Email:    req.Email,
-		Password: string(hashedPassword),
-		Birthday: req.Birthday,
-	})
-	if err != nil {
+	if err := service.RegisterUser(req, string(hashedPassword)); err != nil {
 		utils.WriteJsonError(w, http.StatusBadRequest, "Could not create user")
+		return
 	}
+	w.WriteHeader(http.StatusCreated)
 }
