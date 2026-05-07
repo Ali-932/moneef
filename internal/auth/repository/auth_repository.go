@@ -1,8 +1,9 @@
-package auth
+package repository
 
 import (
 	"moneef/internal/db"
 	"moneef/internal/models"
+	"moneef/pkg/utils"
 )
 
 func GetUserByEmail(email string) (*models.User, error) {
@@ -19,13 +20,9 @@ func CheckCredentialsMatch(email, password string) (*models.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = CompareHashedPassword(user.Password, password)
+	err = utils.CompareHashedPassword(user.Password, password)
 	if err != nil {
 		return nil, err
 	}
 	return user, nil
-}
-
-func CreateUser(user *models.User) error {
-	return db.DB.Create(user).Error
 }

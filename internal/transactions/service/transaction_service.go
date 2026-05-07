@@ -6,11 +6,11 @@ import (
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"log"
-	"moneef/internal/auth"
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/internal/transactions/dto"
 	"moneef/internal/transactions/repository"
+	usersRepository "moneef/internal/users/repository"
 	"moneef/pkg/types"
 	"moneef/pkg/utils"
 	"time"
@@ -22,7 +22,7 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	userExist, err := auth.ProfileByIdExist(params.ProfileID)
+	userExist, err := usersRepository.ProfileByIdExist(params.ProfileID)
 	if err != nil {
 		log.Printf("❌ [SERVICE] Error while retriving user information %v", err)
 		return err

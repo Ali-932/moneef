@@ -1,4 +1,4 @@
-package auth
+package repository
 
 import (
 	"moneef/internal/db"
