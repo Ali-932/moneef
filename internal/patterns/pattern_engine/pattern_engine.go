@@ -2,6 +2,7 @@ package pattern_engine
 
 import (
 	"fmt"
+	"moneef/internal/db"
 	"moneef/internal/models"
 )
 
@@ -17,7 +18,7 @@ type Analyzer interface {
 }
 
 type PatternDetector interface {
-	Detect(transactions []models.Transaction, countryCode string) ([]models.Pattern, error)
+	Detect(transactions []models.Transaction, countryCode string, transactionStats *TransactionStats) ([]models.Pattern, error)
 	MinTransactions() int
 	ScorePattern(pattern models.Pattern) float64
 }
@@ -33,11 +34,16 @@ func NewEngine(detectors []PatternDetector, countryCode string) *Engine {
 
 func (engine *Engine) Analyze(transactions []models.Transaction) ([]models.Pattern, error) {
 	var allPatterns []models.Pattern
+	transactionStats, err := CalculateTransactionStats(transactions, db.DB)
+	if err != nil {
+		return nil, fmt.Errorf("error calculating transaction stats: %w", err)
+	}
+
 	for _, detector := range engine.detectors {
 		if len(transactions) <= detector.MinTransactions() {
 			continue
 		}
-		patterns, err := detector.Detect(transactions, engine.countryCode)
+		patterns, err := detector.Detect(transactions, engine.countryCode, transactionStats)
 		if err != nil {
 			return nil, fmt.Errorf("error in detector %T: %w", detector, err)
 		}
