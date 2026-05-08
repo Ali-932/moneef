@@ -3,7 +3,8 @@ tmp_dir = "tmp"
 
 [build]
 cmd = "go build -o ./tmp/main ."  # Builds your main package
-bin = "./tmp/main run"                        # Runs this binary
+bin = "./tmp/main"
+full_bin = "./tmp/main run"
 include_ext = ["go", "tpl", "tmpl", "html"]  # Watch these file types
 exclude_regex = ["_test.go"]              # Ignore test files
 delay = 1000                              # Debounce time (ms) before rebuild
