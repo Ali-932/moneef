@@ -9,6 +9,10 @@ import (
 	"moneef/internal/users/repository"
 )
 
+func GetUserByID(id uint) (*models.User, error) {
+	return repository.GetUserByID(id)
+}
+
 func CheckEmailExist(email string) (bool, error) {
 	user, err := repository.GetUserByEmail(email)
 	if err != nil {
