@@ -12,9 +12,9 @@ import (
 
 type WeekendSpikeDetector struct{}
 
-func (d *WeekendSpikeDetector) Detect(transactions []models.Transaction, countryCode string, transactionStats *TransactionStats) ([]models.Pattern, error) {
-	weekendDaysFirst := config.WeekendPatterns[countryCode][0]
-	weekendDaysSecond := config.WeekendPatterns[countryCode][1]
+func (d *WeekendSpikeDetector) Detect(transactions []models.Transaction, currencyCode string, transactionStats *TransactionStats) ([]models.Pattern, error) {
+	weekendDaysFirst := config.WeekendPatterns[currencyCode][0]
+	weekendDaysSecond := config.WeekendPatterns[currencyCode][1]
 	var (
 		weekendTotal types.Money
 		weekdayTotal types.Money
@@ -118,7 +118,7 @@ func (d *WeekendSpikeDetector) ScorePattern(pattern models.Pattern) float64 {
 
 type CategoryBasedSpendingDetector struct{}
 
-func (d *CategoryBasedSpendingDetector) Detect(transactions []models.Transaction, countryCode string, transactionStats *TransactionStats) ([]models.Pattern, error) {
+func (d *CategoryBasedSpendingDetector) Detect(transactions []models.Transaction, currencyCode string, transactionStats *TransactionStats) ([]models.Pattern, error) {
 	categorySum := make(map[string]types.Money)
 	var patterns []models.Pattern
 	for _, tx := range transactions {
@@ -199,7 +199,7 @@ func (d *CategoryBasedSpendingDetector) ScorePattern(pattern models.Pattern) flo
 
 type PurchaseFrequencyDetector struct{}
 
-func (d *PurchaseFrequencyDetector) Detect(transactions []models.Transaction, countryCode string, transactionStats *TransactionStats) ([]models.Pattern, error) {
+func (d *PurchaseFrequencyDetector) Detect(transactions []models.Transaction, currencyCode string, transactionStats *TransactionStats) ([]models.Pattern, error) {
 	// Group transactions by category with dates
 	// Example: If a $50 Walmart transaction has categories [Groceries: $30, Household: $20],
 	// it will appear in both categoryTransactions["Groceries"] and categoryTransactions["Household"]

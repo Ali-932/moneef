@@ -19,18 +19,18 @@ type Analyzer interface {
 }
 
 type PatternDetector interface {
-	Detect(transactions []models.Transaction, countryCode string, transactionStats *TransactionStats) ([]models.Pattern, error)
+	Detect(transactions []models.Transaction, currencyCode string, transactionStats *TransactionStats) ([]models.Pattern, error)
 	MinTransactions() int
 	ScorePattern(pattern models.Pattern) float64
 }
 
 type Engine struct {
-	detectors   []PatternDetector
-	countryCode string
+	detectors    []PatternDetector
+	currencyCode string
 }
 
-func NewEngine(detectors []PatternDetector, countryCode string) *Engine {
-	return &Engine{detectors: detectors, countryCode: countryCode}
+func NewEngine(detectors []PatternDetector, currencyCode string) *Engine {
+	return &Engine{detectors: detectors, currencyCode: currencyCode}
 }
 
 func (engine *Engine) Analyze(transactions []models.Transaction) ([]models.Pattern, error) {
@@ -44,7 +44,7 @@ func (engine *Engine) Analyze(transactions []models.Transaction) ([]models.Patte
 		if len(transactions) <= detector.MinTransactions() {
 			continue
 		}
-		patterns, err := detector.Detect(transactions, engine.countryCode, transactionStats)
+		patterns, err := detector.Detect(transactions, engine.currencyCode, transactionStats)
 		if err != nil {
 			return nil, fmt.Errorf("error in detector %T: %w", detector, err)
 		}
@@ -68,13 +68,15 @@ func GetUserPatterns(profileId uint) ([]models.Pattern, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch transactions: %w", err)
 	}
-	// TODO: use actual user country code once the model supports it
-	countryCode := "US"
+	currencyCode, err := GetCurrencyCode(profileId, db.DB)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get currency code: %w", err)
+	}
 	engine := NewEngine([]PatternDetector{
 		&WeekendSpikeDetector{},
 		&CategoryBasedSpendingDetector{},
 		&PurchaseFrequencyDetector{},
-	}, countryCode)
+	}, currencyCode)
 
 	return engine.Analyze(transactions)
 }
