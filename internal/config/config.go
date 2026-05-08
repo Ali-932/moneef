@@ -16,6 +16,7 @@ type Config struct {
 	Port               string
 	ExchangeRateApiKey string
 	JWTSecret          string
+	DBPath             string
 }
 
 var (
@@ -26,10 +27,20 @@ var (
 func GetConfig() *Config {
 	once.Do(func() {
 		_ = godotenv.Load()
+		dbPath := getEnv("db_path", "")
+		if dbPath == "" {
+			configDir, err := os.UserConfigDir()
+			if err != nil {
+				configDir = "."
+			}
+			dbPath = configDir + "/moneef/db.sqlite"
+		}
+
 		config = &Config{
 			Port:               getEnv("port", ":8000"),
 			ExchangeRateApiKey: getEnv("exchange_rate_api_key", "f5b4aaa9448c0f9a060ca1ef"),
 			JWTSecret:          getEnv("jwt_secret", "my$up3rS3cr3tK3y!@2025#random1234567890"),
+			DBPath:             dbPath,
 		}
 	})
 

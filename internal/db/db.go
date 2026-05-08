@@ -9,6 +9,8 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"moneef/internal/config"
 )
 
 var DB *gorm.DB
@@ -25,9 +27,11 @@ func Connect() (*gorm.DB, error) {
 		},
 	)
 
-	db, err := gorm.Open(sqlite.Open("db.sqlite?_foreign_keys=on"), &gorm.Config{Logger: logCfg, DisableForeignKeyConstraintWhenMigrating: false})
+	dbPath := config.GetConfig().DBPath
+
+	db, err := gorm.Open(sqlite.Open(dbPath+"?_foreign_keys=on&_journal_mode=WAL"), &gorm.Config{Logger: logCfg, DisableForeignKeyConstraintWhenMigrating: false})
 	if err != nil {
-		return nil, fmt.Errorf("connot connect to the database %w", err)
+		return nil, fmt.Errorf("cannot connect to the database %w", err)
 	}
 
 	DB = db
