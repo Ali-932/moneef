@@ -1,9 +1,10 @@
 package repository
 
 import (
-	"gorm.io/gorm"
 	"moneef/internal/db"
 	"moneef/internal/models"
+
+	"gorm.io/gorm"
 )
 
 func ListCategories(profileID uint) ([]models.Category, error) {
@@ -36,4 +37,12 @@ func UpdateCategory(tx *gorm.DB, id uint, profileID uint, updates map[string]int
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+func ExistsByName(profileID uint, name string) (bool, error) {
+	var count int64
+	err := db.DB.Model(&models.Category{}).
+		Where("(profile_id = ? OR profile_id IS NULL) AND name = ?", profileID, name).
+		Count(&count).Error
+	return count > 0, err
 }

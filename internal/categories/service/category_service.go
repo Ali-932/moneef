@@ -1,11 +1,14 @@
 package service
 
 import (
+	"errors"
 	"moneef/internal/categories/dto"
 	"moneef/internal/categories/repository"
 	"moneef/internal/db"
 	"moneef/internal/models"
 )
+
+var ErrDuplicateName = errors.New("category name already exists")
 
 func ListCategories(profileID uint) ([]models.Category, error) {
 	return repository.ListCategories(profileID)
@@ -19,6 +22,13 @@ func CreateCategory(profileID uint, req dto.CreateCategoryRequest) (*models.Cate
 		Type:      &req.Type,
 		Icon:      req.Icon,
 		Color:     req.Color,
+	}
+	exists, err := repository.ExistsByName(profileID, req.Name)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, ErrDuplicateName
 	}
 	if err := repository.CreateCategory(category); err != nil {
 		return nil, err

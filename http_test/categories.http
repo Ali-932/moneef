@@ -1,0 +1,104 @@
+@base = http://localhost:8000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZXhwIjoxNzgwNjU5NzExfQ.i-0pX7NUfcbez5bZOw6v2KlxF07Jn2P382GO8RaYwk8
+@categories = {{base}}/api/v1/category
+
+### 1. List all categories (default + user-created)
+GET {{categories}}/
+Authorization: Bearer {{token}}
+
+### 2. Create a custom expense category
+POST {{categories}}/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Pet Care",
+  "type": "expense",
+  "icon": "FaPaw",
+  "color": "#FF69B4"
+}
+
+### 3. Create another custom expense category
+POST {{categories}}/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Subscriptions",
+  "type": "expense",
+  "icon": "FaSync",
+  "color": "#845EC2"
+}
+
+### 4. Create a custom income category
+POST {{categories}}/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Dividends",
+  "type": "income",
+  "icon": "FaChartLine",
+  "color": "#228B22"
+}
+
+### 5. Create category with missing required fields (should fail validation)
+POST {{categories}}/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Incomplete"
+}
+
+### 6. List categories again (should now include the custom ones)
+GET {{categories}}/
+Authorization: Bearer {{token}}
+
+### 7. Update a custom category name
+PUT {{categories}}/16
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Pet Expenses"
+}
+
+### 8. Update a custom category icon and color
+PUT {{categories}}/16
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "icon": "FaDog",
+  "color": "#D2691E"
+}
+
+### 9. Update a custom category with all fields
+PUT {{categories}}/16
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Pet & Animal Care",
+  "icon": "FaPaw",
+  "color": "#FF69B4"
+}
+
+### 10. Try to update a default category (should return 404 — defaults are not editable)
+PUT {{categories}}/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Renamed Default"
+}
+
+### 11. Try to update a non-existent category (should return 404)
+PUT {{categories}}/999999
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Ghost Category"
+}

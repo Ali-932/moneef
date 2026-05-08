@@ -1,0 +1,112 @@
+@base = http://localhost:8000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZXhwIjoxNzgwNjU5NzExfQ.i-0pX7NUfcbez5bZOw6v2KlxF07Jn2P382GO8RaYwk8
+@transactions = {{base}}/api/v1/transaction
+
+### 1. Create a basic transaction
+POST {{transactions}}/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "transaction_name": "Lunch at Cafe",
+  "currency_code": "USD",
+  "transaction_type": "expense",
+  "date": "2025-03-10T12:30:00Z",
+  "merchant_name": "Cafe Central",
+  "notes": "Business lunch",
+  "transaction_categories": [
+    { "category_id": 1, "amount": "25.50" }
+  ]
+}
+
+### 2. List all transactions (default pagination)
+GET {{transactions}}/
+Authorization: Bearer {{token}}
+
+### 3. List transactions with pagination
+GET {{transactions}}/?page=1&per_page=5
+Authorization: Bearer {{token}}
+
+### 4. List transactions filtered by type (expense only)
+GET {{transactions}}/?type=expense
+Authorization: Bearer {{token}}
+
+### 5. List transactions filtered by category
+GET {{transactions}}/?category_id=1
+Authorization: Bearer {{token}}
+
+### 6. List transactions filtered by date range
+GET {{transactions}}/?date_from=2025-01-01&date_to=2025-03-31
+Authorization: Bearer {{token}}
+
+### 7. List transactions sorted by date ascending
+GET {{transactions}}/?sort=date_asc
+Authorization: Bearer {{token}}
+
+### 8. List transactions with combined filters
+GET {{transactions}}/?type=expense&date_from=2025-01-01&date_to=2025-12-31&per_page=10
+Authorization: Bearer {{token}}
+
+### 9. Get a single transaction by ID
+GET {{transactions}}/1
+Authorization: Bearer {{token}}
+
+### 10. Get a non-existent transaction (should return 404)
+GET {{transactions}}/999999
+Authorization: Bearer {{token}}
+
+### 11. Update a transaction name
+PUT {{transactions}}/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "transaction_name": "Updated Lunch"
+}
+
+### 12. Update a transaction with new categories (replaces all)
+PUT {{transactions}}/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "transaction_name": "Split Lunch",
+  "transaction_categories": [
+    { "category_id": 1, "amount": "15.00" },
+    { "category_id": 2, "amount": "10.50" }
+  ]
+}
+
+### 13. Update a transaction with merchant name and notes
+PUT {{transactions}}/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "merchant_name": "Updated Cafe",
+  "notes": "Updated notes"
+}
+
+### 14. Delete a transaction
+DELETE {{transactions}}/1
+Authorization: Bearer {{token}}
+
+### 15. Delete a non-existent transaction (should return 404)
+DELETE {{transactions}}/999999
+Authorization: Bearer {{token}}
+
+### 16. Create an income transaction
+POST {{transactions}}/create
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "transaction_name": "Freelance Payment",
+  "currency_code": "USD",
+  "transaction_type": "income",
+  "date": "2025-03-15T09:00:00Z",
+  "merchant_name": "Client Corp",
+  "transaction_categories": [
+    { "category_id": 1, "amount": "500.00" }
+  ]
+}

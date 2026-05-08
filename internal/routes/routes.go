@@ -11,17 +11,17 @@ func SetupRoutes() *chi.Mux {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(chiMiddleware.Logger)
 		r.Use(middleware.CORSMiddleware)
-		r.Use(middleware.AuthMiddleware)
-		r.Mount("/user", UserRoutes())
-		r.Mount("/transaction", TransactionRoutes())
-		r.Mount("/analysis", AnalysisRoute())
-		r.Mount("/category", CategoryRoutes())
-		//r.Group(func(r chi.Router) {
-		//	r.Use(middleware.AuthMiddleware)
-		//	// protected rorutes
-		//
-		//}
 
+		r.Group(func(r chi.Router) {
+			r.Mount("/user", UserRoutes())
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.AuthMiddleware)
+			r.Mount("/transaction", TransactionRoutes())
+			r.Mount("/analysis", AnalysisRoute())
+			r.Mount("/category", CategoryRoutes())
+		})
 	})
 
 	return r

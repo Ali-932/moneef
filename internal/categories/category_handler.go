@@ -3,14 +3,15 @@ package categories
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator/v10"
-	"gorm.io/gorm"
 	"moneef/internal/categories/dto"
 	"moneef/internal/categories/service"
 	"moneef/pkg/utils"
 	"net/http"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
+	"gorm.io/gorm"
 )
 
 func ListCategoriesHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,8 +49,11 @@ func CreateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-
 	category, err := service.CreateCategory(profileID, req)
+	if errors.Is(err, service.ErrDuplicateName) {
+		utils.WriteJsonError(w, http.StatusConflict, "Category name already exists")
+		return
+	}
 	if err != nil {
 		utils.WriteJsonError(w, http.StatusInternalServerError, "Failed to create category")
 		return
