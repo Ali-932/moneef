@@ -1,0 +1,18 @@
+@base = http://localhost:8000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZXhwIjoxNzgwNjU5NzExfQ.i-0pX7NUfcbez5bZOw6v2KlxF07Jn2P382GO8RaYwk8
+@dashboard = {{base}}/api/v1/dashboard
+
+### 1. Get dashboard for current month (default period)
+GET {{dashboard}}/
+Authorization: Bearer {{token}}
+
+### 2. Get dashboard for a specific month
+GET {{dashboard}}/?date_from=2025-01-01&date_to=2025-01-31
+Authorization: Bearer {{token}}
+
+### 3. Get dashboard for a custom date range
+GET {{dashboard}}/?date_from=2025-03-01&date_to=2025-03-15
+Authorization: Bearer {{token}}
+
+### 4. Get dashboard without auth (should return 401)
+GET {{dashboard}}/

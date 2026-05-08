@@ -21,6 +21,7 @@ func SetupRoutes() *chi.Mux {
 			r.Mount("/transaction", TransactionRoutes())
 			r.Mount("/analysis", AnalysisRoute())
 			r.Mount("/category", CategoryRoutes())
+			r.Mount("/dashboard", DashboardRoutes())
 		})
 	})
 
