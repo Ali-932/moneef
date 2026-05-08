@@ -376,7 +376,8 @@ func testServiceLayer(t *testing.T, suite *TestSuite) {
 				Color:                 "#FF5722",
 				CategoriesTransaction: map[uint]decimal.Decimal{},
 			}
-			return service.CreateTransactionWithTx(tx, params)
+			_, err := service.CreateTransactionWithTx(tx, params)
+			return err
 		})
 
 		assert.NoError(t, err)

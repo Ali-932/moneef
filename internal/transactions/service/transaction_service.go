@@ -9,6 +9,7 @@ import (
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/internal/transactions/dto"
+	"moneef/internal/transactions/engine"
 	"moneef/internal/transactions/repository"
 	usersRepository "moneef/internal/users/repository"
 	"moneef/pkg/types"
@@ -34,8 +35,9 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 	}
 	return db.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var (
-			recID    uint
-			recIDPtr *uint
+			recID         uint
+			recIDPtr      *uint
+			transactionID uint
 		)
 
 		if params.IsRecurrent != nil && *params.IsRecurrent {
@@ -84,7 +86,7 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 			log.Printf("✅ [SERVICE] Created recurrence template with ID: %d", recID)
 		}
 
-		if err := CreateTransactionWithTx(tx, dto.CreateTransactionParams{
+		transactionID, err := CreateTransactionWithTx(tx, dto.CreateTransactionParams{
 			ProfileID:             params.ProfileID,
 			Name:                  params.Name,
 			CurrencyCode:          params.CurrencyCode,
@@ -96,17 +98,19 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 			Notes:                 params.Notes,
 			CategoriesTransaction: params.CategoriesTransaction,
 			RecurrenceTemplateID:  recIDPtr,
-		}); err != nil {
+		})
+		if err != nil {
 			log.Printf("❌ [SERVICE] Failed to create transaction: %v", err)
 			return err
 		}
 
 		log.Printf("✅ [SERVICE] Transaction creation completed successfully")
+		engine.ResolveMerchantIconAsync(transactionID)
 		return nil
 	})
 }
 
-func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) error {
+func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) (uint, error) {
 
 	trx := &models.Transaction{
 		ProfileID:            p.ProfileID,
@@ -124,7 +128,7 @@ func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) error {
 	Id, err := repository.CreateTransaction(tx, trx)
 	if err != nil {
 		log.Printf("❌ [SERVICE] Database persistence failed: %v", err)
-		return err
+		return 0, err
 	}
 	log.Printf("✅ [SERVICE] Transaction persisted successfully")
 	transactionCategory := make([]*models.TransactionCategory, 0, len(p.CategoriesTransaction))
@@ -138,10 +142,10 @@ func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) error {
 	}
 	err = repository.CreateTransactionCategoryBulk(tx, transactionCategory)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return *Id, nil
 }
 
 func CreateTransactionRecurrentWithTx(tx *gorm.DB, p dto.CreateTransactionRecurrentParams) (uint, error) {

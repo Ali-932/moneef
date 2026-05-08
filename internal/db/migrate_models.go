@@ -21,6 +21,7 @@ func MigrateModels(database *gorm.DB) error {
 		&models.RecurrenceTemplateCategory{},
 		&models.Currency{},
 		&models.CurrencyExchangeRate{},
+		&models.IconLookup{},
 	}
 
 	for _, model := range modelsToMigrate {
