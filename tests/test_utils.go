@@ -126,6 +126,15 @@ func seedTestData(t *testing.T, testDB *gorm.DB) {
 	}
 	require.NoError(t, testDB.Create(profile).Error)
 
+	settings := &models.UserSettings{
+		UserID:                testUserID,
+		CurrencyCode:          "USD",
+		Language:              "en",
+		IsNotificationEnabled: true,
+		IsDarkMode:            false,
+	}
+	require.NoError(t, testDB.Create(settings).Error)
+
 	categories := []models.Category{
 		{Model: gorm.Model{ID: 1}, Name: "Food", Icon: "🍔", Color: "#FF6B6B"},
 		{Model: gorm.Model{ID: 2}, Name: "Transport", Icon: "🚗", Color: "#4ECDC4"},

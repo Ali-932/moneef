@@ -57,7 +57,7 @@ func (d *WeekendSpikeDetector) Detect(transactions []models.Transaction, country
 						"percentDiff":       percentDiff,
 						"totalAmount":       transactionStats.TotalAmount,
 						"totalAvg":          transactionStats.AveragePerTransaction,
-						"transactionsCount": transactionStats.Count,
+						"transactionsCount": float64(transactionStats.Count),
 					},
 				},
 			}, nil
@@ -82,7 +82,7 @@ func (d *WeekendSpikeDetector) Detect(transactions []models.Transaction, country
 						"percentDiff":       percentDiff,
 						"totalAmount":       transactionStats.TotalAmount,
 						"totalAvg":          transactionStats.AveragePerTransaction,
-						"transactionsCount": transactionStats.Count,
+						"transactionsCount": float64(transactionStats.Count),
 					},
 				},
 			}, nil
@@ -94,7 +94,7 @@ func (d *WeekendSpikeDetector) Detect(transactions []models.Transaction, country
 func (d *WeekendSpikeDetector) MinTransactions() int {
 	return 30
 }
-func (d *WeekendSpikeDetector) ScorePattern(pattern *models.Pattern) float64 {
+func (d *WeekendSpikeDetector) ScorePattern(pattern models.Pattern) float64 {
 	extractor, err := NewMetadataExtractor(pattern.Metadata)
 	if err != nil {
 		return 0
@@ -164,7 +164,7 @@ func (d *CategoryBasedSpendingDetector) Detect(transactions []models.Transaction
 			},
 		})
 	}
-	if first.Amount.Add(second.Amount).Float64() >= 0.8*transactionStats.TotalAmount.Float64() {
+	if second.Name != "" && first.Amount.Add(second.Amount).Float64() >= 0.8*transactionStats.TotalAmount.Float64() {
 		patterns = append(patterns, models.Pattern{
 			Name:        "Very High Spending Concentration",
 			Description: fmt.Sprintf("An overwhelming majority (%.1f%%) of your total spending is concentrated in just two categories: '%s' and '%s'.", ((first.Amount.Add(second.Amount)).Float64()/transactionStats.TotalAmount.Float64())*100, first.Name, second.Name),
@@ -180,7 +180,7 @@ func (d *CategoryBasedSpendingDetector) MinTransactions() int {
 	return 10
 }
 
-func (d *CategoryBasedSpendingDetector) ScorePattern(pattern *models.Pattern) float64 {
+func (d *CategoryBasedSpendingDetector) ScorePattern(pattern models.Pattern) float64 {
 	extractor, err := NewMetadataExtractor(pattern.Metadata)
 	if err != nil {
 		return 0
@@ -321,7 +321,7 @@ func (d *PurchaseFrequencyDetector) Detect(transactions []models.Transaction, co
 				),
 				Metadata: map[string]interface{}{
 					"category":         catName,
-					"transactionCount": txCount,
+					"transactionCount": float64(txCount),
 					"purchasesPerWeek": purchasesPerWeek,
 					"medianInterval":   medianInterval,
 					"totalAmount":      totalAmount.Float64(),
@@ -344,7 +344,7 @@ func (d *PurchaseFrequencyDetector) Detect(transactions []models.Transaction, co
 				),
 				Metadata: map[string]interface{}{
 					"category":         catName,
-					"transactionCount": txCount,
+					"transactionCount": float64(txCount),
 					"medianInterval":   medianInterval,
 					"totalAmount":      totalAmount.Float64(),
 					"averageAmount":    avgAmount,
@@ -366,7 +366,7 @@ func (d *PurchaseFrequencyDetector) Detect(transactions []models.Transaction, co
 				),
 				Metadata: map[string]interface{}{
 					"category":         catName,
-					"transactionCount": txCount,
+					"transactionCount": float64(txCount),
 					"averageAmount":    avgAmount,
 					"totalAmount":      totalAmount.Float64(),
 					"patternType":      "infrequent_splurge",
@@ -382,7 +382,7 @@ func (d *PurchaseFrequencyDetector) MinTransactions() int {
 	return 50
 }
 
-func (d *PurchaseFrequencyDetector) ScorePattern(pattern *models.Pattern) float64 {
+func (d *PurchaseFrequencyDetector) ScorePattern(pattern models.Pattern) float64 {
 	extractor, err := NewMetadataExtractor(pattern.Metadata)
 	if err != nil {
 		return 0

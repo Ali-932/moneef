@@ -2,10 +2,11 @@ package pattern_engine
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"moneef/internal/models"
 	"moneef/pkg/types"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type MetadataExtractor struct {
@@ -108,4 +109,17 @@ func CalculateTransactionStats(transactions []models.Transaction, db *gorm.DB) (
 		LatestDate:            latestDate,
 		CurrencyCode:          currencyCode,
 	}, nil
+}
+
+func GetCurrencyCode(profileID uint, db *gorm.DB) (string, error) {
+	var currencyCode string
+	err := db.Model(&models.UserSettings{}).
+		Select("user_settings.currency_code").
+		Joins("JOIN profiles ON profiles.user_id = user_settings.user_id").
+		Where("profiles.id = ?", profileID).
+		Scan(&currencyCode).Error
+	if err != nil {
+		return "", err
+	}
+	return currencyCode, nil
 }

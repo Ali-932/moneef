@@ -33,7 +33,7 @@ func (t *Transaction) GetTotal(db *gorm.DB) (*types.Money, error) {
 	var total types.Money
 	for _, tc := range t.TransactionCategory {
 		if tc.Amount != nil {
-			total.Add(*tc.Amount)
+			total = total.Add(*tc.Amount)
 		}
 	}
 

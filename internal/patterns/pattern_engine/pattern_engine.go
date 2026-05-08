@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"moneef/internal/db"
 	"moneef/internal/models"
+	"sort"
 )
 
 const (
@@ -52,13 +53,28 @@ func (engine *Engine) Analyze(transactions []models.Transaction) ([]models.Patte
 			allPatterns = append(allPatterns, pattern)
 		}
 	}
-	// TODO sort patterns by score descending
+	sort.Slice(allPatterns, func(i, j int) bool {
+		return allPatterns[i].FinalScore > allPatterns[j].FinalScore
+	})
 	return allPatterns, nil
 }
 
-//func GetUserPatterns(profileId uint) ([]models.Pattern, error) {
-//	engine := NewEngine([]PatternDetector{
-//		&WeekendSpikeDetector{},
-//	},
-//		"US")
-//}
+func GetUserPatterns(profileId uint) ([]models.Pattern, error) {
+	var transactions []models.Transaction
+	err := db.DB.
+		Preload("TransactionCategory.Category").
+		Where("profile_id = ? AND deleted_at IS NULL", profileId).
+		Find(&transactions).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch transactions: %w", err)
+	}
+	// TODO: use actual user country code once the model supports it
+	countryCode := "US"
+	engine := NewEngine([]PatternDetector{
+		&WeekendSpikeDetector{},
+		&CategoryBasedSpendingDetector{},
+		&PurchaseFrequencyDetector{},
+	}, countryCode)
+
+	return engine.Analyze(transactions)
+}
