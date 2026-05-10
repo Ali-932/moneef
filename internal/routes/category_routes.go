@@ -10,5 +10,6 @@ func CategoryRoutes() chi.Router {
 	r.Get("/", categories.ListCategoriesHandler)
 	r.Post("/", categories.CreateCategoryHandler)
 	r.Put("/{id}", categories.UpdateCategoryHandler)
+	r.Delete("/{id}", categories.DeleteCategoryHandler)
 	return r
 }

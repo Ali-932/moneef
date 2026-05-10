@@ -64,6 +64,28 @@ func CreateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(category)
 }
 
+func DeleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
+	profileID, ok := r.Context().Value("profileID").(uint)
+	if !ok {
+		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	categoryID, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		utils.WriteJsonError(w, http.StatusBadRequest, "Invalid category ID")
+		return
+	}
+	if err := service.DeleteCategory(uint(categoryID), profileID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.WriteJsonError(w, http.StatusNotFound, "Category not found or cannot delete default categories")
+			return
+		}
+		utils.WriteJsonError(w, http.StatusInternalServerError, "Failed to delete category")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func UpdateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	profileID, ok := r.Context().Value("profileID").(uint)
 	if !ok {

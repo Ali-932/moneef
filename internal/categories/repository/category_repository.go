@@ -39,6 +39,17 @@ func UpdateCategory(tx *gorm.DB, id uint, profileID uint, updates map[string]int
 	return nil
 }
 
+func DeleteCategory(id uint, profileID uint) error {
+	result := db.DB.Where("id = ? AND profile_id = ?", id, profileID).Unscoped().Delete(&models.Category{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
 func ExistsByName(profileID uint, name string) (bool, error) {
 	var count int64
 	err := db.DB.Model(&models.Category{}).

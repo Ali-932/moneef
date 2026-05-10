@@ -6,6 +6,7 @@ import (
 	"moneef/internal/categories/repository"
 	"moneef/internal/db"
 	"moneef/internal/models"
+	"moneef/internal/transactions/engine"
 )
 
 var ErrDuplicateName = errors.New("category name already exists")
@@ -33,7 +34,12 @@ func CreateCategory(profileID uint, req dto.CreateCategoryRequest) (*models.Cate
 	if err := repository.CreateCategory(category); err != nil {
 		return nil, err
 	}
+	engine.ResolveCategoryIconAsync(category.ID)
 	return category, nil
+}
+
+func DeleteCategory(id uint, profileID uint) error {
+	return repository.DeleteCategory(id, profileID)
 }
 
 func UpdateCategory(id uint, profileID uint, req dto.UpdateCategoryRequest) error {
