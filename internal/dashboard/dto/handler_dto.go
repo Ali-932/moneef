@@ -8,6 +8,7 @@ import (
 
 type DashboardResponse struct {
 	Period             DashboardPeriod      `json:"period"`
+	CurrencyCode       string               `json:"currency_code"`
 	Balance            types.Money          `json:"balance"`
 	TotalIncome        types.Money          `json:"total_income"`
 	TotalExpense       types.Money          `json:"total_expense"`

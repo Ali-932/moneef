@@ -22,6 +22,16 @@ func GetDashboard(profileID uint, dateFrom, dateTo *time.Time) (*dto.DashboardRe
 		endDate = *dateTo
 	}
 
+	// Fetch user's currency from settings
+	var profile models.Profile
+	var settings models.UserSettings
+	currencyCode := "USD"
+	if err := db.DB.First(&profile, profileID).Error; err == nil {
+		if err := db.DB.Where("user_id = ?", profile.UserID).First(&settings).Error; err == nil {
+			currencyCode = settings.CurrencyCode
+		}
+	}
+
 	totals, err := repository.GetPeriodTotals(db.DB, profileID, startDate, endDate)
 	if err != nil {
 		return nil, err
@@ -93,6 +103,7 @@ func GetDashboard(profileID uint, dateFrom, dateTo *time.Time) (*dto.DashboardRe
 			StartDate: startDate,
 			EndDate:   endDate,
 		},
+		CurrencyCode:       currencyCode,
 		Balance:            balance,
 		TotalIncome:        totals.Income,
 		TotalExpense:       totals.Expense,
