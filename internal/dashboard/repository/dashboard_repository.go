@@ -102,3 +102,35 @@ func GetUpcomingRecurring(tx *gorm.DB, profileID uint, currentDate time.Time, li
 	}
 	return results, nil
 }
+
+func GetBiggestTransaction(tx *gorm.DB, profileID uint, startDate, endDate time.Time) (dto.BiggestTransaction, error) {
+	var result dto.BiggestTransaction
+	err := tx.Table("transactions t").
+		Select("t.name as name, tc.amount as amount, c.icon as icon, c.color as color").
+		Joins("JOIN transaction_categories tc ON t.id = tc.transaction_id").
+		Joins("JOIN categories c ON tc.category_id = c.id").
+		Where("t.profile_id = ? AND t.type = 'expense' AND t.date >= ? AND t.date <= ? AND t.deleted_at IS NULL AND tc.deleted_at IS NULL", profileID, startDate, endDate).
+		Order("amount DESC").
+		Limit(1).
+		Scan(&result).Error
+	if err != nil {
+		return dto.BiggestTransaction{}, err
+	}
+	return result, nil
+}
+
+func GetTopMerchant(tx *gorm.DB, profileID uint, startDate, endDate time.Time) (dto.TopMerchant, error) {
+	var result dto.TopMerchant
+	err := tx.Table("transactions t").
+		Select("t.merchant_name as name, COALESCE(SUM(tc.amount), 0) as amount").
+		Joins("JOIN transaction_categories tc ON t.id = tc.transaction_id").
+		Where("t.profile_id = ? AND t.type = 'expense' AND t.date >= ? AND t.date <= ? AND t.deleted_at IS NULL AND tc.deleted_at IS NULL AND t.merchant_name != ''", profileID, startDate, endDate).
+		Group("t.merchant_name").
+		Order("amount DESC").
+		Limit(1).
+		Scan(&result).Error
+	if err != nil {
+		return dto.TopMerchant{}, err
+	}
+	return result, nil
+}

@@ -1,10 +1,12 @@
 package service
 
 import (
+	"github.com/shopspring/decimal"
 	"moneef/internal/dashboard/dto"
 	"moneef/internal/dashboard/repository"
 	"moneef/internal/db"
 	"moneef/internal/models"
+	"moneef/pkg/types"
 	"time"
 )
 
@@ -50,6 +52,16 @@ func GetDashboard(profileID uint, dateFrom, dateTo *time.Time) (*dto.DashboardRe
 		return nil, err
 	}
 
+	biggestTx, err := repository.GetBiggestTransaction(db.DB, profileID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+
+	topMerchant, err := repository.GetTopMerchant(db.DB, profileID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+
 	balance := totals.Income.Sub(totals.Expense)
 
 	var topCategoryStat *dto.CategoryStat
@@ -59,6 +71,16 @@ func GetDashboard(profileID uint, dateFrom, dateTo *time.Time) (*dto.DashboardRe
 			CategoryName: topCat.CategoryName,
 			TotalAmount:  topCat.TotalAmount,
 		}
+	}
+
+	var savingsRate types.Money
+	if !decimal.Decimal(totals.Income).IsZero() {
+		savingsRate = totals.Income.Sub(totals.Expense).Div(totals.Income).Mul(types.MoneyFromInt(100))
+	}
+
+	var avgTransaction types.Money
+	if txCount > 0 {
+		avgTransaction = totals.Expense.Div(types.MoneyFromInt(int64(txCount)))
 	}
 
 	// Ensure recent transactions slice is never nil
@@ -76,9 +98,13 @@ func GetDashboard(profileID uint, dateFrom, dateTo *time.Time) (*dto.DashboardRe
 		TotalExpense:       totals.Expense,
 		RecentTransactions: recentTx,
 		QuickStats: dto.QuickStats{
-			TopCategory:      topCategoryStat,
-			AvgDailySpend:    avgDaily,
-			TransactionCount: txCount,
+			TopCategory:        topCategoryStat,
+			AvgDailySpend:      avgDaily,
+			TransactionCount:   txCount,
+			SavingsRate:        savingsRate,
+			BiggestTransaction: biggestTx,
+			TopMerchant:        topMerchant,
+			AvgTransaction:     avgTransaction,
 		},
 		UpcomingRecurring: upcoming,
 	}, nil
