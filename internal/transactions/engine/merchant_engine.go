@@ -74,3 +74,47 @@ func ResolveMerchantIcon(transactionID uint) {
 func ResolveMerchantIconAsync(transactionID uint) {
 	go ResolveMerchantIcon(transactionID)
 }
+
+func ResolveCategoryIcon(categoryID uint) {
+	var category models.Category
+	if err := db.DB.First(&category, categoryID).Error; err != nil {
+		log.Printf("⚠️ [ENGINE] Category %d not found for icon resolution: %v", categoryID, err)
+		return
+	}
+
+	if category.Icon != "" && category.Color != "" {
+		return
+	}
+
+	updates := map[string]interface{}{}
+
+	var iconLookup models.IconLookup
+	lowerName := strings.ToLower(category.Name)
+	if err := db.DB.Where("? LIKE '%' || keyword || '%'", lowerName).First(&iconLookup).Error; err == nil {
+		if category.Icon == "" {
+			updates["icon"] = iconLookup.Icon
+		}
+		if category.Color == "" {
+			updates["color"] = iconLookup.Color
+		}
+		log.Printf("✅ [ENGINE] Category %d matched keyword → icon=%s color=%s", categoryID, iconLookup.Icon, iconLookup.Color)
+	} else {
+		if category.Icon == "" {
+			updates["icon"] = "📦"
+		}
+		if category.Color == "" {
+			updates["color"] = "#6B5CE7"
+		}
+		log.Printf("✅ [ENGINE] Category %d used default icon/color", categoryID)
+	}
+
+	if len(updates) > 0 {
+		if err := db.DB.Model(&models.Category{}).Where("id = ?", categoryID).Updates(updates).Error; err != nil {
+			log.Printf("❌ [ENGINE] Failed to update category %d icon/color: %v", categoryID, err)
+		}
+	}
+}
+
+func ResolveCategoryIconAsync(categoryID uint) {
+	go ResolveCategoryIcon(categoryID)
+}
