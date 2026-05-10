@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"moneef/internal/models"
 	"moneef/pkg/types"
+	"strings"
 	"time"
 
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -122,4 +124,59 @@ func GetCurrencyCode(profileID uint, db *gorm.DB) (string, error) {
 		return "", err
 	}
 	return currencyCode, nil
+}
+
+func ConvertAmount(amount float64, fromCurrency string, toCurrency string, db *gorm.DB) float64 {
+	if fromCurrency == toCurrency {
+		return amount
+	}
+	var rate models.CurrencyExchangeRate
+	err := db.Where("currency_code1 = ? AND currency_code2 = ?", fromCurrency, toCurrency).First(&rate).Error
+	if err != nil {
+		return amount
+	}
+	return amount * rate.Rate
+}
+
+func ConvertMoney(amount types.Money, fromCurrency string, toCurrency string, db *gorm.DB) types.Money {
+	converted := ConvertAmount(amount.Float64(), fromCurrency, toCurrency, db)
+	return types.Money(decimal.NewFromFloat(converted))
+}
+
+func FormatCurrencyAmount(amount float64, currencyCode string) string {
+	return fmt.Sprintf("%s %s", currencyCode, humanizeFloat(amount))
+}
+
+func humanizeFloat(amount float64) string {
+	s := fmt.Sprintf("%.2f", amount)
+	parts := strings.Split(s, ".")
+	intPart := parts[0]
+	if intPart[0] == '-' {
+		intPart = intPart[1:]
+	}
+	var result []byte
+	for i, j := len(intPart)-1, 0; i >= 0; i, j = i-1, j+1 {
+		if j > 0 && j%3 == 0 {
+			result = append([]byte{','}, result...)
+		}
+		result = append([]byte{intPart[i]}, result...)
+	}
+	if amount < 0 {
+		result = append([]byte{'-'}, result...)
+	}
+	if len(parts) == 2 {
+		return string(result) + "." + parts[1]
+	}
+	return string(result)
+}
+
+func formatPeriod(stats *TransactionStats) string {
+	if stats == nil || stats.Count == 0 {
+		return ""
+	}
+	return fmt.Sprintf(" across %d transactions (%s – %s)",
+		stats.Count,
+		stats.EarliestDate.Format("Jan 2, 2006"),
+		stats.LatestDate.Format("Jan 2, 2006"),
+	)
 }

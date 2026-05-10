@@ -5,6 +5,7 @@ import (
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"sort"
+	"time"
 )
 
 const (
@@ -59,12 +60,15 @@ func (engine *Engine) Analyze(transactions []models.Transaction) ([]models.Patte
 	return allPatterns, nil
 }
 
-func GetUserPatterns(profileId uint) ([]models.Pattern, error) {
+func GetUserPatterns(profileId uint, startDate, endDate *time.Time) ([]models.Pattern, error) {
 	var transactions []models.Transaction
-	err := db.DB.
+	query := db.DB.
 		Preload("TransactionCategory.Category").
-		Where("profile_id = ? AND deleted_at IS NULL", profileId).
-		Find(&transactions).Error
+		Where("profile_id = ? AND type = ? AND deleted_at IS NULL", profileId, "expense")
+	if startDate != nil && endDate != nil {
+		query = query.Where("date >= ? AND date <= ?", *startDate, *endDate)
+	}
+	err := query.Find(&transactions).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch transactions: %w", err)
 	}
@@ -72,6 +76,24 @@ func GetUserPatterns(profileId uint) ([]models.Pattern, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get currency code: %w", err)
 	}
+
+	for i := range transactions {
+		if transactions[i].CurrencyCode != currencyCode {
+			for j := range transactions[i].TransactionCategory {
+				if transactions[i].TransactionCategory[j].Amount != nil {
+					converted := ConvertMoney(
+						*transactions[i].TransactionCategory[j].Amount,
+						transactions[i].CurrencyCode,
+						currencyCode,
+						db.DB,
+					)
+					transactions[i].TransactionCategory[j].Amount = &converted
+				}
+			}
+			transactions[i].CurrencyCode = currencyCode
+		}
+	}
+
 	engine := NewEngine([]PatternDetector{
 		&WeekendSpikeDetector{},
 		&CategoryBasedSpendingDetector{},

@@ -44,12 +44,14 @@ func (d *WeekendSpikeDetector) Detect(transactions []models.Transaction, currenc
 			return []models.Pattern{
 				{
 					Name: "Weekend Spending Spike",
+					Type: "weekend_spike",
 					Description: fmt.Sprintf(
-						"Your average weekend spending ($%.2f) is %.1f%% higher than your weekday spending ($%.2f). "+
-							"Consider reviewing your weekend expenses.",
-						weekendAvg,
+						"Your average weekend spending (%s) is %.1f%% higher than your weekday spending (%s). "+
+							"Consider reviewing your weekend expenses.%s",
+						FormatCurrencyAmount(weekendAvg, currencyCode),
 						percentDiff*100,
-						weekdayAvg,
+						FormatCurrencyAmount(weekdayAvg, currencyCode),
+						formatPeriod(transactionStats),
 					),
 					Metadata: map[string]interface{}{
 						"weekendAvg":        weekendAvg,
@@ -68,14 +70,15 @@ func (d *WeekendSpikeDetector) Detect(transactions []models.Transaction, currenc
 			return []models.Pattern{
 				{
 					Name: "Weekday Spending Spike",
+					Type: "weekday_spike",
 					Description: fmt.Sprintf(
-						"Your average weekday spending ($%.2f) is %.1f%% higher than your weekend spending ($%.2f). "+
-							"Consider reviewing your weekday expenses.",
-						weekdayAvg,
+						"Your average weekday spending (%s) is %.1f%% higher than your weekend spending (%s). "+
+							"Consider reviewing your weekday expenses.%s",
+						FormatCurrencyAmount(weekdayAvg, currencyCode),
 						percentDiff*100,
-						weekendAvg,
+						FormatCurrencyAmount(weekendAvg, currencyCode),
+						formatPeriod(transactionStats),
 					),
-
 					Metadata: map[string]interface{}{
 						"weekendAvg":        weekendAvg,
 						"weekdayAvg":        weekdayAvg,
@@ -150,16 +153,20 @@ func (d *CategoryBasedSpendingDetector) Detect(transactions []models.Transaction
 	}
 	patterns = append(patterns, models.Pattern{
 		Name:        "Top Spending Category",
-		Description: fmt.Sprintf("Your top spending category is '%s' with a total of $%.2f spent.", first.Name, first.Amount.Float64()),
+		Type:        "top_category",
+		Description: fmt.Sprintf("Your top spending category is '%s' with a total of %s spent.%s", first.Name, FormatCurrencyAmount(first.Amount.Float64(), currencyCode), formatPeriod(transactionStats)),
 		Metadata: map[string]interface{}{
+			"category":   first.Name,
 			"percentage": (first.Amount.Float64() / transactionStats.TotalAmount.Float64()) * 100,
 		},
 	})
 	if first.Amount.Float64() >= 0.3*transactionStats.TotalAmount.Float64() {
 		patterns = append(patterns, models.Pattern{
 			Name:        "High Spending Concentration",
-			Description: fmt.Sprintf("A significant portion (%.1f%%) of your total spending is concentrated in the '%s' category.", (first.Amount.Float64()/transactionStats.TotalAmount.Float64())*100, first.Name),
+			Type:        "high_concentration",
+			Description: fmt.Sprintf("A significant portion (%.1f%%) of your total spending is concentrated in the '%s' category.%s", (first.Amount.Float64()/transactionStats.TotalAmount.Float64())*100, first.Name, formatPeriod(transactionStats)),
 			Metadata: map[string]interface{}{
+				"category":   first.Name,
 				"percentage": (first.Amount.Float64() / transactionStats.TotalAmount.Float64()) * 100,
 			},
 		})
@@ -167,8 +174,10 @@ func (d *CategoryBasedSpendingDetector) Detect(transactions []models.Transaction
 	if second.Name != "" && first.Amount.Add(second.Amount).Float64() >= 0.8*transactionStats.TotalAmount.Float64() {
 		patterns = append(patterns, models.Pattern{
 			Name:        "Very High Spending Concentration",
-			Description: fmt.Sprintf("An overwhelming majority (%.1f%%) of your total spending is concentrated in just two categories: '%s' and '%s'.", ((first.Amount.Add(second.Amount)).Float64()/transactionStats.TotalAmount.Float64())*100, first.Name, second.Name),
+			Type:        "very_high_concentration",
+			Description: fmt.Sprintf("An overwhelming majority (%.1f%%) of your total spending is concentrated in just two categories: '%s' and '%s'.%s", ((first.Amount.Add(second.Amount)).Float64()/transactionStats.TotalAmount.Float64())*100, first.Name, second.Name, formatPeriod(transactionStats)),
 			Metadata: map[string]interface{}{
+				"category":   first.Name,
 				"percentage": ((first.Amount.Add(second.Amount)).Float64() / transactionStats.TotalAmount.Float64()) * 100,
 			},
 		})
@@ -314,10 +323,12 @@ func (d *PurchaseFrequencyDetector) Detect(transactions []models.Transaction, cu
 		// Qualifies because: txCount >= 5 AND purchasesPerWeek >= 4
 		if txCount >= 5 && (purchasesPerWeek >= 4 || medianInterval <= 2) {
 			patterns = append(patterns, models.Pattern{
-				Name: "Daily Habit",
+				Name: fmt.Sprintf("Daily Habit: %s", catName),
+				Type: "daily_habit",
 				Description: fmt.Sprintf(
-					"'%s' appears to be a daily habit with %d purchases (%.1f per week) and a median interval of %.1f days between purchases.",
+					"'%s' appears to be a daily habit with %d purchases (%.1f per week) and a median interval of %.1f days between purchases.%s",
 					catName, txCount, purchasesPerWeek, medianInterval,
+					formatPeriod(transactionStats),
 				),
 				Metadata: map[string]interface{}{
 					"category":         catName,
@@ -337,10 +348,12 @@ func (d *PurchaseFrequencyDetector) Detect(transactions []models.Transaction, cu
 		// Qualifies because: txCount >= 4 AND medianInterval between 3-5 days
 		if txCount >= 4 && medianInterval >= 3 && medianInterval <= 5 {
 			patterns = append(patterns, models.Pattern{
-				Name: "Weekly Repeat",
+				Name: fmt.Sprintf("Weekly Repeat: %s", catName),
+				Type: "weekly_repeat",
 				Description: fmt.Sprintf(
-					"'%s' shows a weekly pattern with %d purchases and a median interval of %.1f days between purchases.",
+					"'%s' shows a weekly pattern with %d purchases and a median interval of %.1f days between purchases.%s",
 					catName, txCount, medianInterval,
+					formatPeriod(transactionStats),
 				),
 				Metadata: map[string]interface{}{
 					"category":         catName,
@@ -359,10 +372,12 @@ func (d *PurchaseFrequencyDetector) Detect(transactions []models.Transaction, cu
 		// Qualifies because: txCount <= 6 AND avgAmount >= $60 AND totalAmount >= $100
 		if txCount <= 6 && avgAmount >= 60 && totalAmount.Float64() >= 100 {
 			patterns = append(patterns, models.Pattern{
-				Name: "Infrequent Splurge",
+				Name: fmt.Sprintf("Infrequent Splurge: %s", catName),
+				Type: "infrequent_splurge",
 				Description: fmt.Sprintf(
-					"'%s' represents infrequent splurges with only %d purchases averaging $%.2f each (total: $%.2f).",
-					catName, txCount, avgAmount, totalAmount.Float64(),
+					"'%s' represents infrequent splurges with only %d purchases averaging %s each (total: %s).%s",
+					catName, txCount, FormatCurrencyAmount(avgAmount, currencyCode), FormatCurrencyAmount(totalAmount.Float64(), currencyCode),
+					formatPeriod(transactionStats),
 				),
 				Metadata: map[string]interface{}{
 					"category":         catName,
@@ -388,7 +403,10 @@ func (d *PurchaseFrequencyDetector) ScorePattern(pattern models.Pattern) float64
 		return 0
 	}
 
-	patternType := extractor.GetString("patternType")
+	patternType := pattern.Type
+	if patternType == "" {
+		patternType = extractor.GetString("patternType")
+	}
 	totalAmount := extractor.GetFloat64("totalAmount")
 	avgAmount := extractor.GetFloat64("averageAmount")
 	txCount := extractor.GetFloat64("transactionCount")

@@ -99,6 +99,8 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 		&models.RecurrenceTemplateCategory{},
 		&models.Currency{},
 		&models.CurrencyExchangeRate{},
+		&models.Pattern{},
+		&models.IconLookup{},
 	)
 	require.NoError(t, err, "Failed to migrate test database")
 

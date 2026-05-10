@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"encoding/json"
 	"fmt"
+
 	"gorm.io/gorm"
 	"moneef/internal/models"
 )
@@ -13,6 +15,11 @@ func DeleteUserPatterns(tx *gorm.DB, profileID uint) error {
 func CreatePatterns(tx *gorm.DB, patterns []models.Pattern) error {
 	if len(patterns) == 0 {
 		return nil
+	}
+	for i := range patterns {
+		if err := marshalMetadata(&patterns[i]); err != nil {
+			return err
+		}
 	}
 	return tx.Create(&patterns).Error
 }
@@ -26,29 +33,28 @@ func GetPatternsByProfileID(tx *gorm.DB, profileID uint) ([]models.Pattern, erro
 	return patterns, nil
 }
 
-// UpsertPatterns updates existing patterns, creates new ones, and soft-deletes ones that disappeared.
-func UpsertPatterns(tx *gorm.DB, profileID uint, patterns []models.Pattern) error {
+func UpsertPatterns(tx *gorm.DB, profileID uint, patterns []models.Pattern) ([]models.Pattern, error) {
 	for i := range patterns {
 		patterns[i].ProfileID = &profileID
+		if err := marshalMetadata(&patterns[i]); err != nil {
+			return nil, err
+		}
 	}
 
-	// 1. Gather keys of the new patterns
 	newKeys := make([]string, 0, len(patterns))
 	for _, p := range patterns {
 		newKeys = append(newKeys, fmt.Sprintf("%s|%s", p.Name, p.Type))
 	}
 
-	// 2. Soft-delete patterns that are no longer present
 	if len(newKeys) > 0 {
-		// Build a raw condition because GORM doesn't support NOT IN with string concatenation easily
 		if err := tx.Where("profile_id = ?", profileID).
 			Where("name || '|' || type NOT IN ?", newKeys).
 			Delete(&models.Pattern{}).Error; err != nil {
-			return fmt.Errorf("failed to prune old patterns: %w", err)
+			return nil, fmt.Errorf("failed to prune old patterns: %w", err)
 		}
 	}
 
-	// 3. Upsert: update existing, create new
+	var result []models.Pattern
 	for _, p := range patterns {
 		var existing models.Pattern
 		err := tx.Where("profile_id = ? AND name = ? AND type = ? AND deleted_at IS NULL", profileID, p.Name, p.Type).
@@ -58,15 +64,33 @@ func UpsertPatterns(tx *gorm.DB, profileID uint, patterns []models.Pattern) erro
 			existing.Metadata = p.Metadata
 			existing.Icon = p.Icon
 			existing.Color = p.Color
+			existing.Type = p.Type
 			existing.FinalScore = p.FinalScore
 			if err := tx.Save(&existing).Error; err != nil {
-				return fmt.Errorf("failed to update pattern %s: %w", p.Name, err)
+				return nil, fmt.Errorf("failed to update pattern %s: %w", p.Name, err)
 			}
+			result = append(result, existing)
 		} else {
 			if err := tx.Create(&p).Error; err != nil {
-				return fmt.Errorf("failed to create pattern %s: %w", p.Name, err)
+				return nil, fmt.Errorf("failed to create pattern %s: %w", p.Name, err)
 			}
+			result = append(result, p)
 		}
 	}
+	return result, nil
+}
+
+func marshalMetadata(p *models.Pattern) error {
+	if p.Metadata == nil {
+		return nil
+	}
+	if _, ok := p.Metadata.(json.RawMessage); ok {
+		return nil
+	}
+	b, err := json.Marshal(p.Metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata for pattern %s: %w", p.Name, err)
+	}
+	p.Metadata = json.RawMessage(b)
 	return nil
 }

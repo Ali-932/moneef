@@ -58,9 +58,18 @@ var Currencies = []defaultCurrencies{
 	{Code: "TRY", Symbol: "₺", Name: "Turkish Lira"},
 }
 
+func GetCurrencySymbol(code string) string {
+	for _, c := range Currencies {
+		if c.Code == code {
+			return c.Symbol
+		}
+	}
+	return code
+}
+
 var Countries = []Country{
 	{Code: "US", Name: "United States", CurrencyCode: "USD"},
-	{Code: "DE", Name: "Germany", CurrencyCode: "EUR"}, // Representative Eurozone country
+	{Code: "DE", Name: "Germany", CurrencyCode: "EUR"},
 	{Code: "GB", Name: "United Kingdom", CurrencyCode: "GBP"},
 	{Code: "JP", Name: "Japan", CurrencyCode: "JPY"},
 	{Code: "CN", Name: "China", CurrencyCode: "CNY"},
@@ -99,40 +108,40 @@ type Weekday int
 
 var WeekendPatterns = map[string][]time.Weekday{
 	// Saturday-Sunday Weekend (Most Common)
-	"USD": {time.Saturday, time.Sunday}, // United States Dollar
-	"EUR": {time.Saturday, time.Sunday}, // Euro (Eurozone)
-	"GBP": {time.Saturday, time.Sunday}, // British Pound
-	"JPY": {time.Saturday, time.Sunday}, // Japanese Yen
-	"CNY": {time.Saturday, time.Sunday}, // Chinese Yuan
-	"CAD": {time.Saturday, time.Sunday}, // Canadian Dollar
-	"AUD": {time.Saturday, time.Sunday}, // Australian Dollar
-	"CHF": {time.Saturday, time.Sunday}, // Swiss Franc
-	"SEK": {time.Saturday, time.Sunday}, // Swedish Krona
-	"NOK": {time.Saturday, time.Sunday}, // Norwegian Krone
-	"DKK": {time.Saturday, time.Sunday}, // Danish Krone
-	"INR": {time.Saturday, time.Sunday}, // Indian Rupee
-	"KRW": {time.Saturday, time.Sunday}, // South Korean Won
-	"SGD": {time.Saturday, time.Sunday}, // Singapore Dollar
-	"HKD": {time.Saturday, time.Sunday}, // Hong Kong Dollar
-	"NZD": {time.Saturday, time.Sunday}, // New Zealand Dollar
-	"MXN": {time.Saturday, time.Sunday}, // Mexican Peso
-	"BRL": {time.Saturday, time.Sunday}, // Brazilian Real
-	"RUB": {time.Saturday, time.Sunday}, // Russian Ruble
-	"ZAR": {time.Saturday, time.Sunday}, // South African Rand
-	"LBP": {time.Saturday, time.Sunday}, // Lebanese Pound
-	"TRY": {time.Saturday, time.Sunday}, // Turkish Lira
+	"USD": {time.Saturday, time.Sunday},
+	"EUR": {time.Saturday, time.Sunday},
+	"GBP": {time.Saturday, time.Sunday},
+	"JPY": {time.Saturday, time.Sunday},
+	"CNY": {time.Saturday, time.Sunday},
+	"CAD": {time.Saturday, time.Sunday},
+	"AUD": {time.Saturday, time.Sunday},
+	"CHF": {time.Saturday, time.Sunday},
+	"SEK": {time.Saturday, time.Sunday},
+	"NOK": {time.Saturday, time.Sunday},
+	"DKK": {time.Saturday, time.Sunday},
+	"INR": {time.Saturday, time.Sunday},
+	"KRW": {time.Saturday, time.Sunday},
+	"SGD": {time.Saturday, time.Sunday},
+	"HKD": {time.Saturday, time.Sunday},
+	"NZD": {time.Saturday, time.Sunday},
+	"MXN": {time.Saturday, time.Sunday},
+	"BRL": {time.Saturday, time.Sunday},
+	"RUB": {time.Saturday, time.Sunday},
+	"ZAR": {time.Saturday, time.Sunday},
+	"LBP": {time.Saturday, time.Sunday},
+	"TRY": {time.Saturday, time.Sunday},
 
 	// Friday-Saturday Weekend (Islamic Countries)
-	"SAR": {time.Friday, time.Saturday}, // Saudi Riyal
-	"AED": {time.Friday, time.Saturday}, // UAE Dirham
-	"QAR": {time.Friday, time.Saturday}, // Qatari Riyal
-	"KWD": {time.Friday, time.Saturday}, // Kuwaiti Dinar
-	"BHD": {time.Friday, time.Saturday}, // Bahraini Dinar
-	"OMR": {time.Friday, time.Saturday}, // Omani Rial
-	"JOD": {time.Friday, time.Saturday}, // Jordanian Dinar
-	"EGP": {time.Friday, time.Saturday}, // Egyptian Pound
-	"IQD": {time.Friday, time.Saturday}, // Iraqi Dinar
+	"SAR": {time.Friday, time.Saturday},
+	"AED": {time.Friday, time.Saturday},
+	"QAR": {time.Friday, time.Saturday},
+	"KWD": {time.Friday, time.Saturday},
+	"BHD": {time.Friday, time.Saturday},
+	"OMR": {time.Friday, time.Saturday},
+	"JOD": {time.Friday, time.Saturday},
+	"EGP": {time.Friday, time.Saturday},
+	"IQD": {time.Friday, time.Saturday},
 
 	// Thursday-Friday Weekend
-	"IRR": {time.Thursday, time.Friday}, // Iranian Rial
+	"IRR": {time.Thursday, time.Friday},
 }
