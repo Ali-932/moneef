@@ -371,10 +371,10 @@ func subFrequency(t time.Time, freq string) time.Time {
 
 func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 	now := time.Now().UTC()
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	monthEnd := monthStart.AddDate(0, 1, -1).Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+	windowStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	windowEnd := windowStart.AddDate(0, 0, 30).Add(23*time.Hour + 59*time.Minute + 59*time.Second)
 
-	templates, err := repository.GetActiveRecurrenceTemplatesForProfile(profileID, monthStart)
+	templates, err := repository.GetActiveRecurrenceTemplatesForProfile(profileID, windowStart)
 	if err != nil {
 		return nil, err
 	}
@@ -393,8 +393,8 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 
 		projected := anchor
 		steps := 0
-		for !projected.Before(monthStart) && steps < 400 {
-			if !projected.Before(monthStart) && !projected.After(monthEnd) {
+		for !projected.Before(windowStart) && steps < 400 {
+			if !projected.Before(windowStart) && !projected.After(windowEnd) {
 				dateSet[projected.Format("2006-01-02")] = projected
 			}
 			projected = subFrequency(projected, freq)
@@ -407,8 +407,8 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 
 		projected = addFrequency(anchor, freq)
 		steps = 0
-		for !projected.After(monthEnd) && steps < 400 {
-			if !projected.Before(monthStart) {
+		for !projected.After(windowEnd) && steps < 400 {
+			if !projected.Before(windowStart) {
 				dateSet[projected.Format("2006-01-02")] = projected
 			}
 			projected = addFrequency(projected, freq)
