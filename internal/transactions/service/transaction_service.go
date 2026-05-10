@@ -14,6 +14,7 @@ import (
 	usersRepository "moneef/internal/users/repository"
 	"moneef/pkg/types"
 	"moneef/pkg/utils"
+	"sort"
 	"time"
 )
 
@@ -238,7 +239,7 @@ func ListTransactions(profileID uint, txType string, categoryID uint, dateFrom, 
 }
 
 func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest, categoriesMap map[uint]decimal.Decimal) error {
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		updates := make(map[string]interface{})
 		if req.TransactionName != "" {
 			updates["name"] = req.TransactionName
@@ -254,6 +255,9 @@ func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest
 		}
 		if req.Notes != nil {
 			updates["notes"] = *req.Notes
+		}
+		if !req.Date.IsZero() {
+			updates["date"] = req.Date
 		}
 
 		if len(updates) > 0 {
@@ -279,6 +283,11 @@ func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	engine.ResolveMerchantIconAsync(id)
+	return nil
 }
 
 func DeleteTransaction(id uint, profileID uint) error {
@@ -288,4 +297,145 @@ func DeleteTransaction(id uint, profileID uint) error {
 		}
 		return repository.DeleteTransaction(tx, id, profileID)
 	})
+}
+
+func ListRecurrences(profileID uint) ([]models.RecurrenceTemplate, error) {
+	return repository.ListRecurrenceTemplates(profileID)
+}
+
+func UpdateRecurrence(profileID, id uint, updates map[string]interface{}) error {
+	return repository.UpdateRecurrenceTemplate(profileID, id, updates)
+}
+
+func DeleteRecurrence(profileID, id uint) error {
+	return repository.DeleteRecurrenceTemplate(profileID, id)
+}
+
+func daysInMonth(y int, m time.Month) int {
+	return time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC).Day()
+}
+
+func addFrequency(t time.Time, freq string) time.Time {
+	switch freq {
+	case "daily":
+		return t.AddDate(0, 0, 1)
+	case "weekly":
+		return t.AddDate(0, 0, 7)
+	case "bi-weekly":
+		return t.AddDate(0, 0, 14)
+	case "monthly":
+		y, m, _ := t.Date()
+		targetYear, targetMonth := y, m+1
+		if targetMonth > 12 {
+			targetYear++
+			targetMonth = 1
+		}
+		day := min(t.Day(), daysInMonth(targetYear, targetMonth))
+		return time.Date(targetYear, targetMonth, day, 0, 0, 0, 0, time.UTC)
+	case "yearly":
+		y, m, d := t.Date()
+		targetYear := y + 1
+		day := min(d, daysInMonth(targetYear, m))
+		return time.Date(targetYear, m, day, 0, 0, 0, 0, time.UTC)
+	default:
+		return t
+	}
+}
+
+func subFrequency(t time.Time, freq string) time.Time {
+	switch freq {
+	case "daily":
+		return t.AddDate(0, 0, -1)
+	case "weekly":
+		return t.AddDate(0, 0, -7)
+	case "bi-weekly":
+		return t.AddDate(0, 0, -14)
+	case "monthly":
+		y, m, _ := t.Date()
+		targetYear, targetMonth := y, m-1
+		if targetMonth < 1 {
+			targetYear--
+			targetMonth = 12
+		}
+		day := min(t.Day(), daysInMonth(targetYear, targetMonth))
+		return time.Date(targetYear, targetMonth, day, 0, 0, 0, 0, time.UTC)
+	case "yearly":
+		y, m, d := t.Date()
+		targetYear := y - 1
+		day := min(d, daysInMonth(targetYear, m))
+		return time.Date(targetYear, m, day, 0, 0, 0, 0, time.UTC)
+	default:
+		return t
+	}
+}
+
+func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
+	now := time.Now().UTC()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	monthEnd := monthStart.AddDate(0, 1, -1).Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+
+	templates, err := repository.GetActiveRecurrenceTemplatesForProfile(profileID, monthStart)
+	if err != nil {
+		return nil, err
+	}
+
+	var occurrences []dto.RecurrenceOccurrence
+
+	for _, tpl := range templates {
+		if tpl.NextPaymentAmount == nil {
+			continue
+		}
+
+		anchor := time.Date(tpl.NextDate.Year(), tpl.NextDate.Month(), tpl.NextDate.Day(), 0, 0, 0, 0, time.UTC)
+		freq := tpl.Frequency
+
+		dateSet := make(map[string]time.Time)
+
+		projected := anchor
+		steps := 0
+		for !projected.Before(monthStart) && steps < 400 {
+			if !projected.Before(monthStart) && !projected.After(monthEnd) {
+				dateSet[projected.Format("2006-01-02")] = projected
+			}
+			projected = subFrequency(projected, freq)
+			steps++
+		}
+		if steps >= 400 {
+			log.Printf("⚠️ [SERVICE] Recurrence template %d exceeded 400 backward steps, skipping", tpl.ID)
+			continue
+		}
+
+		projected = addFrequency(anchor, freq)
+		steps = 0
+		for !projected.After(monthEnd) && steps < 400 {
+			if !projected.Before(monthStart) {
+				dateSet[projected.Format("2006-01-02")] = projected
+			}
+			projected = addFrequency(projected, freq)
+			steps++
+		}
+		if steps >= 400 {
+			log.Printf("⚠️ [SERVICE] Recurrence template %d exceeded 400 forward steps, skipping", tpl.ID)
+			continue
+		}
+
+		for _, date := range dateSet {
+			occurrences = append(occurrences, dto.RecurrenceOccurrence{
+				ID:       tpl.ID,
+				Name:     tpl.Name,
+				Type:     tpl.Type,
+				Amount:   *tpl.NextPaymentAmount,
+				Currency: tpl.CurrencyCode,
+				Icon:     tpl.Icon,
+				Color:    tpl.Color,
+				Date:     date,
+			})
+		}
+	}
+
+	sort.Slice(occurrences, func(i, j int) bool {
+		return occurrences[i].Date.Before(occurrences[j].Date)
+	})
+
+	return occurrences, nil
 }

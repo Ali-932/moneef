@@ -2,6 +2,7 @@ package dto
 
 import (
 	"github.com/shopspring/decimal"
+	"moneef/pkg/types"
 	"time"
 )
 
@@ -59,4 +60,15 @@ type CreateTransactionRecurrentParams struct {
 	AmountPaidPreviously  *decimal.Decimal
 	AmountLeftToPay       *decimal.Decimal
 	TotalAmountToPay      *decimal.Decimal
+}
+
+type RecurrenceOccurrence struct {
+	ID       uint        `json:"id"`
+	Name     string      `json:"name"`
+	Type     string      `json:"type"`
+	Amount   types.Money `json:"amount"`
+	Currency string      `json:"currency"`
+	Icon     string      `json:"icon"`
+	Color    string      `json:"color"`
+	Date     time.Time   `json:"date"`
 }

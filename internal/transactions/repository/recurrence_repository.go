@@ -3,7 +3,9 @@ package repository
 import (
 	"gorm.io/gorm"
 	"log"
+	"moneef/internal/db"
 	"moneef/internal/models"
+	"time"
 )
 
 func CreateTransactionRecurrent(tx *gorm.DB, tpl *models.RecurrenceTemplate) (uint, error) {
@@ -31,4 +33,48 @@ func CreateTransactionCategoryRecurrentBulk(tx *gorm.DB, transactionCategories [
 	}
 
 	return nil
+}
+
+func ListRecurrenceTemplates(profileID uint) ([]models.RecurrenceTemplate, error) {
+	var list []models.RecurrenceTemplate
+	err := db.DB.
+		Preload("TransactionCategory.Category").
+		Where("profile_id = ?", profileID).
+		Order("next_date ASC").
+		Find(&list).Error
+	return list, err
+}
+
+func UpdateRecurrenceTemplate(profileID uint, id uint, updates map[string]interface{}) error {
+	result := db.DB.Model(&models.RecurrenceTemplate{}).
+		Where("id = ? AND profile_id = ?", id, profileID).
+		Updates(updates)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func DeleteRecurrenceTemplate(profileID uint, id uint) error {
+	result := db.DB.Where("id = ? AND profile_id = ?", id, profileID).
+		Delete(&models.RecurrenceTemplate{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func GetActiveRecurrenceTemplatesForProfile(profileID uint, monthStart time.Time) ([]models.RecurrenceTemplate, error) {
+	var list []models.RecurrenceTemplate
+	err := db.DB.
+		Where("profile_id = ? AND is_active = true", profileID).
+		Where("has_end_date = false OR (has_end_date = true AND end_date >= ?)", monthStart).
+		Find(&list).Error
+	return list, err
 }

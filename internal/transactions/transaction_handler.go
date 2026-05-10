@@ -171,6 +171,93 @@ func UpdateTransactionHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "transaction updated"})
 }
 
+func ListRecurrencesHandler(w http.ResponseWriter, r *http.Request) {
+	profileID, ok := r.Context().Value("profileID").(uint)
+	if !ok {
+		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	list, err := service.ListRecurrences(profileID)
+	if err != nil {
+		utils.WriteJsonError(w, http.StatusInternalServerError, "Failed to list recurring templates")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(list)
+}
+
+func UpdateRecurrenceHandler(w http.ResponseWriter, r *http.Request) {
+	profileID, ok := r.Context().Value("profileID").(uint)
+	if !ok {
+		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		utils.WriteJsonError(w, http.StatusBadRequest, "Invalid ID")
+		return
+	}
+	var updates map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
+		utils.WriteJsonError(w, http.StatusBadRequest, "Invalid input")
+		return
+	}
+	allowed := map[string]bool{"name": true, "frequency": true, "next_date": true, "end_date": true, "has_end_date": true, "is_active": true, "notes": true, "merchant_name": true}
+	filtered := make(map[string]interface{})
+	for k, v := range updates {
+		if allowed[k] {
+			filtered[k] = v
+		}
+	}
+	if err := service.UpdateRecurrence(profileID, uint(id), filtered); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.WriteJsonError(w, http.StatusNotFound, "Recurring template not found")
+			return
+		}
+		utils.WriteJsonError(w, http.StatusInternalServerError, "Failed to update")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "updated"})
+}
+
+func DeleteRecurrenceHandler(w http.ResponseWriter, r *http.Request) {
+	profileID, ok := r.Context().Value("profileID").(uint)
+	if !ok {
+		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		utils.WriteJsonError(w, http.StatusBadRequest, "Invalid ID")
+		return
+	}
+	if err := service.DeleteRecurrence(profileID, uint(id)); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.WriteJsonError(w, http.StatusNotFound, "Recurring template not found")
+			return
+		}
+		utils.WriteJsonError(w, http.StatusInternalServerError, "Failed to delete")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func GetTimelineHandler(w http.ResponseWriter, r *http.Request) {
+	profileID, ok := r.Context().Value("profileID").(uint)
+	if !ok {
+		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	timeline, err := service.GetRecurrenceTimeline(profileID)
+	if err != nil {
+		utils.WriteJsonError(w, http.StatusInternalServerError, "Failed to load timeline")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(timeline)
+}
+
 func DeleteTransactionHandler(w http.ResponseWriter, r *http.Request) {
 	profileID, ok := r.Context().Value("profileID").(uint)
 	if !ok {
