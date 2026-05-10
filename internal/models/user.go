@@ -16,22 +16,23 @@ type User struct {
 	UserSettings UserSettings `gorm:"foreignKey:UserID"`
 	Birthday     *time.Time
 }
+
 type Profile struct {
 	gorm.Model
-	FirstName    string         `gorm:"type:varchar(255)"`
-	LastName     string         `gorm:"type:varchar(255)"`
-	UserID       uint           `gorm:"not null;"`
-	Categories   *[]Category    `gorm:"foreignKey:ProfileID;"`
-	Patterns     *[]Pattern     `gorm:"foreignKey:ProfileID;"`
-	Transactions *[]Transaction `gorm:"foreignKey:ProfileID;references:ID;constraint:OnDelete:CASCADE;"`
+	FirstName    string         `gorm:"type:varchar(255)" json:"first_name"`
+	LastName     string         `gorm:"type:varchar(255)" json:"last_name"`
+	UserID       uint           `gorm:"not null;" json:"user_id"`
+	Categories   *[]Category    `gorm:"foreignKey:ProfileID;" json:"categories,omitempty"`
+	Patterns     *[]Pattern     `gorm:"foreignKey:ProfileID;" json:"patterns,omitempty"`
+	Transactions *[]Transaction `gorm:"foreignKey:ProfileID;references:ID;constraint:OnDelete:CASCADE;" json:"transactions,omitempty"`
 }
 
 type UserSettings struct {
 	gorm.Model
-	UserID                uint      `gorm:"not null;"`
-	CurrencyCode          string    `gorm:"type:char(3);not null;index; default:'USD'"`
-	Currency              *Currency `gorm:"foreignKey:CurrencyCode;references:Code"`
-	Language              string    `gorm:"type:varchar(10);not null;default:'en';check:language IN ('en','ar')"`
-	IsNotificationEnabled bool      `gorm:"default:true"`
-	IsDarkMode            bool      `gorm:"default:false"`
+	UserID                uint      `gorm:"not null;" json:"user_id"`
+	CurrencyCode          string    `gorm:"type:char(3);not null;index; default:'USD'" json:"currency_code"`
+	Currency              *Currency `gorm:"foreignKey:CurrencyCode;references:Code" json:"currency,omitempty"`
+	Language              string    `gorm:"type:varchar(10);not null;default:'en';check:language IN ('en','ar')" json:"language"`
+	IsNotificationEnabled bool      `gorm:"default:true" json:"is_notification_enabled"`
+	IsDarkMode            bool      `gorm:"default:false" json:"is_dark_mode"`
 }
