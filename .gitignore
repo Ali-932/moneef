@@ -3,5 +3,17 @@
 /app.log
 /*.sqlite
 /*.sqlite3
+/*.sqlite-shm
+/*.sqlite-wal
 /.idea/
 /AGENTS.md
+.env
+moneef
+TODO.md
+.agent/
+.agents/
+.claude/
+.superpowers/
+skills/
+frontend_design_images/
+scripts/
