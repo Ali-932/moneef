@@ -28,6 +28,7 @@ func Connect() (*gorm.DB, error) {
 	)
 
 	dbPath := config.GetConfig().DBPath
+	stdlog.Printf("connecting to database: %s", dbPath)
 
 	db, err := gorm.Open(sqlite.Open(dbPath+"?_foreign_keys=on&_journal_mode=WAL"), &gorm.Config{Logger: logCfg, DisableForeignKeyConstraintWhenMigrating: false})
 	if err != nil {

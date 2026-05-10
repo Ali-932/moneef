@@ -2,14 +2,15 @@ package config
 
 import (
 	"flag"
-	"github.com/alexedwards/scs/v2"
-	"github.com/joho/godotenv"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/alexedwards/scs/v2"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -27,7 +28,7 @@ var (
 func GetConfig() *Config {
 	once.Do(func() {
 		_ = godotenv.Load()
-		dbPath := getEnv("db_path", "")
+		dbPath := getEnv("db_path", "/home/james/GolandProjects/moneef-backend/db.sqlite")
 		if dbPath == "" {
 			configDir, err := os.UserConfigDir()
 			if err != nil {

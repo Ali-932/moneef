@@ -11,7 +11,6 @@ func SetupRoutes() *chi.Mux {
 	r := chi.NewRouter()
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(chiMiddleware.Logger)
-		r.Use(middleware.RequestBodyLogger)
 		r.Use(middleware.CORSMiddleware)
 
 		r.Group(func(r chi.Router) {
