@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/shopspring/decimal"
 	"log"
 	"math/rand"
 	"moneef/internal/auth"
@@ -14,6 +13,8 @@ import (
 	"moneef/internal/transactions/dto"
 	"moneef/internal/transactions/service"
 	"time"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/spf13/cobra"
 )
@@ -24,12 +25,12 @@ func SeedTransactions(cmd *cobra.Command, args []string) error {
 
 	// Get the first two users (alice and bob)
 	var users []models.User
-	if err := database.Preload("Profile").Limit(2).Find(&users).Error; err != nil {
-		return fmt.Errorf("failed to get users: %w", err)
-	}
+	//if err := database.Preload("Profile").Limit(2).Find(&users).Error; err != nil {
+	//	return fmt.Errorf("failed to get users: %w", err)
+	//}
 
-	if len(users) < 2 {
-		return fmt.Errorf("need at least 2 users in database. Run 'seed' command first")
+	if err := database.Preload("Profile").Where("id = ?", 6).Limit(2).Find(&users).Error; err != nil {
+		return fmt.Errorf("failed to get users: %w", err)
 	}
 
 	// Get all categories for mapping

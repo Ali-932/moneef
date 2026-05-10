@@ -112,41 +112,45 @@ func seedCategories(database *gorm.DB) error {
 
 	defaults := []defaultCategory{
 		// Expense Categories
-		{Name: "Food", Type: tExpense, Icon: "restaurant", Color: "#FF6B6B"},
-		{Name: "Transport", Type: tExpense, Icon: "directions_car", Color: "#4D96FF"},
-		{Name: "Utilities", Type: tExpense, Icon: "flash_on", Color: "#FFD93D"},
-		{Name: "Entertainment", Type: tExpense, Icon: "movie", Color: "#845EC2"},
-		{Name: "Shopping", Type: tExpense, Icon: "shopping_bag", Color: "#FF9671"},
-		{Name: "Healthcare", Type: tExpense, Icon: "local_hospital", Color: "#00C9A7"},
-		{Name: "Housing", Type: tExpense, Icon: "home", Color: "#8B4513"},
-		{Name: "Personal Care", Type: tExpense, Icon: "spa", Color: "#FF69B4"},
-		{Name: "Education", Type: tExpense, Icon: "school", Color: "#20B2AA"},
-		{Name: "Insurance", Type: tExpense, Icon: "security", Color: "#6495ED"},
-		{Name: "Travel", Type: tExpense, Icon: "flight", Color: "#32CD32"},
-		{Name: "Business", Type: tExpense, Icon: "business_center", Color: "#708090"},
-		{Name: "Savings", Type: tExpense, Icon: "savings", Color: "#228B22"},
-		{Name: "Debt", Type: tExpense, Icon: "credit_card", Color: "#DC143C"},
-		{Name: "Gifts", Type: tExpense, Icon: "featured_seasonal_and_gifts", Color: "#DA70D6"},
+		{Name: "Food", Type: tExpense, Icon: "mdi:food", Color: "#FF6B6B"},
+		{Name: "Transport", Type: tExpense, Icon: "mdi:car", Color: "#4D96FF"},
+		{Name: "Utilities", Type: tExpense, Icon: "mdi:flash", Color: "#FFD93D"},
+		{Name: "Entertainment", Type: tExpense, Icon: "mdi:movie", Color: "#845EC2"},
+		{Name: "Shopping", Type: tExpense, Icon: "mdi:shopping", Color: "#FF9671"},
+		{Name: "Healthcare", Type: tExpense, Icon: "mdi:hospital-box", Color: "#00C9A7"},
+		{Name: "Housing", Type: tExpense, Icon: "mdi:home", Color: "#8B4513"},
+		{Name: "Personal Care", Type: tExpense, Icon: "mdi:spa", Color: "#FF69B4"},
+		{Name: "Education", Type: tExpense, Icon: "mdi:school", Color: "#20B2AA"},
+		{Name: "Insurance", Type: tExpense, Icon: "mdi:shield-check", Color: "#6495ED"},
+		{Name: "Travel", Type: tExpense, Icon: "mdi:airplane", Color: "#32CD32"},
+		{Name: "Business", Type: tExpense, Icon: "mdi:briefcase", Color: "#708090"},
+		{Name: "Savings", Type: tExpense, Icon: "mdi:piggy-bank", Color: "#228B22"},
+		{Name: "Debt", Type: tExpense, Icon: "mdi:credit-card", Color: "#DC143C"},
+		{Name: "Gifts", Type: tExpense, Icon: "mdi:gift", Color: "#DA70D6"},
 
 		// Income Categories
-		{Name: "Salary", Type: tIncome, Icon: "work", Color: "#00C9A7"},
-		{Name: "Business", Type: tIncome, Icon: "business_center", Color: "#2BB673"},
-		{Name: "Investments", Type: tIncome, Icon: "trending_up", Color: "#228B22"},
-		{Name: "Benefits", Type: tIncome, Icon: "account_balance", Color: "#4682B4"},
-		{Name: "Side Income", Type: tIncome, Icon: "handyman", Color: "#FF8C00"},
-		{Name: "Gifts", Type: tIncome, Icon: "featured_seasonal_and_gifts", Color: "#C34A36"},
+		{Name: "Salary", Type: tIncome, Icon: "mdi:wallet", Color: "#00C9A7"},
+		{Name: "Business", Type: tIncome, Icon: "mdi:briefcase", Color: "#2BB673"},
+		{Name: "Investments", Type: tIncome, Icon: "mdi:trending-up", Color: "#228B22"},
+		{Name: "Benefits", Type: tIncome, Icon: "mdi:bank", Color: "#4682B4"},
+		{Name: "Side Income", Type: tIncome, Icon: "mdi:hammer-wrench", Color: "#FF8C00"},
+		{Name: "Gifts", Type: tIncome, Icon: "mdi:gift", Color: "#C34A36"},
 	}
 
 	for _, d := range defaults {
-		var count int64
-		// Check by name and global scope (ProfileID IS NULL)
-		if err := database.Model(&models.Category{}).
-			Where("name = ? AND profile_id IS NULL", d.Name).
-			Count(&count).Error; err != nil {
-			return err
-		}
-		if count > 0 {
+		var existing models.Category
+		err := database.Where("name = ? AND profile_id IS NULL", d.Name).First(&existing).Error
+		if err == nil {
+			// Update existing category with new icon/color
+			existing.Icon = d.Icon
+			existing.Color = d.Color
+			if err := database.Save(&existing).Error; err != nil {
+				return err
+			}
 			continue
+		}
+		if err != gorm.ErrRecordNotFound {
+			return err
 		}
 
 		cat := models.Category{
