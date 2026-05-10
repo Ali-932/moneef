@@ -30,13 +30,11 @@ func GetCategoriesSlicedAndSorted(allCategories []dto.CategorySummary, total typ
 				CategoryName: "Others",
 				TotalAmount:  othersTotal,
 				Percentage:   types.MoneyFromInt(100).Mul(othersTotal.Div(total)),
+				Icon:         "",
+				Color:        "",
 			}
 			finalCategories = append(finalCategories, othersCategory)
 		}
-	}
-
-	for _, category := range finalCategories {
-		category.Percentage = types.MoneyFromInt(100).Mul(category.TotalAmount.Div(total))
 	}
 	return finalCategories
 }

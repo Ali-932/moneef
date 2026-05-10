@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time) (*dto.AnalysisCharts, error) {
+func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, currency string) (*dto.AnalysisCharts, error) {
 	period := endDate.Sub(startDate)
 	lastPeriodEnd := startDate
 	lastPeriodStart := startDate.Add(-period)
@@ -29,7 +29,7 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time) (
 	)
 	g, _ := errgroup.WithContext(context.Background())
 	g.Go(func() error {
-		result, err := repository.GetTransactionsGroupedByCategory(db.DB, profileId, startDate, endDate, "USD")
+		result, err := repository.GetTransactionsGroupedByCategory(db.DB, profileId, startDate, endDate, currency)
 		if err != nil {
 			return err
 		}
@@ -40,7 +40,7 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time) (
 	})
 
 	g.Go(func() error {
-		result, err := repository.GetTransactionsGroupedByCategory(db.DB, profileId, lastPeriodStart, lastPeriodEnd, "USD")
+		result, err := repository.GetTransactionsGroupedByCategory(db.DB, profileId, lastPeriodStart, lastPeriodEnd, currency)
 		if err != nil {
 			return err
 		}
@@ -51,7 +51,7 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time) (
 	})
 
 	g.Go(func() error {
-		result, err := repository.GetTransactionTotalExpense(db.DB, profileId, startDate, endDate, "USD")
+		result, err := repository.GetTransactionTotalExpense(db.DB, profileId, startDate, endDate, currency)
 		if err != nil {
 			return err
 		}
@@ -62,7 +62,7 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time) (
 	})
 
 	g.Go(func() error {
-		result, err := repository.GetTransactionsAmountPerDay(db.DB, profileId, startDate, endDate, "USD")
+		result, err := repository.GetTransactionsAmountPerDay(db.DB, profileId, startDate, endDate, currency)
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time) (
 	})
 
 	g.Go(func() error {
-		result, err := repository.GetTransactionsAmountPerDay(db.DB, profileId, lastPeriodStart, lastPeriodEnd, "USD")
+		result, err := repository.GetTransactionsAmountPerDay(db.DB, profileId, lastPeriodStart, lastPeriodEnd, currency)
 		if err != nil {
 			return err
 		}

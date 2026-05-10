@@ -15,10 +15,12 @@ type AnalysisCharts struct {
 }
 
 type CategorySummary struct {
-	CategoryID   uint            `json:"category_id"`
-	CategoryName string          `json:"category_name"`
-	TotalAmount  types.Money     `json:"total_amount"`
-	Percentage   types.Money     `json:"percentage"`
+	CategoryID   uint        `json:"category_id"`
+	CategoryName string      `json:"category_name"`
+	TotalAmount  types.Money `json:"total_amount"`
+	Percentage   types.Money `json:"percentage"`
+	Icon         string      `json:"icon"`
+	Color        string      `json:"color"`
 }
 
 type AmountPerDay struct {
