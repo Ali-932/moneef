@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
 	"moneef/internal/analysis/dto"
 	"moneef/internal/analysis/repository"
@@ -26,6 +27,10 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 		spendPerDayLastPeriod     []dto.AmountPerDay
 		total                     types.Money
 		nextRecurringTransactions []dto.NextRecurringTransactions
+		totalIncome               types.Money
+		transactionCount          int
+		biggestTransaction        dto.BiggestTransaction
+		topMerchant               dto.TopMerchant
 	)
 	g, _ := errgroup.WithContext(context.Background())
 	g.Go(func() error {
@@ -93,6 +98,51 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 		return nil
 
 	})
+
+	g.Go(func() error {
+		result, err := repository.GetTotalIncome(db.DB, profileId, startDate, endDate, currency)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		totalIncome = result
+		mu.Unlock()
+		return nil
+	})
+
+	g.Go(func() error {
+		result, err := repository.GetTransactionCount(db.DB, profileId, startDate, endDate)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		transactionCount = result
+		mu.Unlock()
+		return nil
+	})
+
+	g.Go(func() error {
+		result, err := repository.GetBiggestTransaction(db.DB, profileId, startDate, endDate, currency)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		biggestTransaction = result
+		mu.Unlock()
+		return nil
+	})
+
+	g.Go(func() error {
+		result, err := repository.GetTopMerchant(db.DB, profileId, startDate, endDate, currency)
+		if err != nil {
+			return err
+		}
+		mu.Lock()
+		topMerchant = result
+		mu.Unlock()
+		return nil
+	})
+
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
@@ -100,6 +150,17 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 	spendByCategorySortedLastPeriod := utils.GetCategoriesSlicedAndSorted(spendByCategoryLastPeriod, total)
 	spendPerDaySorted := utils.FillMissingDates(spendPerDay, startDate, endDate)
 	spendPerDaySortedLastPeriod := utils.FillMissingDates(spendPerDayLastPeriod, lastPeriodStart, lastPeriodEnd)
+
+	var savingsRate types.Money
+	if !decimal.Decimal(totalIncome).IsZero() {
+		savingsRate = totalIncome.Sub(total).Div(totalIncome).Mul(types.MoneyFromInt(100))
+	}
+
+	var avgTransaction types.Money
+	if transactionCount > 0 {
+		avgTransaction = total.Div(types.MoneyFromInt(int64(transactionCount)))
+	}
+
 	res := dto.AnalysisCharts{
 		Categories:                spendByCategorySorted,
 		CategoriesLastPeriod:      spendByCategorySortedLastPeriod,
@@ -107,6 +168,13 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 		SpentPerDayLastPeriod:     spendPerDaySortedLastPeriod,
 		NextRecurringTransactions: nextRecurringTransactions,
 		Total:                     total,
+		QuickStats: dto.QuickStats{
+			SavingsRate:        savingsRate,
+			BiggestTransaction: biggestTransaction,
+			TransactionCount:   transactionCount,
+			TopMerchant:        topMerchant,
+			AvgTransaction:     avgTransaction,
+		},
 	}
 
 	return &res, nil
