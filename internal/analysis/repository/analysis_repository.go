@@ -1,21 +1,23 @@
 package repository
 
 import (
+	"fmt"
 	"gorm.io/gorm"
 	"moneef/internal/analysis/dto"
 	"moneef/internal/config"
 	"moneef/internal/models"
 	"moneef/pkg/types"
+	"moneef/pkg/utils"
 	"time"
 )
 
 func GetTransactionsGroupedByCategory(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) ([]dto.CategorySummary, error) {
 	var results []dto.CategorySummary
 	err := tx.Model(&models.Transaction{}).
-		Select("c.id as category_id, c.name as category_name, c.icon as icon, c.color as color, SUM(tc.amount * COALESCE(cer.rate, 1)) as total_amount").
+		Select(fmt.Sprintf("c.id as category_id, c.name as category_name, c.icon as icon, c.color as color, SUM(%s) as total_amount", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
 		Joins("JOIN categories c ON tc.category_id = c.id").
-		Joins("LEFT JOIN currency_exchange_rates cer ON transactions.currency_code = cer.currency_code1 AND cer.currency_code2 = (Select code FROM currencies WHERE code = ?)", baseCurrency).
+		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
 		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
 		Group("c.id, c.name, c.icon, c.color").
 		Order("total_amount DESC").
@@ -29,9 +31,9 @@ func GetTransactionsGroupedByCategory(tx *gorm.DB, profileId uint, startDate, en
 func GetTransactionTotalExpense(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) (types.Money, error) {
 	var totalExpense types.Money
 	err := tx.Model(&models.Transaction{}).
-		Select("COALESCE(SUM(tc.amount * COALESCE(cer.rate, 1)),0) as total_expense").
+		Select(fmt.Sprintf("COALESCE(SUM(%s),0) as total_expense", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
-		Joins("LEFT JOIN currency_exchange_rates cer ON transactions.currency_code = cer.currency_code1 AND cer.currency_code2 = (Select code FROM currencies WHERE code = ?)", baseCurrency).
+		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
 		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
 		Scan(&totalExpense).Error
 	if err != nil {
@@ -43,9 +45,9 @@ func GetTransactionTotalExpense(tx *gorm.DB, profileId uint, startDate, endDate 
 func GetTransactionsAmountPerDay(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) ([]dto.AmountPerDay, error) {
 	var results []dto.AmountPerDay
 	err := tx.Model(&models.Transaction{}).
-		Select("transactions.date as date, SUM(tc.amount * COALESCE(cer.rate, 1)) as amount").
+		Select(fmt.Sprintf("transactions.date as date, SUM(%s) as amount", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
-		Joins("LEFT JOIN currency_exchange_rates cer ON transactions.currency_code = cer.currency_code1 AND cer.currency_code2 = (Select code FROM currencies WHERE code = ?)", baseCurrency).
+		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
 		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
 		Group("transactions.date").
 		Order("transactions.date ASC").
@@ -56,11 +58,12 @@ func GetTransactionsAmountPerDay(tx *gorm.DB, profileId uint, startDate, endDate
 	return results, nil
 }
 
-func GetNextRecurringTransactions(tx *gorm.DB, profileId uint, currentDate time.Time) ([]dto.NextRecurringTransactions, error) {
+func GetNextRecurringTransactions(tx *gorm.DB, profileId uint, currentDate time.Time, baseCurrency string) ([]dto.NextRecurringTransactions, error) {
 	endDate := currentDate.AddDate(0, 1, 0)
 	result := make([]dto.NextRecurringTransactions, 0)
 	err := tx.Model(&models.RecurrenceTemplate{}).
-		Select("next_date as date, next_payment_amount as amount, name as name").
+		Select(fmt.Sprintf("next_date as date, %s as amount, name as name", utils.ConvertedAmount("next_payment_amount"))).
+		Scopes(utils.WithCurrencyConversion("recurrence_templates", baseCurrency)).
 		Where("is_active = true AND type='expense' AND profile_id = ? AND ((next_date >= ? AND next_date <= ?) OR (has_end_date=false))", profileId, currentDate, endDate).
 		Order("next_date").
 		Limit(config.AnalysisMaxRecurringTransactionsCHart).
@@ -74,9 +77,9 @@ func GetNextRecurringTransactions(tx *gorm.DB, profileId uint, currentDate time.
 func GetTotalIncome(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) (types.Money, error) {
 	var totalIncome types.Money
 	err := tx.Model(&models.Transaction{}).
-		Select("COALESCE(SUM(tc.amount * COALESCE(cer.rate, 1)),0) as total_income").
+		Select(fmt.Sprintf("COALESCE(SUM(%s),0) as total_income", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
-		Joins("LEFT JOIN currency_exchange_rates cer ON transactions.currency_code = cer.currency_code1 AND cer.currency_code2 = (Select code FROM currencies WHERE code = ?)", baseCurrency).
+		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
 		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'income' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
 		Scan(&totalIncome).Error
 	if err != nil {
@@ -99,10 +102,10 @@ func GetTransactionCount(tx *gorm.DB, profileId uint, startDate, endDate time.Ti
 func GetBiggestTransaction(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) (dto.BiggestTransaction, error) {
 	var result dto.BiggestTransaction
 	err := tx.Model(&models.Transaction{}).
-		Select("transactions.name as name, (tc.amount * COALESCE(cer.rate, 1)) as amount, c.icon as icon, c.color as color").
+		Select(fmt.Sprintf("transactions.name as name, %s as amount, c.icon as icon, c.color as color", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
 		Joins("JOIN categories c ON tc.category_id = c.id").
-		Joins("LEFT JOIN currency_exchange_rates cer ON transactions.currency_code = cer.currency_code1 AND cer.currency_code2 = (Select code FROM currencies WHERE code = ?)", baseCurrency).
+		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
 		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
 		Order("amount DESC").
 		Limit(1).
@@ -116,9 +119,9 @@ func GetBiggestTransaction(tx *gorm.DB, profileId uint, startDate, endDate time.
 func GetTopMerchant(tx *gorm.DB, profileId uint, startDate, endDate time.Time, baseCurrency string) (dto.TopMerchant, error) {
 	var result dto.TopMerchant
 	err := tx.Model(&models.Transaction{}).
-		Select("transactions.merchant_name as name, COALESCE(SUM(tc.amount * COALESCE(cer.rate, 1)),0) as amount").
+		Select(fmt.Sprintf("transactions.merchant_name as name, COALESCE(SUM(%s),0) as amount", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
-		Joins("LEFT JOIN currency_exchange_rates cer ON transactions.currency_code = cer.currency_code1 AND cer.currency_code2 = (Select code FROM currencies WHERE code = ?)", baseCurrency).
+		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
 		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL AND transactions.merchant_name != ''", profileId, startDate, endDate).
 		Group("transactions.merchant_name").
 		Order("amount DESC").

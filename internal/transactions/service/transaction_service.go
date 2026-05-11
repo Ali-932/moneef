@@ -374,6 +374,16 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 	windowStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	windowEnd := windowStart.AddDate(0, 0, 30).Add(23*time.Hour + 59*time.Minute + 59*time.Second)
 
+	// Fetch user's base currency
+	var profile models.Profile
+	baseCurrency := "USD"
+	if err := db.DB.First(&profile, profileID).Error; err == nil {
+		var settings models.UserSettings
+		if err := db.DB.Where("user_id = ?", profile.UserID).First(&settings).Error; err == nil {
+			baseCurrency = settings.CurrencyCode
+		}
+	}
+
 	templates, err := repository.GetActiveRecurrenceTemplatesForProfile(profileID, windowStart)
 	if err != nil {
 		return nil, err
@@ -419,13 +429,14 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 			continue
 		}
 
+		convertedAmount := utils.ConvertMoney(db.DB, *tpl.NextPaymentAmount, tpl.CurrencyCode, baseCurrency)
 		for _, date := range dateSet {
 			occurrences = append(occurrences, dto.RecurrenceOccurrence{
 				ID:       tpl.ID,
 				Name:     tpl.Name,
 				Type:     tpl.Type,
-				Amount:   *tpl.NextPaymentAmount,
-				Currency: tpl.CurrencyCode,
+				Amount:   convertedAmount,
+				Currency: baseCurrency,
 				Icon:     tpl.Icon,
 				Color:    tpl.Color,
 				Date:     date,

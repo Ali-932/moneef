@@ -32,7 +32,7 @@ func GetDashboard(profileID uint, dateFrom, dateTo *time.Time) (*dto.DashboardRe
 		}
 	}
 
-	totals, err := repository.GetPeriodTotals(db.DB, profileID, startDate, endDate)
+	totals, err := repository.GetPeriodTotals(db.DB, profileID, startDate, endDate, currencyCode)
 	if err != nil {
 		return nil, err
 	}
@@ -42,12 +42,12 @@ func GetDashboard(profileID uint, dateFrom, dateTo *time.Time) (*dto.DashboardRe
 		return nil, err
 	}
 
-	topCat, err := repository.GetTopCategory(db.DB, profileID, startDate, endDate)
+	topCat, err := repository.GetTopCategory(db.DB, profileID, startDate, endDate, currencyCode)
 	if err != nil {
 		return nil, err
 	}
 
-	avgDaily, err := repository.GetAvgDailySpend(db.DB, profileID, startDate, endDate)
+	avgDaily, err := repository.GetAvgDailySpend(db.DB, profileID, startDate, endDate, currencyCode)
 	if err != nil {
 		return nil, err
 	}
@@ -57,17 +57,17 @@ func GetDashboard(profileID uint, dateFrom, dateTo *time.Time) (*dto.DashboardRe
 		return nil, err
 	}
 
-	upcoming, err := repository.GetUpcomingRecurring(db.DB, profileID, now, 5)
+	upcoming, err := repository.GetUpcomingRecurring(db.DB, profileID, now, 5, currencyCode)
 	if err != nil {
 		return nil, err
 	}
 
-	biggestTx, err := repository.GetBiggestTransaction(db.DB, profileID, startDate, endDate)
+	biggestTx, err := repository.GetBiggestTransaction(db.DB, profileID, startDate, endDate, currencyCode)
 	if err != nil {
 		return nil, err
 	}
 
-	topMerchant, err := repository.GetTopMerchant(db.DB, profileID, startDate, endDate)
+	topMerchant, err := repository.GetTopMerchant(db.DB, profileID, startDate, endDate, currencyCode)
 	if err != nil {
 		return nil, err
 	}

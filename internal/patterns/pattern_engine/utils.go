@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"moneef/internal/models"
 	"moneef/pkg/types"
+	"moneef/pkg/utils"
 	"strings"
 	"time"
 
-	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -127,20 +127,11 @@ func GetCurrencyCode(profileID uint, db *gorm.DB) (string, error) {
 }
 
 func ConvertAmount(amount float64, fromCurrency string, toCurrency string, db *gorm.DB) float64 {
-	if fromCurrency == toCurrency {
-		return amount
-	}
-	var rate models.CurrencyExchangeRate
-	err := db.Where("currency_code1 = ? AND currency_code2 = ?", fromCurrency, toCurrency).First(&rate).Error
-	if err != nil {
-		return amount
-	}
-	return amount * rate.Rate
+	return utils.ConvertAmount(db, amount, fromCurrency, toCurrency)
 }
 
 func ConvertMoney(amount types.Money, fromCurrency string, toCurrency string, db *gorm.DB) types.Money {
-	converted := ConvertAmount(amount.Float64(), fromCurrency, toCurrency, db)
-	return types.Money(decimal.NewFromFloat(converted))
+	return utils.ConvertMoney(db, amount, fromCurrency, toCurrency)
 }
 
 func FormatCurrencyAmount(amount float64, currencyCode string) string {

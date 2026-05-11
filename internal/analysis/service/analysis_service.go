@@ -88,7 +88,7 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 		return nil
 	})
 	g.Go(func() error {
-		result, err := repository.GetNextRecurringTransactions(db.DB, profileId, time.Now())
+		result, err := repository.GetNextRecurringTransactions(db.DB, profileId, time.Now(), currency)
 		if err != nil {
 			return err
 		}
