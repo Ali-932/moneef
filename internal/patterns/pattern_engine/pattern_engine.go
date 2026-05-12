@@ -64,7 +64,7 @@ func GetUserPatterns(profileId uint, startDate, endDate *time.Time) ([]models.Pa
 	var transactions []models.Transaction
 	query := db.DB.
 		Preload("TransactionCategory.Category").
-		Where("profile_id = ? AND type = ? AND deleted_at IS NULL", profileId, "expense")
+		Where("profile_id = ? AND type = ?", profileId, "expense")
 	if startDate != nil && endDate != nil {
 		query = query.Where("date >= ? AND date <= ?", *startDate, *endDate)
 	}

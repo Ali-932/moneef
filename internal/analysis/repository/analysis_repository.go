@@ -18,7 +18,7 @@ func GetTransactionsGroupedByCategory(tx *gorm.DB, profileId uint, startDate, en
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
 		Joins("JOIN categories c ON tc.category_id = c.id").
 		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
-		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
+		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense'", profileId, startDate, endDate).
 		Group("c.id, c.name, c.icon, c.color").
 		Order("total_amount DESC").
 		Scan(&results).Error
@@ -34,7 +34,7 @@ func GetTransactionTotalExpense(tx *gorm.DB, profileId uint, startDate, endDate 
 		Select(fmt.Sprintf("COALESCE(SUM(%s),0) as total_expense", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
 		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
-		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
+		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense'", profileId, startDate, endDate).
 		Scan(&totalExpense).Error
 	if err != nil {
 		return types.MoneyZero(), err
@@ -48,7 +48,7 @@ func GetTransactionsAmountPerDay(tx *gorm.DB, profileId uint, startDate, endDate
 		Select(fmt.Sprintf("transactions.date as date, SUM(%s) as amount", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
 		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
-		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
+		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense'", profileId, startDate, endDate).
 		Group("transactions.date").
 		Order("transactions.date ASC").
 		Scan(&results).Error
@@ -80,7 +80,7 @@ func GetTotalIncome(tx *gorm.DB, profileId uint, startDate, endDate time.Time, b
 		Select(fmt.Sprintf("COALESCE(SUM(%s),0) as total_income", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
 		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
-		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'income' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
+		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'income'", profileId, startDate, endDate).
 		Scan(&totalIncome).Error
 	if err != nil {
 		return types.MoneyZero(), err
@@ -106,7 +106,7 @@ func GetBiggestTransaction(tx *gorm.DB, profileId uint, startDate, endDate time.
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
 		Joins("JOIN categories c ON tc.category_id = c.id").
 		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
-		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL", profileId, startDate, endDate).
+		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense'", profileId, startDate, endDate).
 		Order("amount DESC").
 		Limit(1).
 		Scan(&result).Error
@@ -122,7 +122,7 @@ func GetTopMerchant(tx *gorm.DB, profileId uint, startDate, endDate time.Time, b
 		Select(fmt.Sprintf("transactions.merchant_name as name, COALESCE(SUM(%s),0) as amount", utils.ConvertedAmount("tc.amount"))).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
 		Scopes(utils.WithCurrencyConversion("transactions", baseCurrency)).
-		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND tc.deleted_at IS NULL AND transactions.merchant_name != ''", profileId, startDate, endDate).
+		Where("transactions.profile_id = ? AND transactions.date >= ? AND transactions.date <= ? AND transactions.type = 'expense' AND transactions.merchant_name != ''", profileId, startDate, endDate).
 		Group("transactions.merchant_name").
 		Order("amount DESC").
 		Limit(1).

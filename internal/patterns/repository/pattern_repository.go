@@ -57,7 +57,7 @@ func UpsertPatterns(tx *gorm.DB, profileID uint, patterns []models.Pattern) ([]m
 	var result []models.Pattern
 	for _, p := range patterns {
 		var existing models.Pattern
-		err := tx.Where("profile_id = ? AND name = ? AND type = ? AND deleted_at IS NULL", profileID, p.Name, p.Type).
+		err := tx.Where("profile_id = ? AND name = ? AND type = ?", profileID, p.Name, p.Type).
 			First(&existing).Error
 		if err == nil {
 			existing.Description = p.Description
