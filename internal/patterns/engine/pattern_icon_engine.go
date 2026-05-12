@@ -3,22 +3,22 @@ package engine
 import (
 	"log"
 	"moneef/internal/db"
+	"moneef/internal/iconlookup"
 	"moneef/internal/models"
-	"strings"
 )
 
 var patternTypeDefaults = map[string]struct {
 	Icon  string
 	Color string
 }{
-	"weekend_spike":           {Icon: "📅", Color: "#F59E0B"},
-	"weekday_spike":           {Icon: "💼", Color: "#3B82F6"},
-	"top_category":            {Icon: "🏆", Color: "#10B981"},
-	"high_concentration":      {Icon: "⚠️", Color: "#F59E0B"},
-	"very_high_concentration": {Icon: "🔴", Color: "#EF4444"},
-	"daily_habit":             {Icon: "☕", Color: "#6B5CE7"},
-	"weekly_repeat":           {Icon: "🔁", Color: "#3B82F6"},
-	"infrequent_splurge":      {Icon: "💸", Color: "#EF4444"},
+	"weekend_spike":           {Icon: "mdi:calendar", Color: "#F59E0B"},
+	"weekday_spike":           {Icon: "mdi:briefcase", Color: "#3B82F6"},
+	"top_category":            {Icon: "mdi:trophy", Color: "#10B981"},
+	"high_concentration":      {Icon: "mdi:alert", Color: "#F59E0B"},
+	"very_high_concentration": {Icon: "mdi:circle", Color: "#EF4444"},
+	"daily_habit":             {Icon: "mdi:coffee", Color: "#6B5CE7"},
+	"weekly_repeat":           {Icon: "mdi:repeat", Color: "#3B82F6"},
+	"infrequent_splurge":      {Icon: "mdi:cash-multiple", Color: "#EF4444"},
 }
 
 func isBlank(s string) bool {
@@ -50,14 +50,13 @@ func resolveIconForPattern(pattern *models.Pattern) {
 			if field == "" {
 				continue
 			}
-			lowerField := strings.ToLower(field)
-			var iconLookup models.IconLookup
-			if err := db.DB.Where("? LIKE '%' || keyword || '%'", lowerField).First(&iconLookup).Error; err == nil {
+			icon, color, found := iconlookup.Lookup(field)
+			if found {
 				if isBlank(pattern.Icon) {
-					pattern.Icon = iconLookup.Icon
+					pattern.Icon = icon
 				}
 				if isBlank(pattern.Color) {
-					pattern.Color = iconLookup.Color
+					pattern.Color = color
 				}
 				break
 			}
@@ -74,7 +73,7 @@ func resolveIconForPattern(pattern *models.Pattern) {
 			}
 		} else {
 			if isBlank(pattern.Icon) {
-				pattern.Icon = "📊"
+				pattern.Icon = "mdi:chart-bar"
 			}
 			if isBlank(pattern.Color) {
 				pattern.Color = "#6B5CE7"

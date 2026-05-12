@@ -3,8 +3,8 @@ package engine
 import (
 	"log"
 	"moneef/internal/db"
+	"moneef/internal/iconlookup"
 	"moneef/internal/models"
-	"strings"
 )
 
 func ResolveMerchantIcon(transactionID uint) {
@@ -30,23 +30,22 @@ func ResolveMerchantIcon(transactionID uint) {
 		fields = append(fields, *transaction.Notes)
 	}
 
-	var iconLookup models.IconLookup
 	for _, field := range fields {
-		lowerField := strings.ToLower(field)
-		if err := db.DB.Where("? LIKE '%' || keyword || '%'", lowerField).First(&iconLookup).Error; err == nil {
+		icon, color, found := iconlookup.Lookup(field)
+		if found {
 			updates := map[string]interface{}{}
 			if transaction.Icon == "" {
-				updates["icon"] = iconLookup.Icon
+				updates["icon"] = icon
 			}
 			if transaction.Color == "" {
-				updates["color"] = iconLookup.Color
+				updates["color"] = color
 			}
 			if len(updates) > 0 {
 				if err := db.DB.Model(&models.Transaction{}).Where("id = ?", transactionID).Updates(updates).Error; err != nil {
 					log.Printf("❌ [ENGINE] Failed to update transaction %d icon/color: %v", transactionID, err)
 					return
 				}
-				log.Printf("✅ [ENGINE] Transaction %d matched keyword '%s' → icon=%s color=%s", transactionID, iconLookup.Keyword, iconLookup.Icon, iconLookup.Color)
+				log.Printf("✅ [ENGINE] Transaction %d matched icon/color", transactionID)
 			}
 			return
 		}
@@ -88,19 +87,18 @@ func ResolveCategoryIcon(categoryID uint) {
 
 	updates := map[string]interface{}{}
 
-	var iconLookup models.IconLookup
-	lowerName := strings.ToLower(category.Name)
-	if err := db.DB.Where("? LIKE '%' || keyword || '%'", lowerName).First(&iconLookup).Error; err == nil {
+	icon, color, found := iconlookup.Lookup(category.Name)
+	if found {
 		if category.Icon == "" {
-			updates["icon"] = iconLookup.Icon
+			updates["icon"] = icon
 		}
 		if category.Color == "" {
-			updates["color"] = iconLookup.Color
+			updates["color"] = color
 		}
-		log.Printf("✅ [ENGINE] Category %d matched keyword → icon=%s color=%s", categoryID, iconLookup.Icon, iconLookup.Color)
+		log.Printf("✅ [ENGINE] Category %d matched keyword → icon=%s color=%s", categoryID, icon, color)
 	} else {
 		if category.Icon == "" {
-			updates["icon"] = "📦"
+			updates["icon"] = "mdi:folder"
 		}
 		if category.Color == "" {
 			updates["color"] = "#6B5CE7"

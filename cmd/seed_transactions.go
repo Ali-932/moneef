@@ -101,7 +101,7 @@ func getRealisticScenarios(profileID uint, categoryMap map[string]uint, userNumb
 	}
 	scenarios = append(scenarios, createMonthlyTransaction(
 		profileID, "Monthly Salary", "income", categoryMap["Salary"],
-		salaryAmount, "💼", "#00C9A7", now.AddDate(0, -3, 1), // Started 3 months ago
+		salaryAmount, "mdi:briefcase", "#00C9A7", now.AddDate(0, -3, 1), // Started 3 months ago
 	))
 
 	// Subscriptions (Recurring Expenses)
@@ -112,9 +112,9 @@ func getRealisticScenarios(profileID uint, categoryMap map[string]uint, userNumb
 		icon     string
 		color    string
 	}{
-		{"Netflix Subscription", decimal.NewFromFloat(15.99), "Entertainment", "🎬", "#E50914"},
-		{"Spotify Premium", decimal.NewFromFloat(9.99), "Entertainment", "🎵", "#1DB954"},
-		{"AWS Hosting", decimal.NewFromFloat(25.50), "Business", "☁️", "#232F3E"},
+		{"Netflix Subscription", decimal.NewFromFloat(15.99), "Entertainment", "mdi:movie", "#E50914"},
+		{"Spotify Premium", decimal.NewFromFloat(9.99), "Entertainment", "mdi:spotify", "#1DB954"},
+		{"AWS Hosting", decimal.NewFromFloat(25.50), "Business", "mdi:cloud", "#232F3E"},
 	}
 
 	for _, sub := range subscriptions {
@@ -134,7 +134,7 @@ func getRealisticScenarios(profileID uint, categoryMap map[string]uint, userNumb
 			decimal.NewFromFloat(275), // 6 months already paid
 			now.AddDate(0, -6, 10),    // Started 6 months ago
 			now.AddDate(0, 18, 10),    // Ends in 18 months
-			"📱", "#007AFF",
+			"mdi:cellphone", "#007AFF",
 		))
 	} else {
 		// Car loan installment - 60 months, started 1 year ago
@@ -145,7 +145,7 @@ func getRealisticScenarios(profileID uint, categoryMap map[string]uint, userNumb
 			decimal.NewFromFloat(3840),  // 12 months already paid
 			now.AddDate(0, -12, 5),      // Started 1 year ago
 			now.AddDate(0, 48, 5),       // Ends in 48 months
-			"🚗", "#4D96FF",
+			"mdi:car", "#4D96FF",
 		))
 	}
 
@@ -226,7 +226,7 @@ func getRegularTransactions(profileID uint, categoryMap map[string]uint, userNum
 				Type:         "expense",
 				Date:         transactionDate,
 				CurrencyCode: "USD",
-				Icon:         "🛒",
+				Icon:         "mdi:cart",
 				Color:        "#FF6B6B",
 				CategoriesTransaction: map[uint]decimal.Decimal{
 					categoryMap["Food"]: amount,
@@ -245,7 +245,7 @@ func getRegularTransactions(profileID uint, categoryMap map[string]uint, userNum
 				Type:         "expense",
 				Date:         transactionDate,
 				CurrencyCode: "USD",
-				Icon:         "⛽",
+				Icon:         "mdi:gas-station",
 				Color:        "#4D96FF",
 				CategoriesTransaction: map[uint]decimal.Decimal{
 					categoryMap["Transport"]: amount,
@@ -262,7 +262,7 @@ func getRegularTransactions(profileID uint, categoryMap map[string]uint, userNum
 				Type:         "expense",
 				Date:         baseDate.AddDate(0, 0, -5),
 				CurrencyCode: "USD",
-				Icon:         "⚡",
+				Icon:         "mdi:flash",
 				Color:        "#FFD93D",
 				CategoriesTransaction: map[uint]decimal.Decimal{
 					categoryMap["Utilities"]: decimal.NewFromFloat(80 + rand.Float64()*40), // $80-120
@@ -276,7 +276,7 @@ func getRegularTransactions(profileID uint, categoryMap map[string]uint, userNum
 				Type:         "expense",
 				Date:         baseDate.AddDate(0, 0, -10),
 				CurrencyCode: "USD",
-				Icon:         "📡",
+				Icon:         "mdi:wifi",
 				Color:        "#845EC2",
 				CategoriesTransaction: map[uint]decimal.Decimal{
 					categoryMap["Utilities"]: decimal.NewFromFloat(65 + rand.Float64()*25), // $65-90
@@ -295,11 +295,11 @@ func getRegularTransactions(profileID uint, categoryMap map[string]uint, userNum
 				icon     string
 				color    string
 			}{
-				{"Restaurant Dinner", "Food", [2]float64{25, 80}, "🍽️", "#FF6B6B"},
-				{"Coffee Shop", "Food", [2]float64{4, 12}, "☕", "#8B4513"},
-				{"Movie Theater", "Entertainment", [2]float64{12, 25}, "🎬", "#845EC2"},
-				{"Uber Ride", "Transport", [2]float64{8, 35}, "🚕", "#000000"},
-				{"Amazon Purchase", "Shopping", [2]float64{15, 120}, "📦", "#FF9900"},
+				{"Restaurant Dinner", "Food", [2]float64{25, 80}, "mdi:silverware-fork-knife", "#FF6B6B"},
+				{"Coffee Shop", "Food", [2]float64{4, 12}, "mdi:coffee", "#8B4513"},
+				{"Movie Theater", "Entertainment", [2]float64{12, 25}, "mdi:movie", "#845EC2"},
+				{"Uber Ride", "Transport", [2]float64{8, 35}, "mdi:taxi", "#000000"},
+				{"Amazon Purchase", "Shopping", [2]float64{15, 120}, "mdi:package-variant", "#FF9900"},
 			}
 
 			item := entertainment[rand.Intn(len(entertainment))]
@@ -334,7 +334,7 @@ func getRegularTransactions(profileID uint, categoryMap map[string]uint, userNum
 					Type:         "income",
 					Date:         transactionDate,
 					CurrencyCode: "USD",
-					Icon:         "💻",
+					Icon:         "mdi:laptop",
 					Color:        "#FF8C00",
 					CategoriesTransaction: map[uint]decimal.Decimal{
 						categoryMap["Side Income"]: amount,
