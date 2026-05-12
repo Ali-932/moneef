@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"moneef/internal/db"
+	"moneef/internal/iconlookup"
 	"moneef/internal/models"
 	"os"
 	"path/filepath"
@@ -51,7 +52,17 @@ func SeedMerchants(cmd *cobra.Command, args []string) error {
 		created++
 	}
 
-	log.Printf("Merchant icons seeded: %d created, %d skipped (already exist)", created, skipped)
+	// Rebuild the FTS index to include all rows (not just new ones)
+	if err := database.Exec("INSERT INTO icon_lookups_fts(icon_lookups_fts) VALUES('rebuild')").Error; err != nil {
+		log.Printf("⚠️ FTS rebuild failed (non-fatal): %v", err)
+	}
+
+	// Reload the in-memory cache
+	if err := iconlookup.LoadCache(database); err != nil {
+		log.Printf("⚠️ Failed to reload in-memory cache: %v", err)
+	}
+
+	log.Printf("Merchant icons seeded: %d created, %d skipped (already exist), %d in cache", created, skipped, iconlookup.GetCacheSize())
 	return nil
 }
 
@@ -60,8 +71,11 @@ var seedMerchantsCmd = &cobra.Command{
 	Short: "Seeds the database with merchant icon lookup data from merchants.json",
 	RunE:  SeedMerchants,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		_, err := db.Connect()
-		return err
+		database, err := db.Connect()
+		if err != nil {
+			return err
+		}
+		return db.MigrateModels(database)
 	},
 }
 
