@@ -45,6 +45,6 @@ func TestDeleteCategory(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, w.Code)
 
 	var check models.Category
-	result := suite.DB.Unscoped().First(&check, cat.ID)
+	result := suite.DB.First(&check, cat.ID)
 	assert.Error(t, result.Error)
 }

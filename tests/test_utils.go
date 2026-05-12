@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"moneef/internal/analysis"
 	"moneef/internal/auth"
+	"moneef/internal/iconlookup"
 	"moneef/internal/transactions"
 	"moneef/tests/datasets"
 	"net/http"
@@ -104,7 +105,18 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 	)
 	require.NoError(t, err, "Failed to migrate test database")
 
+	// Create FTS5 virtual table for icon lookups (optional — may not be available in test SQLite)
+	testDB.Exec(`
+		CREATE VIRTUAL TABLE IF NOT EXISTS icon_lookups_fts
+		USING fts5(keyword, icon, color, content=icon_lookups, content_rowid=id)
+	`)
+
 	seedTestData(t, testDB)
+
+	// Load icon lookup cache for test DB
+	if err := iconlookup.LoadCache(testDB); err != nil {
+		t.Logf("⚠️ Failed to load icon lookup cache: %v", err)
+	}
 
 	originalDB := db.DB
 	db.DB = testDB
@@ -114,14 +126,14 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 
 func seedTestData(t *testing.T, testDB *gorm.DB) {
 	user := &models.User{
-		Model:    gorm.Model{ID: testUserID},
+		ID:       testUserID,
 		Email:    testEmail,
 		Password: "hashedpassword",
 	}
 	require.NoError(t, testDB.Create(user).Error)
 
 	profile := &models.Profile{
-		Model:     gorm.Model{ID: testProfileID},
+		ID:        testProfileID,
 		FirstName: "Test",
 		LastName:  "User",
 		UserID:    testUserID,
@@ -138,13 +150,13 @@ func seedTestData(t *testing.T, testDB *gorm.DB) {
 	require.NoError(t, testDB.Create(settings).Error)
 
 	categories := []models.Category{
-		{Model: gorm.Model{ID: 1}, Name: "Food", Icon: "🍔", Color: "#FF6B6B"},
-		{Model: gorm.Model{ID: 2}, Name: "Transport", Icon: "🚗", Color: "#4ECDC4"},
-		{Model: gorm.Model{ID: 3}, Name: "Utilities", Icon: "⚡", Color: "#96CEB4"},
-		{Model: gorm.Model{ID: 4}, Name: "Entertainment", Icon: "🎬", Color: "#45B7D1"},
-		{Model: gorm.Model{ID: 5}, Name: "Shopping", Icon: "🛍️", Color: "#FFEAA7"},
-		{Model: gorm.Model{ID: 8}, Name: "Travel", Icon: "✈️", Color: "#74B9FF"},
-		{Model: gorm.Model{ID: 12}, Name: "Business", Icon: "💼", Color: "#A29BFE"},
+		{ID: 1, Name: "Food", Icon: "mdi:food", Color: "#FF6B6B"},
+		{ID: 2, Name: "Transport", Icon: "mdi:car", Color: "#4ECDC4"},
+		{ID: 3, Name: "Utilities", Icon: "mdi:flash", Color: "#96CEB4"},
+		{ID: 4, Name: "Entertainment", Icon: "mdi:movie", Color: "#45B7D1"},
+		{ID: 5, Name: "Shopping", Icon: "mdi:shopping", Color: "#FFEAA7"},
+		{ID: 8, Name: "Travel", Icon: "mdi:airplane", Color: "#74B9FF"},
+		{ID: 12, Name: "Business", Icon: "mdi:briefcase", Color: "#A29BFE"},
 	}
 	for _, cat := range categories {
 		require.NoError(t, testDB.Create(&cat).Error)
@@ -169,17 +181,16 @@ func MoneyFromFloat(value float64) types.Money {
 }
 
 func (suite *TestSuite) CleanupTestData() {
-	// Delete in reverse order of foreign key dependencies
-	suite.DB.Unscoped().Delete(&models.RecurrenceTemplateCategory{})
-	suite.DB.Unscoped().Delete(&models.TransactionCategory{})
-	suite.DB.Unscoped().Delete(&models.Transaction{})
-	suite.DB.Unscoped().Delete(&models.RecurrenceTemplate{})
-	suite.DB.Unscoped().Delete(&models.CurrencyExchangeRate{})
-	suite.DB.Unscoped().Delete(&models.Currency{})
-	suite.DB.Unscoped().Delete(&models.Category{})
-	suite.DB.Unscoped().Delete(&models.UserSettings{})
-	suite.DB.Unscoped().Delete(&models.Profile{})
-	suite.DB.Unscoped().Delete(&models.User{})
+	suite.DB.Where("1 = 1").Delete(&models.RecurrenceTemplateCategory{})
+	suite.DB.Where("1 = 1").Delete(&models.TransactionCategory{})
+	suite.DB.Where("1 = 1").Delete(&models.Transaction{})
+	suite.DB.Where("1 = 1").Delete(&models.RecurrenceTemplate{})
+	suite.DB.Where("1 = 1").Delete(&models.CurrencyExchangeRate{})
+	suite.DB.Where("1 = 1").Delete(&models.Currency{})
+	suite.DB.Where("1 = 1").Delete(&models.Category{})
+	suite.DB.Where("1 = 1").Delete(&models.UserSettings{})
+	suite.DB.Where("1 = 1").Delete(&models.Profile{})
+	suite.DB.Where("1 = 1").Delete(&models.User{})
 }
 
 func PtrBool(b bool) *bool                          { return &b }

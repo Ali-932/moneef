@@ -31,7 +31,7 @@ func (dc *DatasetCreator) CreateTestTransaction(params CreateTestTransactionPara
 		params.CurrencyCode = "USD"
 	}
 	if params.Icon == "" {
-		params.Icon = "💰"
+		params.Icon = "mdi:cash"
 	}
 	if params.Color == "" {
 		params.Color = "#FF6B6B"
@@ -100,7 +100,7 @@ func (dc *DatasetCreator) CreateTestRecurrenceTemplate(params CreateTestRecurren
 		params.CurrencyCode = "USD"
 	}
 	if params.Icon == "" {
-		params.Icon = "🔄"
+		params.Icon = "mdi:repeat"
 	}
 	if params.Color == "" {
 		params.Color = "#4ECDC4"

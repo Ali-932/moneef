@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/gorm"
+	"moneef/internal/iconlookup"
 	"moneef/internal/models"
 	"moneef/internal/patterns/engine"
 	"moneef/internal/patterns/pattern_engine"
@@ -19,7 +19,7 @@ func TestPatternEngineWeekendSpike(t *testing.T) {
 
 	baseDate := time.Date(2025, 1, 6, 0, 0, 0, 0, time.UTC)
 	weekendDates := []int{5, 6}
-	foodCat := models.Category{Model: gorm.Model{ID: 1}}
+	foodCat := models.Category{ID: 1}
 
 	for i := 0; i < 30; i++ {
 		dayOffset := weekendDates[i%2]
@@ -67,7 +67,7 @@ func TestPatternEngineSortedByScore(t *testing.T) {
 	defer suite.Cleanup()
 
 	baseDate := time.Date(2025, 1, 6, 0, 0, 0, 0, time.UTC)
-	foodCat := models.Category{Model: gorm.Model{ID: 1}}
+	foodCat := models.Category{ID: 1}
 
 	for i := 0; i < 35; i++ {
 		dayOffset := []int{5, 6}[i%2]
@@ -103,7 +103,7 @@ func TestPatternEngineInsufficientTransactions(t *testing.T) {
 	defer suite.Cleanup()
 
 	baseDate := time.Date(2025, 1, 6, 0, 0, 0, 0, time.UTC)
-	foodCat := models.Category{Model: gorm.Model{ID: 1}}
+	foodCat := models.Category{ID: 1}
 
 	for i := 0; i < 5; i++ {
 		createTestTransaction(suite, baseDate.AddDate(0, 0, i), "expense", 50.0, &foodCat)
@@ -143,8 +143,11 @@ func TestPatternIconEngineKeywordMatch(t *testing.T) {
 
 	profileID := uint(1)
 
-	iconLookup := models.IconLookup{Keyword: "spending", Icon: "💸", Color: "#EF4444"}
+	iconLookup := models.IconLookup{Keyword: "spending", Icon: "mdi:cash-multiple", Color: "#EF4444"}
 	require.NoError(t, suite.DB.Create(&iconLookup).Error)
+
+	// Reload icon lookup cache so the new entry is available for matching
+	require.NoError(t, iconlookup.LoadCache(suite.DB))
 
 	pattern := models.Pattern{
 		Name:        "High Spending",
@@ -186,7 +189,7 @@ func TestPatternIconEngineDefaultFallback(t *testing.T) {
 	var updated models.Pattern
 	require.NoError(t, suite.DB.First(&updated, pattern.ID).Error)
 
-	assert.Equal(t, "📅", updated.Icon, "Icon should fall back to type default")
+	assert.Equal(t, "mdi:calendar", updated.Icon, "Icon should fall back to type default")
 	assert.Equal(t, "#F59E0B", updated.Color, "Color should fall back to type default")
 }
 
@@ -196,7 +199,7 @@ func TestPatternIconEngineCategoryMatch(t *testing.T) {
 
 	profileID := uint(1)
 
-	cat := models.Category{Name: "Food", Icon: "🍔", Color: "#FF6B6B"}
+	cat := models.Category{Name: "Food", Icon: "mdi:food", Color: "#FF6B6B"}
 	require.NoError(t, suite.DB.Create(&cat).Error)
 
 	metadataJSON, err := json.Marshal(map[string]interface{}{"category": "Food"})
@@ -226,7 +229,7 @@ func TestPatternEngineWithDateRange(t *testing.T) {
 	defer suite.Cleanup()
 
 	baseDate := time.Date(2025, 1, 6, 0, 0, 0, 0, time.UTC)
-	foodCat := models.Category{Model: gorm.Model{ID: 1}}
+	foodCat := models.Category{ID: 1}
 
 	// Create transactions inside the range (Jan 10-20)
 	for i := 0; i < 20; i++ {

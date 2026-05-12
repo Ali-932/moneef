@@ -227,7 +227,7 @@ func testRecurrentTransaction(t *testing.T, suite *TestSuite, helper *Transactio
 		WithRecurrence("monthly", true),
 		WithMerchant("Netflix"),
 		WithNotes("Monthly streaming subscription"),
-		WithIconAndColor("📺", "#E50914"),
+		WithIconAndColor("mdi:television-classic", "#E50914"),
 	)
 
 	rr := helper.executeTransactionRequest(req)
@@ -240,7 +240,7 @@ func testRecurrentTransaction(t *testing.T, suite *TestSuite, helper *Transactio
 	assertion.AssertBasicFields("Netflix Subscription", "$15.99", "expense")
 	assertion.AssertCategories(1, 2)
 
-	assert.Equal(t, "📺", tx.Icon)
+	assert.Equal(t, "mdi:television-classic", tx.Icon)
 	assert.Equal(t, "#E50914", tx.Color)
 	require.NotNil(t, tx.MerchantName)
 	assert.Equal(t, "Netflix", *tx.MerchantName)
@@ -317,7 +317,7 @@ func testRecurrentTransactionWithEndDate(t *testing.T, suite *TestSuite, helper 
 		WithRecurrenceEndDate(endDate, 300.00, 100.00),
 		WithMerchant("FitLife Gym"),
 		WithNotes("6-month gym membership"),
-		WithIconAndColor("💪", "#FF6B35"),
+		WithIconAndColor("mdi:dumbbell", "#FF6B35"),
 	)
 
 	rr := helper.executeTransactionRequest(req)
@@ -349,7 +349,7 @@ func testRepositoryOperations(t *testing.T, suite *TestSuite) {
 			Type:         "expense",
 			Date:         time.Now(),
 			CurrencyCode: "USD",
-			Icon:         "🛒",
+			Icon:         "mdi:cart",
 			Color:        "#FF0000",
 		}
 
@@ -372,7 +372,7 @@ func testServiceLayer(t *testing.T, suite *TestSuite) {
 				Type:                  "expense",
 				Date:                  time.Now(),
 				CurrencyCode:          "USD",
-				Icon:                  "💳",
+				Icon:                  "mdi:credit-card",
 				Color:                 "#FF5722",
 				CategoriesTransaction: map[uint]decimal.Decimal{},
 			}
@@ -463,7 +463,7 @@ func testEdgeCases(t *testing.T, suite *TestSuite) {
 				Type:         tc.txType,
 				Date:         time.Now(),
 				CurrencyCode: "USD",
-				Icon:         "💰",
+				Icon:         "mdi:cash",
 				Color:        "#00FF00",
 			}
 
