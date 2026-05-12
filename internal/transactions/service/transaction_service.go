@@ -234,8 +234,8 @@ func GetTransaction(id uint, profileID uint) (*models.Transaction, error) {
 	return repository.GetTransactionByID(db.DB, id, profileID)
 }
 
-func ListTransactions(profileID uint, txType string, categoryID uint, dateFrom, dateTo string, sort string) *gorm.DB {
-	return repository.ListTransactionsQuery(db.DB, profileID, txType, categoryID, dateFrom, dateTo, sort)
+func ListTransactions(profileID uint, txType string, categoryID uint, dateFrom, dateTo, search, categoryName string, sort string) *gorm.DB {
+	return repository.ListTransactionsQuery(db.DB, profileID, txType, categoryID, dateFrom, dateTo, search, categoryName, sort)
 }
 
 func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest, categoriesMap map[uint]decimal.Decimal) error {

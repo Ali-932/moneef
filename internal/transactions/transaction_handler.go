@@ -85,9 +85,11 @@ func ListTransactionsHandler(w http.ResponseWriter, r *http.Request) {
 	categoryID, _ := strconv.ParseUint(q.Get("category_id"), 10, 64)
 	dateFrom := q.Get("date_from")
 	dateTo := q.Get("date_to")
+	search := q.Get("search")
+	category := q.Get("category")
 	sort := q.Get("sort")
 
-	query := service.ListTransactions(profileID, txType, uint(categoryID), dateFrom, dateTo, sort)
+	query := service.ListTransactions(profileID, txType, uint(categoryID), dateFrom, dateTo, search, category, sort)
 
 	result, err := pagination.Paginate[models.Transaction](query, r)
 	if err != nil {

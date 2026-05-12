@@ -44,34 +44,43 @@ func GetTransactionByID(db *gorm.DB, id uint, profileID uint) (*models.Transacti
 	return &transaction, nil
 }
 
-func ListTransactionsQuery(db *gorm.DB, profileID uint, txType string, categoryID uint, dateFrom, dateTo string, sort string) *gorm.DB {
+func ListTransactionsQuery(db *gorm.DB, profileID uint, txType string, categoryID uint, dateFrom, dateTo, search, categoryName, sort string) *gorm.DB {
 	query := db.Model(&models.Transaction{}).
 		Preload("TransactionCategory.Category").
-		Where("profile_id = ?", profileID)
+		Where("transactions.profile_id = ?", profileID)
 
 	if txType != "" {
-		query = query.Where("type = ?", txType)
+		query = query.Where("transactions.type = ?", txType)
 	}
 	if categoryID != 0 {
 		query = query.Joins("JOIN transaction_categories ON transaction_categories.transaction_id = transactions.id").
 			Where("transaction_categories.category_id = ?", categoryID)
 	}
+	if categoryName != "" {
+		query = query.Joins("JOIN transaction_categories tc2 ON tc2.transaction_id = transactions.id").
+			Joins("JOIN categories c2 ON tc2.category_id = c2.id").
+			Where("c2.name = ?", categoryName)
+	}
 	if dateFrom != "" {
-		query = query.Where("date >= ?", dateFrom)
+		query = query.Where("transactions.date >= ?", dateFrom)
 	}
 	if dateTo != "" {
-		query = query.Where("date <= ?", dateTo)
+		query = query.Where("transactions.date <= ?", dateTo)
+	}
+	if search != "" {
+		like := "%" + search + "%"
+		query = query.Where("transactions.name LIKE ? OR transactions.merchant_name LIKE ?", like, like)
 	}
 
 	switch sort {
 	case "date_asc":
-		query = query.Order("date asc")
+		query = query.Order("transactions.date asc")
 	case "amount_asc":
-		query = query.Order("date asc")
+		query = query.Order("transactions.date asc")
 	case "amount_desc":
-		query = query.Order("date desc")
+		query = query.Order("transactions.date desc")
 	default:
-		query = query.Order("date desc")
+		query = query.Order("transactions.date desc")
 	}
 
 	return query
