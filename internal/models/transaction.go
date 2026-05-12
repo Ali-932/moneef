@@ -7,14 +7,16 @@ import (
 )
 
 type Transaction struct {
-	gorm.Model
+	ID                   uint                  `gorm:"primaryKey" json:"id"`
+	CreatedAt            time.Time             `json:"created_at"`
+	UpdatedAt            time.Time             `json:"updated_at"`
 	ProfileID            uint                  `gorm:"not null;index" json:"profile_id"`
 	Name                 string                `gorm:"type:varchar(255);not null" json:"name"`
 	Type                 string                `gorm:"type:varchar(255);not null;check:type IN ('income', 'expense')" json:"type"`
 	Date                 time.Time             `gorm:"not null" json:"date"`
 	CurrencyCode         string                `gorm:"type:char(3);not null;index" json:"currency_code"`
 	Currency             *Currency             `gorm:"foreignKey:CurrencyCode;references:Code" json:"currency,omitempty"`
-	Icon                 string                `gorm:"type:varchar(10);" json:"icon"`
+	Icon                 string                `gorm:"type:varchar(255);" json:"icon"`
 	Color                string                `gorm:"type:varchar(255);" json:"color"`
 	MerchantName         *string               `gorm:"type:varchar(255);" json:"merchant_name,omitempty"`
 	Notes                *string               `gorm:"type:varchar(255);" json:"notes,omitempty"`
@@ -41,7 +43,9 @@ func (t *Transaction) GetTotal(db *gorm.DB) (*types.Money, error) {
 }
 
 type TransactionCategory struct {
-	gorm.Model
+	ID            uint         `gorm:"primaryKey" json:"id"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at"`
 	TransactionID uint         `gorm:"not null" json:"transaction_id"`
 	CategoryID    uint         `gorm:"not null;" json:"category_id"`
 	Category      Category     `gorm:"foreignKey:CategoryID;references:ID;constraint:OnDelete:CASCADE" json:"Category"`
@@ -51,13 +55,15 @@ type TransactionCategory struct {
 }
 
 type RecurrenceTemplate struct {
-	gorm.Model
+	ID                   uint                         `gorm:"primaryKey" json:"id"`
+	CreatedAt            time.Time                    `json:"created_at"`
+	UpdatedAt            time.Time                    `json:"updated_at"`
 	ProfileID            uint                         `gorm:"not null;index" json:"profile_id"`
 	Name                 string                       `gorm:"type:varchar(255);not null" json:"name"`
 	Type                 string                       `gorm:"type:varchar(255);not null;check:type IN ('income', 'expense')" json:"type"`
 	CurrencyCode         string                       `gorm:"type:char(3);not null;index" json:"currency_code"`
 	Currency             *Currency                    `gorm:"foreignKey:CurrencyCode;references:Code" json:"currency,omitempty"`
-	Icon                 string                       `gorm:"type:varchar(10);" json:"icon"`
+	Icon                 string                       `gorm:"type:varchar(255);" json:"icon"`
 	Color                string                       `gorm:"type:varchar(255);" json:"color"`
 	MerchantName         *string                      `gorm:"type:varchar(255);" json:"merchant_name,omitempty"`
 	Notes                *string                      `gorm:"type:varchar(255);" json:"notes,omitempty"`
@@ -76,7 +82,9 @@ type RecurrenceTemplate struct {
 }
 
 type RecurrenceTemplateCategory struct {
-	gorm.Model
+	ID                   uint               `gorm:"primaryKey" json:"id"`
+	CreatedAt            time.Time          `json:"created_at"`
+	UpdatedAt            time.Time          `json:"updated_at"`
 	RecurrenceTemplateID uint               `gorm:"not null" json:"recurrence_template_id"`
 	CategoryID           uint               `gorm:"not null;" json:"category_id"`
 	Category             Category           `gorm:"foreignKey:CategoryID;;constraint:OnDelete:CASCADE" json:"Category"`

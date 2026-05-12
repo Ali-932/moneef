@@ -1,12 +1,13 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"time"
 )
 
 type User struct {
-	gorm.Model
+	ID           uint         `gorm:"primaryKey" json:"id"`
+	CreatedAt    time.Time    `json:"created_at"`
+	UpdatedAt    time.Time    `json:"updated_at"`
 	Password     string       `gorm:"type:varchar(255);not null"`
 	Email        string       `gorm:"type:varchar(255);not null;unique"`
 	IsStaff      bool         `gorm:"default:false"`
@@ -18,7 +19,9 @@ type User struct {
 }
 
 type Profile struct {
-	gorm.Model
+	ID           uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 	FirstName    string         `gorm:"type:varchar(255)" json:"first_name"`
 	LastName     string         `gorm:"type:varchar(255)" json:"last_name"`
 	UserID       uint           `gorm:"not null;" json:"user_id"`
@@ -28,7 +31,9 @@ type Profile struct {
 }
 
 type UserSettings struct {
-	gorm.Model
+	ID                    uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt             time.Time `json:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at"`
 	UserID                uint      `gorm:"not null;" json:"user_id"`
 	CurrencyCode          string    `gorm:"type:char(3);not null;index; default:'USD'" json:"currency_code"`
 	Currency              *Currency `gorm:"foreignKey:CurrencyCode;references:Code" json:"currency,omitempty"`

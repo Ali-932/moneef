@@ -1,9 +1,11 @@
 package models
 
-import "gorm.io/gorm"
+import "time"
 
 type Pattern struct {
-	gorm.Model
+	ID          uint        `gorm:"primaryKey" json:"id"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
 	Name        string      `gorm:"not null; type:varchar(255);" json:"name"`
 	Description string      `gorm:"type:text;" json:"description"`
 	Metadata    interface{} `gorm:"type:json;" json:"metadata,omitempty"`
