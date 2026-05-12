@@ -7,11 +7,21 @@ import (
 	"gorm.io/gorm"
 )
 
-func ListCategories(profileID uint) ([]models.Category, error) {
+func ListCategories(profileID uint, catType string, custom bool, used bool) ([]models.Category, error) {
 	var categories []models.Category
-	err := db.DB.Where("profile_id IS NULL OR profile_id = ?", profileID).
-		Order("profile_id ASC, name ASC").
-		Find(&categories).Error
+	query := db.DB.Where("profile_id IS NULL OR profile_id = ?", profileID)
+
+	if catType != "" {
+		query = query.Where("type = ?", catType)
+	}
+	if custom {
+		query = query.Where("profile_id IS NOT NULL")
+	}
+	if used {
+		query = query.Where("id IN (SELECT DISTINCT tc.category_id FROM transaction_categories tc JOIN transactions t ON t.id = tc.transaction_id WHERE t.profile_id = ?)", profileID)
+	}
+
+	err := query.Order("profile_id ASC, name ASC").Find(&categories).Error
 	return categories, err
 }
 
@@ -40,7 +50,7 @@ func UpdateCategory(tx *gorm.DB, id uint, profileID uint, updates map[string]int
 }
 
 func DeleteCategory(id uint, profileID uint) error {
-	result := db.DB.Where("id = ? AND profile_id = ?", id, profileID).Unscoped().Delete(&models.Category{})
+	result := db.DB.Where("id = ? AND profile_id = ?", id, profileID).Delete(&models.Category{})
 	if result.Error != nil {
 		return result.Error
 	}

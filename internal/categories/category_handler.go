@@ -21,7 +21,12 @@ func ListCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categories, err := service.ListCategories(profileID)
+	q := r.URL.Query()
+	catType := q.Get("type")
+	custom := q.Get("custom") == "true"
+	used := q.Get("used") == "true"
+
+	categories, err := service.ListCategories(profileID, catType, custom, used)
 	if err != nil {
 		utils.WriteJsonError(w, http.StatusInternalServerError, "Failed to list categories")
 		return

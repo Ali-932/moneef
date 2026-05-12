@@ -11,8 +11,8 @@ import (
 
 var ErrDuplicateName = errors.New("category name already exists")
 
-func ListCategories(profileID uint) ([]models.Category, error) {
-	return repository.ListCategories(profileID)
+func ListCategories(profileID uint, catType string, custom bool, used bool) ([]models.Category, error) {
+	return repository.ListCategories(profileID, catType, custom, used)
 }
 
 func CreateCategory(profileID uint, req dto.CreateCategoryRequest) (*models.Category, error) {
@@ -34,8 +34,12 @@ func CreateCategory(profileID uint, req dto.CreateCategoryRequest) (*models.Cate
 	if err := repository.CreateCategory(category); err != nil {
 		return nil, err
 	}
-	engine.ResolveCategoryIconAsync(category.ID)
-	return category, nil
+	engine.ResolveCategoryIcon(category.ID)
+	refreshed, err := repository.GetCategoryByID(category.ID, profileID)
+	if err != nil {
+		return category, nil
+	}
+	return refreshed, nil
 }
 
 func DeleteCategory(id uint, profileID uint) error {
