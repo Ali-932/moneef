@@ -2,13 +2,14 @@ package analysis
 
 import (
 	"encoding/json"
-	"github.com/go-playground/validator/v10"
 	"log"
 	"moneef/internal/analysis/dto"
 	"moneef/internal/analysis/service"
+	analysisUtils "moneef/internal/analysis/utils"
 	userRepo "moneef/internal/users/repository"
 	"moneef/pkg/utils"
 	"net/http"
+	"strconv"
 )
 
 func GetAllAnalysisCharts(w http.ResponseWriter, r *http.Request) {
@@ -23,18 +24,18 @@ func GetAllAnalysisCharts(w http.ResponseWriter, r *http.Request) {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
+
 	var req dto.SpendByCategoryChartRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("❌ [HANDLER] Failed to decode request body: %v", err)
 		utils.WriteJsonError(w, http.StatusBadRequest, "Invalid Input")
 		return
 	}
-	validate := validator.New()
-	if err := validate.Struct(req); err != nil {
-		log.Printf("❌ [HANDLER] Validation failed: %v", err)
-		utils.WriteJsonError(w, http.StatusBadRequest, err.Error())
-		return
-	}
+
+	q := r.URL.Query()
+	aggregationParam := q.Get("aggregation")
+	topN, _ := strconv.Atoi(q.Get("top_n"))
+
 	settings, err := userRepo.GetUserSettingsByUserID(userID)
 	if err != nil {
 		utils.WriteJsonError(w, http.StatusInternalServerError, "Failed to read user settings")
@@ -49,13 +50,23 @@ func GetAllAnalysisCharts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if topN > 0 && topN < len(res.Categories) {
+		res.Categories = res.Categories[:topN]
+	}
+
+	var aggregated []dto.AggregatedPeriod
+	if aggregationParam != "" {
+		agg := analysisUtils.Aggregation(aggregationParam)
+		aggregated = analysisUtils.AggregateByPeriod(res.SpentPerDay, agg)
+	}
+
 	response := dto.SpendByCategoryChartResponse{
 		AnalysisCharts: *res,
 		StartDate:      req.StartDate,
 		EndDate:        req.EndDate,
 		Currency:       currency,
+		Aggregated:     aggregated,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(response)
-	w.WriteHeader(http.StatusOK)
 }
