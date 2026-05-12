@@ -11,8 +11,8 @@ import (
 )
 
 func GetDashboard(profileID uint, dateFrom, dateTo *time.Time) (*dto.DashboardResponse, error) {
-	now := time.Now()
-	startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	now := time.Now().UTC()
+	startDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	endDate := startDate.AddDate(0, 1, 0).Add(-time.Second)
 
 	if dateFrom != nil {
