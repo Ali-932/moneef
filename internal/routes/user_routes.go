@@ -11,5 +11,8 @@ func UserRoutes() chi.Router {
 	r.Put("/profile", users.UpdateProfileHandler)
 	r.Get("/settings", users.GetSettingsHandler)
 	r.Put("/settings", users.UpdateSettingsHandler)
+	r.Get("/rates", users.ListExchangeRatesHandler)
+	r.Put("/rates", users.UpsertExchangeRateHandler)
+	r.Post("/rates/fetch", users.FetchExchangeRatesHandler)
 	return r
 }
