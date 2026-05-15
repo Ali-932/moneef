@@ -46,10 +46,10 @@ type TransactionCategory struct {
 	ID            uint         `gorm:"primaryKey" json:"id"`
 	CreatedAt     time.Time    `json:"created_at"`
 	UpdatedAt     time.Time    `json:"updated_at"`
-	TransactionID uint         `gorm:"not null" json:"transaction_id"`
+	TransactionID uint         `gorm:"not null;index" json:"transaction_id"`
 	CategoryID    uint         `gorm:"not null;" json:"category_id"`
 	Category      Category     `gorm:"foreignKey:CategoryID;references:ID;constraint:OnDelete:CASCADE" json:"Category"`
-	Amount        *types.Money `gorm:"type:decimal(10,2);not null" json:"amount"`
+	Amount        *types.Money `gorm:"type:decimal(19,4);not null" json:"amount"`
 
 	Transaction Transaction `gorm:"foreignKey:TransactionID;references:ID;constraint:OnDelete:CASCADE" json:"transaction,omitempty"`
 }
@@ -85,9 +85,9 @@ type RecurrenceTemplateCategory struct {
 	ID                   uint               `gorm:"primaryKey" json:"id"`
 	CreatedAt            time.Time          `json:"created_at"`
 	UpdatedAt            time.Time          `json:"updated_at"`
-	RecurrenceTemplateID uint               `gorm:"not null" json:"recurrence_template_id"`
-	CategoryID           uint               `gorm:"not null;" json:"category_id"`
-	Category             Category           `gorm:"foreignKey:CategoryID;;constraint:OnDelete:CASCADE" json:"Category"`
-	Amount               *types.Money       `gorm:"type:decimal(10,2);not null" json:"amount"`
+	RecurrenceTemplateID uint               `gorm:"not null;index" json:"recurrence_template_id"`
+	CategoryID           uint               `gorm:"not null;index" json:"category_id"`
+	Category             Category           `gorm:"foreignKey:CategoryID;constraint:OnDelete:CASCADE" json:"Category"`
+	Amount               *types.Money       `gorm:"type:decimal(19,4);not null" json:"amount"`
 	RecurrenceTemplate   RecurrenceTemplate `gorm:"foreignKey:RecurrenceTemplateID;references:ID;constraint:OnDelete:CASCADE" json:"recurrence_template,omitempty"`
 }

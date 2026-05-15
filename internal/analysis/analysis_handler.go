@@ -3,23 +3,25 @@ package analysis
 import (
 	"encoding/json"
 	"log"
+	"net/http"
+	"strconv"
+
 	"moneef/internal/analysis/dto"
 	"moneef/internal/analysis/service"
 	analysisUtils "moneef/internal/analysis/utils"
 	userRepo "moneef/internal/users/repository"
+	"moneef/pkg/middleware"
 	"moneef/pkg/utils"
-	"net/http"
-	"strconv"
 )
 
 func GetAllAnalysisCharts(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		log.Printf("❌ [HANDLER] profileID not found in context")
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	userID, ok := r.Context().Value("id").(uint)
+	userID, ok := r.Context().Value(middleware.ContextKeyUserID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -29,6 +31,10 @@ func GetAllAnalysisCharts(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("❌ [HANDLER] Failed to decode request body: %v", err)
 		utils.WriteJsonError(w, http.StatusBadRequest, "Invalid Input")
+		return
+	}
+	if !req.StartDate.IsZero() && !req.EndDate.IsZero() && !req.StartDate.Before(req.EndDate) {
+		utils.WriteJsonError(w, http.StatusBadRequest, "start_date must be before end_date")
 		return
 	}
 

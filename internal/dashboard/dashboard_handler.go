@@ -3,14 +3,16 @@ package dashboard
 import (
 	"encoding/json"
 	"log"
-	"moneef/internal/dashboard/service"
-	"moneef/pkg/utils"
 	"net/http"
 	"time"
+
+	"moneef/internal/dashboard/service"
+	"moneef/pkg/middleware"
+	"moneef/pkg/utils"
 )
 
 func GetDashboardHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		log.Printf("❌ [HANDLER] profileID not found in context")
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")

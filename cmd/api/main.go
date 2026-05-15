@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/alexedwards/scs/v2"
+	"fmt"
 	"log"
 	"moneef/internal/config"
 	"moneef/internal/db"
@@ -14,22 +14,17 @@ func main() {
 	if err := run(); err != nil {
 		log.Fatalf("Application failed to start: %v", err)
 	}
-
 }
-
-var SessionManager *scs.SessionManager
 
 func run() error {
 	log.Println("Connecting to the database")
 	database, err := db.Connect()
-	log.Println("Loading Config")
-	configEnv := config.GetConfig()
 	if err != nil {
-		log.Fatal("can ot connect to the database")
+		return fmt.Errorf("failed to connect to the database: %w", err)
 	}
-	log.Println("Setting up sessions")
-	SessionManager = config.SetUpSessions()
-	log.Printf("Setting up logs")
+	log.Println("Loading config")
+	configEnv := config.GetConfig()
+	log.Println("Setting up logs")
 	logFile := config.SetUpLogs()
 	defer func() {
 		if err := logFile.Close(); err != nil {
@@ -42,10 +37,9 @@ func run() error {
 	}
 	log.Println("Done migrations")
 	if err := iconlookup.LoadCache(database); err != nil {
-		log.Printf("⚠️ Failed to load icon lookup cache: %v", err)
+		log.Printf("Failed to load icon lookup cache: %v", err)
 	}
 	mux := routes.SetupRoutes()
-	wrappedMux := SessionManager.LoadAndSave(mux)
 	log.Printf("Server running at http://localhost%s\n", configEnv.Port)
-	return http.ListenAndServe(configEnv.Port, wrappedMux)
+	return http.ListenAndServe(configEnv.Port, mux)
 }

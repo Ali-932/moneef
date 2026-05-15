@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"moneef/internal/auth"
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/internal/transactions/dto"
@@ -45,19 +44,6 @@ func SeedTransactions(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Printf("Found %d users and %d categories", len(users), len(categories))
-
-	// Generate tokens for both users
-	tokens := make(map[uint]string)
-	for _, user := range users {
-		token, err := auth.GenerateJWT(user.Email)
-		if err != nil {
-			return fmt.Errorf("failed to generate token for %s: %w", user.Email, err)
-		}
-		tokens[user.Profile.ID] = token
-		fmt.Printf("User: %s %s (Profile ID: %d)\n", user.Profile.FirstName, user.Profile.LastName, user.Profile.ID)
-		fmt.Printf("Email: %s\n", user.Email)
-		fmt.Printf("Token: %s\n\n", token)
-	}
 
 	// Seed transactions for each user
 	for i, user := range users {

@@ -9,32 +9,32 @@ import (
 	"gorm.io/gorm"
 )
 
-// ConvertAmount converts a float64 amount from one currency to another
-// using the exchange rate from the DB. Returns the original amount if
-// currencies match or no rate is found.
-func ConvertAmount(db *gorm.DB, amount float64, fromCurrency string, toCurrency string) float64 {
+var ErrExchangeRateUnavailable = fmt.Errorf("exchange rate unavailable")
+
+func ConvertMoney(db *gorm.DB, amount types.Money, fromCurrency string, toCurrency string) (types.Money, error) {
 	if fromCurrency == toCurrency {
-		return amount
+		return amount, nil
 	}
 	var rate models.CurrencyExchangeRate
 	err := db.Where("currency_code1 = ? AND currency_code2 = ?", fromCurrency, toCurrency).First(&rate).Error
 	if err != nil {
-		return amount
+		return types.Money{}, fmt.Errorf("%w: %s→%s: %v", ErrExchangeRateUnavailable, fromCurrency, toCurrency, err)
 	}
-	return amount * rate.Rate
+	result := decimal.Decimal(amount).Mul(rate.Rate)
+	return types.Money(result), nil
 }
 
-// ConvertMoney converts a types.Money amount between currencies.
-func ConvertMoney(db *gorm.DB, amount types.Money, fromCurrency string, toCurrency string) types.Money {
-	converted := ConvertAmount(db, amount.Float64(), fromCurrency, toCurrency)
-	return types.Money(decimal.NewFromFloat(converted))
+func ConvertAmount(db *gorm.DB, amount decimal.Decimal, fromCurrency string, toCurrency string) (decimal.Decimal, error) {
+	result, err := ConvertMoney(db, types.Money(amount), fromCurrency, toCurrency)
+	if err != nil {
+		return decimal.Decimal{}, err
+	}
+	return decimal.Decimal(result), nil
 }
 
 // WithCurrencyConversion returns a GORM scope that LEFT JOINs the
-// currency_exchange_rates table so that the ConvertedAmount helper
-// produces correct results inside the query.
-//
-//	tx.Scopes(utils.WithCurrencyConversion("t", "IQD"))
+// currency_exchange_rates table so that ConvertedAmount produces correct
+// results inside the query.
 func WithCurrencyConversion(txTableAlias string, baseCurrency string) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Joins(
@@ -49,9 +49,6 @@ func WithCurrencyConversion(txTableAlias string, baseCurrency string) func(*gorm
 
 // ConvertedAmount returns a SQL expression that multiplies a raw amount
 // column by the exchange rate (defaulting to 1.0 when no rate row exists).
-// Use inside Select() clauses.
-//
-//	Select(utils.ConvertedAmount("tc.amount") + " as amount")
 func ConvertedAmount(amountColumn string) string {
 	return fmt.Sprintf("(%s * COALESCE(cer.rate, 1))", amountColumn)
 }

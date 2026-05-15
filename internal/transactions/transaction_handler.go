@@ -3,22 +3,24 @@ package transactions
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-chi/chi/v5"
-	"github.com/shopspring/decimal"
 	"log"
-	"moneef/internal/models"
-	"moneef/internal/transactions/dto"
-	"moneef/internal/transactions/service"
-	"moneef/pkg/pagination"
-	"moneef/pkg/utils"
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
+
+	"moneef/internal/models"
+	"moneef/internal/transactions/dto"
+	"moneef/internal/transactions/service"
+	"moneef/pkg/middleware"
+	"moneef/pkg/pagination"
+	"moneef/pkg/utils"
 )
 
 func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		log.Printf("❌ [HANDLER] profileID not found in context")
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
@@ -74,7 +76,7 @@ func CreateTransactionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListTransactionsHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -103,7 +105,7 @@ func ListTransactionsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -131,7 +133,7 @@ func GetTransactionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -174,7 +176,7 @@ func UpdateTransactionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListRecurrencesHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -189,7 +191,7 @@ func ListRecurrencesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateRecurrenceHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -224,7 +226,7 @@ func UpdateRecurrenceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteRecurrenceHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -246,7 +248,7 @@ func DeleteRecurrenceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetTimelineHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -261,7 +263,7 @@ func GetTimelineHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteTransactionHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return

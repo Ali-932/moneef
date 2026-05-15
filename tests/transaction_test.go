@@ -148,7 +148,7 @@ func (a *TransactionAssertion) AssertBasicFields(name string, totalAmount string
 			calculatedTotal = calculatedTotal.Add(decimal.Decimal(*cat.Amount))
 		}
 	}
-	assert.Equal(a.t, totalAmount, "$"+calculatedTotal.String())
+	assert.Equal(a.t, totalAmount, calculatedTotal.String())
 }
 
 func (a *TransactionAssertion) AssertCategories(expectedIDs ...uint) {
@@ -209,7 +209,7 @@ func testNormalTransaction(t *testing.T, suite *TestSuite, helper *TransactionTe
 	require.NoError(t, err)
 
 	assertion := NewTransactionAssertion(t, tx)
-	assertion.AssertBasicFields("Normal Transaction", "$125.5", "expense")
+	assertion.AssertBasicFields("Normal Transaction", "125.5", "expense")
 	assertion.AssertCategories(1)
 
 	assert.Equal(t, testProfileID, tx.ProfileID)
@@ -237,7 +237,7 @@ func testRecurrentTransaction(t *testing.T, suite *TestSuite, helper *Transactio
 	require.NoError(t, err)
 
 	assertion := NewTransactionAssertion(t, tx)
-	assertion.AssertBasicFields("Netflix Subscription", "$15.99", "expense")
+	assertion.AssertBasicFields("Netflix Subscription", "15.99", "expense")
 	assertion.AssertCategories(1, 2)
 
 	assert.Equal(t, "mdi:television-classic", tx.Icon)
@@ -255,7 +255,7 @@ func testRecurrentTransaction(t *testing.T, suite *TestSuite, helper *Transactio
 		assert.Nil(t, rt.EndDate)
 		assert.NotNil(t, rt.StartDate)
 		assert.NotNil(t, rt.NextPaymentAmount)
-		assert.Equal(t, "$15.99", rt.NextPaymentAmount.String())
+		assert.Equal(t, "15.99", rt.NextPaymentAmount.String())
 	})
 }
 
@@ -281,7 +281,7 @@ func testRecurrentTransactionIncome(t *testing.T, suite *TestSuite, helper *Tran
 	require.NoError(t, err)
 
 	assertion := NewTransactionAssertion(t, tx)
-	assertion.AssertBasicFields("Salary", "$200", "income")
+	assertion.AssertBasicFields("Salary", "200", "income")
 	assertion.AssertCategories(1, 2)
 
 	assert.Equal(t, "working", tx.Icon)
@@ -299,7 +299,7 @@ func testRecurrentTransactionIncome(t *testing.T, suite *TestSuite, helper *Tran
 		assert.Nil(t, rt.EndDate)
 		assert.NotNil(t, rt.StartDate)
 		assert.NotNil(t, rt.NextPaymentAmount)
-		assert.Equal(t, "$200", rt.NextPaymentAmount.String())
+		assert.Equal(t, "200", rt.NextPaymentAmount.String())
 	})
 }
 
@@ -327,17 +327,17 @@ func testRecurrentTransactionWithEndDate(t *testing.T, suite *TestSuite, helper 
 	require.NoError(t, err)
 
 	assertion := NewTransactionAssertion(t, tx)
-	assertion.AssertBasicFields("Gym Membership", "$50", "expense")
+	assertion.AssertBasicFields("Gym Membership", "50", "expense")
 
 	assertion.AssertRecurrenceTemplate(func(rt *models.RecurrenceTemplate) {
 		assert.True(t, rt.HasEndDate)
 		assert.NotNil(t, rt.EndDate)
 		assert.NotNil(t, rt.TotalAmountToPay)
-		assert.Equal(t, "$300", rt.TotalAmountToPay.String())
+		assert.Equal(t, "300", rt.TotalAmountToPay.String())
 		assert.NotNil(t, rt.AmountPaidPreviously)
-		assert.Equal(t, "$100", rt.AmountPaidPreviously.String())
+		assert.Equal(t, "100", rt.AmountPaidPreviously.String())
 		assert.NotNil(t, rt.AmountLeftToPay)
-		assert.Equal(t, "$150", rt.AmountLeftToPay.String())
+		assert.Equal(t, "150", rt.AmountLeftToPay.String())
 	})
 }
 

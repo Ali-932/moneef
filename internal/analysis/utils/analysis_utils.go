@@ -6,10 +6,18 @@ import (
 	"moneef/pkg/types"
 	"sort"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 func GetCategoriesSlicedAndSorted(allCategories []dto.CategorySummary, total types.Money) []dto.CategorySummary {
 	var finalCategories []dto.CategorySummary
+	if decimal.Decimal(total).IsZero() {
+		for i := range allCategories {
+			allCategories[i].Percentage = types.MoneyFromInt(0)
+		}
+		return allCategories
+	}
 	topCategories := allCategories
 	if len(allCategories) > config.CategoriesOthersThreshold {
 		topCategories = allCategories[:config.CategoriesOthersThreshold]

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -127,10 +128,15 @@ func GetCurrencyCode(profileID uint, db *gorm.DB) (string, error) {
 }
 
 func ConvertAmount(amount float64, fromCurrency string, toCurrency string, db *gorm.DB) float64 {
-	return utils.ConvertAmount(db, amount, fromCurrency, toCurrency)
+	result, err := utils.ConvertAmount(db, decimal.NewFromFloat(amount), fromCurrency, toCurrency)
+	if err != nil {
+		return amount
+	}
+	f, _ := result.Float64()
+	return f
 }
 
-func ConvertMoney(amount types.Money, fromCurrency string, toCurrency string, db *gorm.DB) types.Money {
+func ConvertMoney(amount types.Money, fromCurrency string, toCurrency string, db *gorm.DB) (types.Money, error) {
 	return utils.ConvertMoney(db, amount, fromCurrency, toCurrency)
 }
 

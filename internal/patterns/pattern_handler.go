@@ -3,20 +3,22 @@ package patterns
 import (
 	"encoding/json"
 	"log"
+	"net/http"
+	"time"
+
+	"gorm.io/gorm"
+
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/internal/patterns/engine"
 	"moneef/internal/patterns/pattern_engine"
 	"moneef/internal/patterns/repository"
+	"moneef/pkg/middleware"
 	"moneef/pkg/utils"
-	"net/http"
-	"time"
-
-	"gorm.io/gorm"
 )
 
 func GetPatternsHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		log.Printf("❌ [HANDLER] profileID not found in context")
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
@@ -41,7 +43,7 @@ type RefreshPatternsRequest struct {
 }
 
 func RefreshPatternsHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		log.Printf("❌ [HANDLER] profileID not found in context")
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")

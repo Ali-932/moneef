@@ -3,23 +3,25 @@ package users
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-playground/validator/v10"
 	"log"
-	"moneef/internal/users/dto"
-	"moneef/internal/users/service"
-	"moneef/pkg/utils"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
+
+	"moneef/internal/users/dto"
+	"moneef/internal/users/service"
+	"moneef/pkg/middleware"
+	"moneef/pkg/utils"
 )
 
 func GetProfileHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	userID, ok := r.Context().Value("id").(uint)
+	userID, ok := r.Context().Value(middleware.ContextKeyUserID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -58,7 +60,7 @@ func GetProfileHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateProfileHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return

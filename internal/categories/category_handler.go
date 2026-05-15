@@ -3,19 +3,21 @@ package categories
 import (
 	"encoding/json"
 	"errors"
-	"moneef/internal/categories/dto"
-	"moneef/internal/categories/service"
-	"moneef/pkg/utils"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
+
+	"moneef/internal/categories/dto"
+	"moneef/internal/categories/service"
+	"moneef/pkg/middleware"
+	"moneef/pkg/utils"
 )
 
 func ListCategoriesHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -37,7 +39,7 @@ func ListCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -70,7 +72,7 @@ func CreateCategoryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -92,7 +94,7 @@ func DeleteCategoryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateCategoryHandler(w http.ResponseWriter, r *http.Request) {
-	profileID, ok := r.Context().Value("profileID").(uint)
+	profileID, ok := r.Context().Value(middleware.ContextKeyProfileID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return

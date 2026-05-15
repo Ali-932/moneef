@@ -1,22 +1,23 @@
 package service
 
 import (
+	"github.com/shopspring/decimal"
+
 	"moneef/internal/transactions/repository"
 	"moneef/pkg/utils"
 )
 
 func CreateUpdateCurrencyRates(base string, currencyList map[string]float64) error {
-	var err error
-	for code, rate := range currencyList {
-		if utils.IsSupportedCurrency(code) == false {
+	for code, rateF := range currencyList {
+		if !utils.IsSupportedCurrency(code) {
 			continue
 		}
-		err = repository.CreateUpdateCurrencyRate(base, code, rate)
-		if err != nil {
+		rate := decimal.NewFromFloat(rateF)
+		if err := repository.CreateUpdateCurrencyRate(base, code, rate); err != nil {
 			return err
 		}
-		err = repository.CreateUpdateCurrencyRate(code, base, 1/rate)
-		if err != nil {
+		inverse := decimal.NewFromInt(1).Div(rate)
+		if err := repository.CreateUpdateCurrencyRate(code, base, inverse); err != nil {
 			return err
 		}
 	}

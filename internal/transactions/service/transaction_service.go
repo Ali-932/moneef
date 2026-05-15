@@ -34,11 +34,11 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 		log.Printf("❌ [SERVICE] This Profile Id does not exist in the database")
 		return err
 	}
-	return db.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	var transactionID uint
+	err = db.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var (
-			recID         uint
-			recIDPtr      *uint
-			transactionID uint
+			recID    uint
+			recIDPtr *uint
 		)
 
 		if params.IsRecurrent != nil && *params.IsRecurrent {
@@ -87,7 +87,7 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 			log.Printf("✅ [SERVICE] Created recurrence template with ID: %d", recID)
 		}
 
-		transactionID, err := CreateTransactionWithTx(tx, dto.CreateTransactionParams{
+		id, err := CreateTransactionWithTx(tx, dto.CreateTransactionParams{
 			ProfileID:             params.ProfileID,
 			Name:                  params.Name,
 			CurrencyCode:          params.CurrencyCode,
@@ -104,11 +104,15 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 			log.Printf("❌ [SERVICE] Failed to create transaction: %v", err)
 			return err
 		}
-
+		transactionID = id
 		log.Printf("✅ [SERVICE] Transaction creation completed successfully")
-		engine.ResolveMerchantIconAsync(transactionID)
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	engine.ResolveMerchantIconAsync(transactionID)
+	return nil
 }
 
 func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) (uint, error) {
@@ -167,8 +171,11 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p dto.CreateTransactionRecurr
 	var AmountLeftToPay *types.Money
 	if p.HasEndDate {
 		log.Println("💰 [SERVICE] Processing finite recurrence with end date")
+		if p.TotalAmountToPay == nil || p.AmountPaidPreviously == nil {
+			return 0, fmt.Errorf("total_amount_to_pay and amount_paid_previously are required for finite recurrence")
+		}
 		paidRemaining := p.TotalAmountToPay.Sub(*p.AmountPaidPreviously)
-		if paidRemaining.Cmp(TransactionTotalAmount) < 0 {
+		if decimal.Decimal(paidRemaining).LessThan(TransactionTotalAmount) {
 			nextPaymentAmount = types.Money(paidRemaining)
 		} else {
 			nextPaymentAmount = TransactionTotalAmountMoney
@@ -429,7 +436,10 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 			continue
 		}
 
-		convertedAmount := utils.ConvertMoney(db.DB, *tpl.NextPaymentAmount, tpl.CurrencyCode, baseCurrency)
+		convertedAmount, convErr := utils.ConvertMoney(db.DB, *tpl.NextPaymentAmount, tpl.CurrencyCode, baseCurrency)
+		if convErr != nil {
+			convertedAmount = *tpl.NextPaymentAmount
+		}
 		for _, date := range dateSet {
 			occurrences = append(occurrences, dto.RecurrenceOccurrence{
 				ID:       tpl.ID,

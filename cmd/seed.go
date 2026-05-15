@@ -5,16 +5,17 @@ package cmd
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"log"
 	"math/rand"
+	"time"
+
 	"moneef/internal/config"
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/pkg/utils"
-	"time"
 
 	"github.com/spf13/cobra"
+	"gorm.io/gorm"
 )
 
 func Seed(cmd *cobra.Command, args []string) error {
@@ -26,16 +27,15 @@ func Seed(cmd *cobra.Command, args []string) error {
 	if err := seedCurrencies(database); err != nil {
 		return fmt.Errorf("seeding currencies: %w", err)
 	}
-	if err := seedUsersAndProfiles(database); err != nil {
+	if err := seedUsersAndProfiles(database, cmd); err != nil {
 		return fmt.Errorf("seeding users and profiles: %w", err)
 	}
 	log.Printf("Database seeding completed successfully!")
 	return nil
 }
 
-func seedUsersAndProfiles(database *gorm.DB) error {
+func seedUsersAndProfiles(database *gorm.DB, cmd *cobra.Command) error {
 	log.Printf("Seeding users and profiles...")
-	rand.Seed(time.Now().UnixNano())
 
 	type userSeed struct {
 		Email     string
@@ -43,7 +43,15 @@ func seedUsersAndProfiles(database *gorm.DB) error {
 		FirstName string
 		LastName  string
 	}
-	const userPassword string = "Password123!"
+
+	userPassword, _ := cmd.Flags().GetString("password")
+	if userPassword == "" {
+		b := make([]byte, 16)
+		rand.New(rand.NewSource(time.Now().UnixNano())).Read(b)
+		userPassword = fmt.Sprintf("%x", b)
+		log.Printf("Generated password: %s", userPassword)
+	}
+
 	users := []userSeed{
 		{Email: "alice@example.com", Password: userPassword, FirstName: "Alice", LastName: "Johnson"},
 		{Email: "bob@example.com", Password: userPassword, FirstName: "Bob", LastName: "Smith"},
@@ -69,7 +77,6 @@ func seedUsersAndProfiles(database *gorm.DB) error {
 		user := models.User{
 			Email:    u.Email,
 			Password: string(hashed),
-			IsStaff:  false,
 		}
 		if err := database.Create(&user).Error; err != nil {
 			return fmt.Errorf("creating user %s: %w", u.Email, err)
@@ -90,7 +97,7 @@ func seedUsersAndProfiles(database *gorm.DB) error {
 			UserID:                user.ID,
 			Language:              "en",
 			IsNotificationEnabled: true,
-			IsDarkMode:            rand.Intn(2) == 0,
+			IsDarkMode:            rand.New(rand.NewSource(time.Now().UnixNano())).Intn(2) == 0,
 		}
 		if err := database.Create(&settings).Error; err != nil {
 			return fmt.Errorf("creating user settings for %s: %w", u.Email, err)
@@ -205,5 +212,6 @@ var seedCmd = &cobra.Command{
 }
 
 func init() {
+	seedCmd.Flags().String("password", "", "Password for seeded users (default: auto-generated)")
 	rootCmd.AddCommand(seedCmd)
 }

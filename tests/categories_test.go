@@ -18,7 +18,7 @@ func setupCategoryRouter() *chi.Mux {
 	r := chi.NewRouter()
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(chiMiddleware.Logger)
-		r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.ProfileMiddleware)
 		r.Route("/category", func(r chi.Router) {
 			r.Delete("/{id}", categories.DeleteCategoryHandler)
 		})

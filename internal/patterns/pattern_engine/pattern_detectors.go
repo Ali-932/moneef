@@ -8,13 +8,18 @@ import (
 	"moneef/internal/models"
 	"moneef/pkg/types"
 	"sort"
+	"time"
 )
 
 type WeekendSpikeDetector struct{}
 
 func (d *WeekendSpikeDetector) Detect(transactions []models.Transaction, currencyCode string, transactionStats *TransactionStats) ([]models.Pattern, error) {
-	weekendDaysFirst := config.WeekendPatterns[currencyCode][0]
-	weekendDaysSecond := config.WeekendPatterns[currencyCode][1]
+	weekendDays, ok := config.WeekendPatterns[currencyCode]
+	if !ok {
+		weekendDays = []time.Weekday{time.Saturday, time.Sunday}
+	}
+	weekendDaysFirst := weekendDays[0]
+	weekendDaysSecond := weekendDays[1]
 	var (
 		weekendTotal types.Money
 		weekdayTotal types.Money
@@ -34,6 +39,9 @@ func (d *WeekendSpikeDetector) Detect(transactions []models.Transaction, currenc
 			weekdayTotal = weekdayTotal.Add(*txTotal)
 			weekdayCount++
 		}
+	}
+	if weekendCount == 0 || weekdayCount == 0 {
+		return []models.Pattern{}, nil
 	}
 	weekendAvg := weekendTotal.Float64() / float64(weekendCount)
 	weekdayAvg := weekdayTotal.Float64() / float64(weekdayCount)
@@ -150,6 +158,9 @@ func (d *CategoryBasedSpendingDetector) Detect(transactions []models.Transaction
 			second.Name = cat
 			second.Amount = amount
 		}
+	}
+	if transactionStats.TotalAmount.Float64() == 0 {
+		return []models.Pattern{}, nil
 	}
 	patterns = append(patterns, models.Pattern{
 		Name:        "Top Spending Category",

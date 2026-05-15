@@ -81,13 +81,15 @@ func GetUserPatterns(profileId uint, startDate, endDate *time.Time) ([]models.Pa
 		if transactions[i].CurrencyCode != currencyCode {
 			for j := range transactions[i].TransactionCategory {
 				if transactions[i].TransactionCategory[j].Amount != nil {
-					converted := ConvertMoney(
+					converted, err := ConvertMoney(
 						*transactions[i].TransactionCategory[j].Amount,
 						transactions[i].CurrencyCode,
 						currencyCode,
 						db.DB,
 					)
-					transactions[i].TransactionCategory[j].Amount = &converted
+					if err == nil {
+						transactions[i].TransactionCategory[j].Amount = &converted
+					}
 				}
 			}
 			transactions[i].CurrencyCode = currencyCode

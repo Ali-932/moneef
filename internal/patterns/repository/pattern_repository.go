@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"moneef/internal/models"
 )
 
@@ -35,49 +36,19 @@ func GetPatternsByProfileID(tx *gorm.DB, profileID uint) ([]models.Pattern, erro
 
 func UpsertPatterns(tx *gorm.DB, profileID uint, patterns []models.Pattern) ([]models.Pattern, error) {
 	for i := range patterns {
-		patterns[i].ProfileID = &profileID
+		patterns[i].ProfileID = profileID
 		if err := marshalMetadata(&patterns[i]); err != nil {
 			return nil, err
 		}
 	}
-
-	newKeys := make([]string, 0, len(patterns))
-	for _, p := range patterns {
-		newKeys = append(newKeys, fmt.Sprintf("%s|%s", p.Name, p.Type))
+	if len(patterns) == 0 {
+		return patterns, nil
 	}
-
-	if len(newKeys) > 0 {
-		if err := tx.Where("profile_id = ?", profileID).
-			Where("name || '|' || type NOT IN ?", newKeys).
-			Delete(&models.Pattern{}).Error; err != nil {
-			return nil, fmt.Errorf("failed to prune old patterns: %w", err)
-		}
-	}
-
-	var result []models.Pattern
-	for _, p := range patterns {
-		var existing models.Pattern
-		err := tx.Where("profile_id = ? AND name = ? AND type = ?", profileID, p.Name, p.Type).
-			First(&existing).Error
-		if err == nil {
-			existing.Description = p.Description
-			existing.Metadata = p.Metadata
-			existing.Icon = p.Icon
-			existing.Color = p.Color
-			existing.Type = p.Type
-			existing.FinalScore = p.FinalScore
-			if err := tx.Save(&existing).Error; err != nil {
-				return nil, fmt.Errorf("failed to update pattern %s: %w", p.Name, err)
-			}
-			result = append(result, existing)
-		} else {
-			if err := tx.Create(&p).Error; err != nil {
-				return nil, fmt.Errorf("failed to create pattern %s: %w", p.Name, err)
-			}
-			result = append(result, p)
-		}
-	}
-	return result, nil
+	err := tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "profile_id"}, {Name: "name"}, {Name: "type"}},
+		DoUpdates: clause.AssignmentColumns([]string{"description", "metadata", "icon", "color", "final_score", "updated_at"}),
+	}).Create(&patterns).Error
+	return patterns, err
 }
 
 func marshalMetadata(p *models.Pattern) error {

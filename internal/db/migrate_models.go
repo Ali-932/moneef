@@ -20,7 +20,6 @@ func MigrateModels(database *gorm.DB) error {
 		&models.Currency{},
 		&models.RecurrenceTemplate{},
 		&models.RecurrenceTemplateCategory{},
-		&models.Currency{},
 		&models.CurrencyExchangeRate{},
 		&models.IconLookup{},
 	}

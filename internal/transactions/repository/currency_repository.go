@@ -1,31 +1,24 @@
 package repository
 
 import (
+	"time"
+
+	"github.com/shopspring/decimal"
+	"gorm.io/gorm/clause"
+
 	"moneef/internal/db"
 	"moneef/internal/models"
 )
 
-func CreateUpdateCurrencyRate(base string, target string, rate float64) error {
-	var count int64
-	err := db.DB.Model(&models.CurrencyExchangeRate{}).
-		Where("currency_code1 = ? AND currency_code2 = ?", base, target).
-		Count(&count).Error
-	if err != nil {
-		return err
+func CreateUpdateCurrencyRate(base string, target string, rate decimal.Decimal) error {
+	currencyRate := models.CurrencyExchangeRate{
+		CurrencyCode1: base,
+		CurrencyCode2: target,
+		Rate:          rate,
+		LastUpdated:   time.Now(),
 	}
-	if count >= 1 {
-		err = db.DB.Model(&models.CurrencyExchangeRate{}).
-			Where("currency_code1 = ? and currency_code2 = ?", base, target).
-			Update("Rate", rate).Error
-
-	} else {
-		currencyRateObject := models.CurrencyExchangeRate{CurrencyCode1: base, CurrencyCode2: target, Rate: rate}
-		err = db.DB.Create(&currencyRateObject).Error
-
-	}
-	if err != nil {
-		return err
-	}
-	return nil
-
+	return db.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "currency_code1"}, {Name: "currency_code2"}},
+		DoUpdates: clause.AssignmentColumns([]string{"rate", "last_updated"}),
+	}).Create(&currencyRate).Error
 }

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
 	"moneef/internal/analysis/dto"
@@ -32,7 +31,7 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 		biggestTransaction        dto.BiggestTransaction
 		topMerchant               dto.TopMerchant
 	)
-	g, _ := errgroup.WithContext(context.Background())
+	g := new(errgroup.Group)
 	g.Go(func() error {
 		result, err := repository.GetTransactionsGroupedByCategory(db.DB, profileId, startDate, endDate, currency)
 		if err != nil {
@@ -147,7 +146,12 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 		return nil, err
 	}
 	spendByCategorySorted := utils.GetCategoriesSlicedAndSorted(spendByCategory, total)
-	spendByCategorySortedLastPeriod := utils.GetCategoriesSlicedAndSorted(spendByCategoryLastPeriod, total)
+
+	totalLastPeriod := types.MoneyZero()
+	for _, cat := range spendByCategoryLastPeriod {
+		totalLastPeriod = totalLastPeriod.Add(cat.TotalAmount)
+	}
+	spendByCategorySortedLastPeriod := utils.GetCategoriesSlicedAndSorted(spendByCategoryLastPeriod, totalLastPeriod)
 	spendPerDaySorted := utils.FillMissingDates(spendPerDay, startDate, endDate)
 	spendPerDaySortedLastPeriod := utils.FillMissingDates(spendPerDayLastPeriod, lastPeriodStart, lastPeriodEnd)
 

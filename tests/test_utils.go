@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"moneef/internal/analysis"
-	"moneef/internal/auth"
 	"moneef/internal/iconlookup"
 	"moneef/internal/transactions"
 	"moneef/tests/datasets"
@@ -26,7 +25,6 @@ import (
 	"moneef/pkg/types"
 )
 
-// Shared test constants
 const (
 	testUserID    = uint(1)
 	testProfileID = uint(1)
@@ -53,8 +51,7 @@ func (suite *TestSuite) createTestServer() *httptest.Server {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Use(chiMiddleware.Logger)
-		r.Use(middleware.CORSMiddleware)
-		r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.ProfileMiddleware)
 
 		r.Route("/transaction", func(r chi.Router) {
 			r.Post("/create", transactions.CreateTransactionHandler)
@@ -67,20 +64,10 @@ func (suite *TestSuite) createTestServer() *httptest.Server {
 	return httptest.NewServer(r)
 }
 
-func (suite *TestSuite) generateTestJWT(email string) (string, error) {
-	return auth.GenerateJWT(email)
-}
-
 func (suite *TestSuite) createAuthenticatedRequest(method, url string, body []byte) *http.Request {
 	req := httptest.NewRequest(method, url, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-
-	token, err := suite.generateTestJWT(testEmail)
-	if err != nil {
-		suite.T.Fatalf("Failed to generate test JWT: %v", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-Profile-ID", fmt.Sprintf("%d", testProfileID))
 	return req
 }
 
@@ -105,7 +92,6 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 	)
 	require.NoError(t, err, "Failed to migrate test database")
 
-	// Create FTS5 virtual table for icon lookups (optional — may not be available in test SQLite)
 	testDB.Exec(`
 		CREATE VIRTUAL TABLE IF NOT EXISTS icon_lookups_fts
 		USING fts5(keyword, icon, color, content=icon_lookups, content_rowid=id)
@@ -113,9 +99,8 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 
 	seedTestData(t, testDB)
 
-	// Load icon lookup cache for test DB
 	if err := iconlookup.LoadCache(testDB); err != nil {
-		t.Logf("⚠️ Failed to load icon lookup cache: %v", err)
+		t.Logf("Failed to load icon lookup cache: %v", err)
 	}
 
 	originalDB := db.DB
@@ -170,12 +155,10 @@ func seedTestData(t *testing.T, testDB *gorm.DB) {
 	require.NoError(t, testDB.Create(currency).Error)
 }
 
-// MoneyEqual checks if two Money values are equal
 func MoneyEqual(a, b types.Money) bool {
 	return decimal.Decimal(a).Equal(decimal.Decimal(b))
 }
 
-// MoneyFromFloat creates Money from float64
 func MoneyFromFloat(value float64) types.Money {
 	return types.Money(decimal.NewFromFloat(value))
 }
@@ -202,9 +185,7 @@ func PtrUint(u uint) *uint                          { return &u }
 func PtrInt64(i int64) *int64                       { return &i }
 func PtrMoney(m types.Money) *types.Money           { return &m }
 
-// CreateAnalysisTestDataSet creates a comprehensive set of test data for analysis testing
 func (suite *TestSuite) CreateAnalysisTestDataSet() {
-	// Create dataset using the new datasets package
 	dataset := datasets.NewAnalysisDataset()
 	creator := datasets.NewDatasetCreator(suite.DB, suite.T)
 	creator.CreateAnalysisDataset(dataset)

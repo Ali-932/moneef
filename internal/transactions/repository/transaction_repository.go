@@ -76,9 +76,15 @@ func ListTransactionsQuery(db *gorm.DB, profileID uint, txType string, categoryI
 	case "date_asc":
 		query = query.Order("transactions.date asc")
 	case "amount_asc":
-		query = query.Order("transactions.date asc")
+		query = query.
+			Joins("LEFT JOIN transaction_categories tc_sort ON tc_sort.transaction_id = transactions.id").
+			Group("transactions.id").
+			Order("SUM(tc_sort.amount) ASC")
 	case "amount_desc":
-		query = query.Order("transactions.date desc")
+		query = query.
+			Joins("LEFT JOIN transaction_categories tc_sort ON tc_sort.transaction_id = transactions.id").
+			Group("transactions.id").
+			Order("SUM(tc_sort.amount) DESC")
 	default:
 		query = query.Order("transactions.date desc")
 	}

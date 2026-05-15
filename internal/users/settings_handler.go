@@ -3,18 +3,20 @@ package users
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-playground/validator/v10"
 	"log"
-	"moneef/internal/users/dto"
-	"moneef/internal/users/service"
-	"moneef/pkg/utils"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
+
+	"moneef/internal/users/dto"
+	"moneef/internal/users/service"
+	"moneef/pkg/middleware"
+	"moneef/pkg/utils"
 )
 
 func GetSettingsHandler(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("id").(uint)
+	userID, ok := r.Context().Value(middleware.ContextKeyUserID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -43,7 +45,7 @@ func GetSettingsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) {
-	userID, ok := r.Context().Value("id").(uint)
+	userID, ok := r.Context().Value(middleware.ContextKeyUserID).(uint)
 	if !ok {
 		utils.WriteJsonError(w, http.StatusUnauthorized, "Unauthorized")
 		return

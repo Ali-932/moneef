@@ -36,7 +36,7 @@ func (m *Money) String() string {
 	if m == nil {
 		return ""
 	}
-	return "$" + decimal.Decimal(*m).String()
+	return decimal.Decimal(*m).String()
 }
 func (m Money) Float64() float64 {
 	f, _ := decimal.Decimal(m).Float64()

@@ -154,7 +154,7 @@ func TestPatternIconEngineKeywordMatch(t *testing.T) {
 		Type:        "high_concentration",
 		Description: "You spend a lot on food.",
 		FinalScore:  7.5,
-		ProfileID:   &profileID,
+		ProfileID:   profileID,
 	}
 	require.NoError(t, suite.DB.Create(&pattern).Error)
 
@@ -178,7 +178,7 @@ func TestPatternIconEngineDefaultFallback(t *testing.T) {
 		Type:        "weekend_spike",
 		Description: "You spend more on weekends.",
 		FinalScore:  5.0,
-		ProfileID:   &profileID,
+		ProfileID:   profileID,
 		Icon:        "-",
 		Color:       "-",
 	}
@@ -210,7 +210,7 @@ func TestPatternIconEngineCategoryMatch(t *testing.T) {
 		Type:        "top_category",
 		Description: "Your top spending category is Food.",
 		FinalScore:  6.0,
-		ProfileID:   &profileID,
+		ProfileID:   profileID,
 		Metadata:    metadataJSON,
 	}
 	require.NoError(t, suite.DB.Create(&pattern).Error)

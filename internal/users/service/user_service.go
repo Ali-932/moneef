@@ -1,7 +1,8 @@
 package service
 
 import (
-	"errors"
+	"fmt"
+
 	"gorm.io/gorm"
 	"moneef/internal/db"
 	"moneef/internal/models"
@@ -13,51 +14,48 @@ func GetUserByID(id uint) (*models.User, error) {
 	return repository.GetUserByID(id)
 }
 
-func CheckEmailExist(email string) (bool, error) {
-	user, err := repository.GetUserByEmail(email)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil
-		}
-		return false, err
+func Setup(req dto.SetupRequest) (*models.Profile, *models.UserSettings, error) {
+	language := req.Language
+	if language == "" {
+		language = "en"
 	}
-	if user == nil {
-		return false, nil
-	}
-	return true, nil
-}
 
-func RegisterUser(req dto.RegisterRequest, hashedPassword string) error {
-	return db.DB.Transaction(func(tx *gorm.DB) error {
+	var resultProfile *models.Profile
+	var resultSettings *models.UserSettings
+
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
 		user := &models.User{
-			Email:    req.Email,
-			Password: hashedPassword,
-			Birthday: req.Birthday,
+			IsActive: true,
 		}
 		if err := repository.CreateUser(tx, user); err != nil {
-			return err
+			return fmt.Errorf("failed to create user: %w", err)
 		}
 
 		profile := &models.Profile{
+			UserID:    user.ID,
 			FirstName: req.FirstName,
 			LastName:  req.LastName,
-			UserID:    user.ID,
 		}
 		if err := repository.CreateProfile(tx, profile); err != nil {
-			return err
+			return fmt.Errorf("failed to create profile: %w", err)
 		}
 
 		settings := &models.UserSettings{
-			UserID:                user.ID,
-			CurrencyCode:          "USD",
-			Language:              "en",
-			IsNotificationEnabled: true,
-			IsDarkMode:            false,
+			UserID:       user.ID,
+			CurrencyCode: req.CurrencyCode,
+			Language:     language,
 		}
 		if err := repository.CreateUserSettings(tx, settings); err != nil {
-			return err
+			return fmt.Errorf("failed to create settings: %w", err)
 		}
 
+		resultProfile = profile
+		resultSettings = settings
 		return nil
 	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return resultProfile, resultSettings, nil
 }
