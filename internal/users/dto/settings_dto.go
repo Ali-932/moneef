@@ -5,6 +5,7 @@ type SettingsResponse struct {
 	Language              string `json:"language"`
 	IsNotificationEnabled bool   `json:"is_notification_enabled"`
 	IsDarkMode            bool   `json:"is_dark_mode"`
+	ExchangeRateApiKey    string `json:"exchange_rate_api_key"`
 }
 
 type UpdateSettingsRequest struct {
@@ -12,4 +13,5 @@ type UpdateSettingsRequest struct {
 	Language              *string `json:"language,omitempty" validate:"omitempty,oneof=en ar"`
 	IsNotificationEnabled *bool   `json:"is_notification_enabled,omitempty"`
 	IsDarkMode            *bool   `json:"is_dark_mode,omitempty"`
+	ExchangeRateApiKey    *string `json:"exchange_rate_api_key,omitempty"`
 }

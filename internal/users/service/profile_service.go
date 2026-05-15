@@ -37,6 +37,9 @@ func UpdateSettings(userID uint, req dto.UpdateSettingsRequest) error {
 	if req.IsDarkMode != nil {
 		updates["is_dark_mode"] = *req.IsDarkMode
 	}
+	if req.ExchangeRateApiKey != nil {
+		updates["exchange_rate_api_key"] = *req.ExchangeRateApiKey
+	}
 	if len(updates) == 0 {
 		return nil
 	}

@@ -38,6 +38,7 @@ func GetSettingsHandler(w http.ResponseWriter, r *http.Request) {
 		Language:              settings.Language,
 		IsNotificationEnabled: settings.IsNotificationEnabled,
 		IsDarkMode:            settings.IsDarkMode,
+		ExchangeRateApiKey:    settings.ExchangeRateApiKey,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -41,5 +41,6 @@ type UserSettings struct {
 	Language              string    `gorm:"type:varchar(10);not null;default:'en'" json:"language"`
 	IsNotificationEnabled bool      `gorm:"default:true" json:"is_notification_enabled"`
 	IsDarkMode            bool      `gorm:"default:false" json:"is_dark_mode"`
+	ExchangeRateApiKey    string    `gorm:"type:varchar(255);default:''" json:"exchange_rate_api_key"`
 	User                  *User     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"-"`
 }
