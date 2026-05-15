@@ -25,7 +25,7 @@ var (
 func GetConfig() *Config {
 	once.Do(func() {
 		_ = godotenv.Load()
-		dbPath := getEnv("db_path", "/home/james/GolandProjects/moneef-backend/db.sqlite")
+		dbPath := getEnv("db_path", "")
 		if dbPath == "" {
 			configDir, err := os.UserConfigDir()
 			if err != nil {
