@@ -1,45 +1,74 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"context"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"moneef/internal/config"
 	"moneef/internal/db"
 	"moneef/internal/iconlookup"
 	"moneef/internal/routes"
-	"net/http"
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatalf("Application failed to start: %v", err)
-	}
-}
-
-func run() error {
-	log.Println("Connecting to the database")
+	slog.Info("connecting to database")
 	database, err := db.Connect()
 	if err != nil {
-		return fmt.Errorf("failed to connect to the database: %w", err)
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
 	}
-	log.Println("Loading config")
+
 	configEnv := config.GetConfig()
-	log.Println("Setting up logs")
+
 	logFile := config.SetUpLogs()
 	defer func() {
 		if err := logFile.Close(); err != nil {
-			log.Println("Error closing log file:", err)
+			slog.Error("error closing log file", "error", err)
 		}
 	}()
-	err = db.MigrateModels(database)
-	if err != nil {
-		return err
+
+	if err := db.MigrateModels(database); err != nil {
+		slog.Error("migration failed", "error", err)
+		os.Exit(1)
 	}
-	log.Println("Done migrations")
+	slog.Info("migrations complete")
+
 	if err := iconlookup.LoadCache(database); err != nil {
-		log.Printf("Failed to load icon lookup cache: %v", err)
+		slog.Error("failed to load icon lookup cache", "error", err)
 	}
+
 	mux := routes.SetupRoutes()
-	log.Printf("Server running at http://localhost%s\n", configEnv.Port)
-	return http.ListenAndServe(configEnv.Port, mux)
+
+	srv := &http.Server{
+		Addr:         configEnv.Port,
+		Handler:      mux,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	go func() {
+		slog.Info("server starting", "port", configEnv.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("server error", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	slog.Info("shutting down server")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("server forced shutdown", "error", err)
+	}
+	slog.Info("server stopped")
 }
