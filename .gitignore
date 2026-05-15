@@ -1,22 +1,46 @@
-/main
-/tmp
-/app.log
-/*.sqlite
-/*.sqlite3
-/*.sqlite-shm
-/*.sqlite-wal
-/.idea/
-/AGENTS.md
-.env
+# Binaries
 moneef
-TODO.md
+main
+tmp/
+desktop/desktop
+
+# Database files (recursive)
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+
+# Logs (recursive)
+*.log
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Build
+desktop/frontend/dist/
+desktop/build/bin/
+
+# Go build artifacts
+*.exe
+*.dll
+*.so
+
+# Agent/AI configs
 .agent/
 .agents/
 .claude/
 .superpowers/
 skills/
 frontend_design_images/
-scripts/
-desktop/frontend/dist/
-desktop/build/bin/
-/docs/
+docs/
+
+# Test artifacts
+tests/recurrences_test.go.bak
