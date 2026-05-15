@@ -41,9 +41,10 @@ func Setup(req dto.SetupRequest) (*models.Profile, *models.UserSettings, error) 
 		}
 
 		settings := &models.UserSettings{
-			UserID:       user.ID,
-			CurrencyCode: req.CurrencyCode,
-			Language:     language,
+			UserID:             user.ID,
+			CurrencyCode:       req.CurrencyCode,
+			Language:           language,
+			ExchangeRateApiKey: req.ExchangeRateApiKey,
 		}
 		if err := repository.CreateUserSettings(tx, settings); err != nil {
 			return fmt.Errorf("failed to create settings: %w", err)
