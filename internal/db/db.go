@@ -4,6 +4,7 @@ import (
 	"fmt"
 	stdlog "log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"gorm.io/driver/sqlite"
@@ -29,6 +30,10 @@ func Connect() (*gorm.DB, error) {
 
 	dbPath := config.GetConfig().DBPath
 	stdlog.Printf("connecting to database: %s", dbPath)
+
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
+		return nil, fmt.Errorf("cannot create database directory: %w", err)
+	}
 
 	db, err := gorm.Open(sqlite.Open(dbPath+"?_foreign_keys=on&_journal_mode=WAL"), &gorm.Config{Logger: logCfg, DisableForeignKeyConstraintWhenMigrating: false})
 	if err != nil {
