@@ -27,6 +27,7 @@ desktop/desktop
 # Build
 desktop/frontend/dist/
 desktop/build/bin/
+build/
 
 # Go build artifacts
 *.exe
