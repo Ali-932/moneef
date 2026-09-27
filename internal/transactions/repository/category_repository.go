@@ -2,9 +2,10 @@ package repository
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"log"
 	"moneef/internal/models"
+
+	"gorm.io/gorm"
 )
 
 func GetCategoriesByIDs(tx *gorm.DB, ids []uint) ([]*models.Category, error) {
