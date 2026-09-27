@@ -4,7 +4,7 @@
 // core over dart:ffi. Dispatch mirrors MoneefBridge.kt one-to-one so the
 // Dart layer sees the same bytes/errors it gets on Android.
 //
-// Build: go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobile/_e2e/
+// Build: go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobilebridge/_e2e/
 package main
 
 /*
@@ -19,7 +19,7 @@ import (
 	"os"
 	"unsafe"
 
-	"moneef/mobile"
+	"moneef/mobilebridge"
 )
 
 type args struct {
@@ -43,66 +43,66 @@ func dispatch(method string, a args) (res []byte, n *int64, err error) {
 	}
 	switch method {
 	case "init":
-		return nil, nil, mobile.Init(a.DBPath, a.ProfileID)
+		return nil, nil, mobilebridge.Init(a.DBPath, a.ProfileID)
 	case "shutdown":
-		return nil, nil, mobile.Shutdown()
+		return nil, nil, mobilebridge.Shutdown()
 	case "activeProfileId":
-		v := mobile.ActiveProfileID()
+		v := mobilebridge.ActiveProfileID()
 		return nil, &v, nil
 	case "setProfileId":
-		return nil, nil, mobile.SetProfileID(a.ID)
+		return nil, nil, mobilebridge.SetProfileID(a.ID)
 	case "setup":
-		res, err = mobile.Setup(p)
+		res, err = mobilebridge.Setup(p)
 	case "createTransaction":
-		res, err = mobile.CreateTransaction(p)
+		res, err = mobilebridge.CreateTransaction(p)
 	case "listTransactions":
-		res, err = mobile.ListTransactions(p)
+		res, err = mobilebridge.ListTransactions(p)
 	case "getTransaction":
-		res, err = mobile.GetTransaction(a.ID)
+		res, err = mobilebridge.GetTransaction(a.ID)
 	case "updateTransaction":
-		res, err = mobile.UpdateTransaction(a.ID, p)
+		res, err = mobilebridge.UpdateTransaction(a.ID, p)
 	case "deleteTransaction":
-		err = mobile.DeleteTransaction(a.ID)
+		err = mobilebridge.DeleteTransaction(a.ID)
 	case "listRecurrences":
-		res, err = mobile.ListRecurrences()
+		res, err = mobilebridge.ListRecurrences()
 	case "recurrenceTimeline":
-		res, err = mobile.RecurrenceTimeline()
+		res, err = mobilebridge.RecurrenceTimeline()
 	case "updateRecurrence":
-		err = mobile.UpdateRecurrence(a.ID, p)
+		err = mobilebridge.UpdateRecurrence(a.ID, p)
 	case "deleteRecurrence":
-		err = mobile.DeleteRecurrence(a.ID)
+		err = mobilebridge.DeleteRecurrence(a.ID)
 	case "listCurrencies":
-		res, err = mobile.ListCurrencies()
+		res, err = mobilebridge.ListCurrencies()
 	case "listExchangeRates":
-		res, err = mobile.ListExchangeRates(p)
+		res, err = mobilebridge.ListExchangeRates(p)
 	case "upsertExchangeRate":
-		err = mobile.UpsertExchangeRate(p)
+		err = mobilebridge.UpsertExchangeRate(p)
 	case "fetchExchangeRates":
-		err = mobile.FetchExchangeRates()
+		err = mobilebridge.FetchExchangeRates()
 	case "listCategories":
-		res, err = mobile.ListCategories(p)
+		res, err = mobilebridge.ListCategories(p)
 	case "createCategory":
-		res, err = mobile.CreateCategory(p)
+		res, err = mobilebridge.CreateCategory(p)
 	case "updateCategory":
-		err = mobile.UpdateCategory(a.ID, p)
+		err = mobilebridge.UpdateCategory(a.ID, p)
 	case "deleteCategory":
-		err = mobile.DeleteCategory(a.ID)
+		err = mobilebridge.DeleteCategory(a.ID)
 	case "dashboard":
-		res, err = mobile.Dashboard(p)
+		res, err = mobilebridge.Dashboard(p)
 	case "analysis":
-		res, err = mobile.Analysis(p)
+		res, err = mobilebridge.Analysis(p)
 	case "patterns":
-		res, err = mobile.Patterns()
+		res, err = mobilebridge.Patterns()
 	case "refreshPatterns":
-		res, err = mobile.RefreshPatterns(p)
+		res, err = mobilebridge.RefreshPatterns(p)
 	case "getProfile":
-		res, err = mobile.GetProfile()
+		res, err = mobilebridge.GetProfile()
 	case "updateProfile":
-		err = mobile.UpdateProfile(p)
+		err = mobilebridge.UpdateProfile(p)
 	case "getSettings":
-		res, err = mobile.GetSettings()
+		res, err = mobilebridge.GetSettings()
 	case "updateSettings":
-		err = mobile.UpdateSettings(p)
+		err = mobilebridge.UpdateSettings(p)
 	default:
 		err = fmt.Errorf("notImplemented: %s", method)
 	}
@@ -141,11 +141,11 @@ func MoneefCall(cMethod, cArgs *C.char) *C.char {
 //export MoneefReset
 func MoneefReset(cPath *C.char) *C.char {
 	path := C.GoString(cPath)
-	_ = mobile.Shutdown()
+	_ = mobilebridge.Shutdown()
 	for _, s := range []string{"", "-wal", "-shm"} {
 		_ = os.Remove(path + s)
 	}
-	if err := mobile.Init(path, 0); err != nil {
+	if err := mobilebridge.Init(path, 0); err != nil {
 		return C.CString(err.Error())
 	}
 	return C.CString("")

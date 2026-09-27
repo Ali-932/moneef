@@ -1,5 +1,5 @@
 // T2.1 Create transaction → Expense, e2e against the real Go core
-// (mobile/_e2e/main.go via RealBridge — see mobile/API.md). One testWidgets
+// (mobilebridge/_e2e/main.go via RealBridge — see mobilebridge/API.md). One testWidgets
 // per leaf of the flow tree:
 //
 //   2.1.1  one-off, single category
@@ -274,7 +274,7 @@ void main() {
     String apiFrequency, {
     int? exactGapDays,
     // recurrenceTimeline only projects a fixed 30-day forward/backward
-    // window (see mobile/API.md § RecurrenceTimeline), so a yearly cadence
+    // window (see mobilebridge/API.md § RecurrenceTimeline), so a yearly cadence
     // whose *next* occurrence lands ~365 days out has just the backward-
     // projected "today" entry inside that window — 1, not 2. Nothing wrong
     // with the product here, just the window size vs. the cadence.
@@ -469,7 +469,7 @@ void main() {
       expect(tester.takeException(), isNull);
 
       // Creating a recurring transaction books its first installment
-      // immediately (mobile/API.md § CreateTransaction), so that "100" is a
+      // immediately (mobilebridge/API.md § CreateTransaction), so that "100" is a
       // real, separate Transaction row — on top of the 200 the user already
       // declared as paid before they started tracking the plan here.
       final firstPayment = onlyTransaction(bridge);

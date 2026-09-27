@@ -41,7 +41,7 @@ Breaking changes: add `!` after type, e.g. `feat!: change API response shape`.
 
 ## Testing
 
-Integration tests live in `/tests/` and use a real in-memory SQLite database — no mocking. Pure helpers may have co-located unit tests, and the mobile binding tests sit in `mobile/*_test.go` (run with `go test -tags smoke ./mobile/`).
+Integration tests live in `/tests/` and use a real in-memory SQLite database — no mocking. Pure helpers may have co-located unit tests, and the mobile binding tests sit in `mobilebridge/*_test.go` (run with `go test -tags smoke ./mobilebridge/`).
 
 ```bash
 go test ./tests/...                              # all integration tests

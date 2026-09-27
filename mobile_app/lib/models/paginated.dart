@@ -1,6 +1,6 @@
 import 'transaction.dart';
 
-/// Dart mirror of `mobile.PaginatedTransactions` (see `mobile/transactions.go`).
+/// Dart mirror of `mobilebridge.PaginatedTransactions` (see `mobilebridge/transactions.go`).
 /// No next/previous URLs — pagination is computed from `page` + `perPage`.
 class PaginatedTransactions {
   const PaginatedTransactions({

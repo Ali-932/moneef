@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
-/// Sentinel error strings emitted by the Go `mobile/` shim.
-/// Documented in `mobile/API.md` § Error model.
+/// Sentinel error strings emitted by the Go `mobilebridge/` shim.
+/// Documented in `mobilebridge/API.md` § Error model.
 class MoneefErrors {
   static const notInitialized = 'mobile: Init has not been called';
   static const alreadyInited = 'mobile: Init has already been called';
@@ -14,7 +14,7 @@ class MoneefErrors {
 
 /// Thin Dart wrapper around the `moneef/api` MethodChannel.
 ///
-/// Every method here mirrors one exported function in `mobile/API.md`.
+/// Every method here mirrors one exported function in `mobilebridge/API.md`.
 /// All payloads are UTF-8 JSON bytes. Numeric IDs are 64-bit.
 ///
 /// Returned `Map`/`List` values are the raw JSON-decoded structures —
@@ -119,7 +119,7 @@ class NativeApi {
   /// Lists categories visible to the active profile.
   ///
   /// Pass `{}` to fetch everything (defaults + profile-owned).
-  /// Filters mirror `mobile/API.md` § ListCategories.
+  /// Filters mirror `mobilebridge/API.md` § ListCategories.
   Future<List<dynamic>> listCategories({
     String type = '',
     bool custom = false,

@@ -1,5 +1,5 @@
 // T3 View / edit / delete transaction — full flow-tree e2e coverage against
-// the REAL Go core (see mobile/_e2e/main.go, test/e2e/real_bridge.dart).
+// the REAL Go core (see mobilebridge/_e2e/main.go, test/e2e/real_bridge.dart).
 //
 // Tree:
 // T3 View / edit / delete transaction
@@ -76,7 +76,7 @@ void main() {
   // ── helpers ────────────────────────────────────────────────────────────
 
   /// Category id for [name]/[type] among the 21 built-in seeded categories
-  /// (see mobile/seed_defaults.go) — resolved dynamically, never hardcoded,
+  /// (see mobilebridge/seed_defaults.go) — resolved dynamically, never hardcoded,
   /// since ids are assignment order and shouldn't be assumed stable.
   int categoryId(String name, {String type = 'expense'}) {
     final cats = bridge.json('listCategories', body: {'type': type}) as List;
@@ -409,7 +409,7 @@ void main() {
         // No search box (would only appear for >5 items — see
         // showPickerBottomSheet's `_shouldShowSearch` in
         // mobile_app/lib/widgets/common/picker_field.dart), and EUR (one of
-        // the 28 currencies mobile/seed_defaults.go/config seeds — see
+        // the 28 currencies mobilebridge/seed_defaults.go/config seeds — see
         // `listCurrencies`) is nowhere in the sheet.
         expect(find.text('Search...'), findsNothing);
         expect(find.text('EUR (€)'), findsNothing);
@@ -650,7 +650,7 @@ void main() {
         );
         // But the recurrence template survives — deleting one booked
         // instance must not cancel the underlying subscription (see
-        // mobile/API.md § DeleteTransaction: cascades only the
+        // mobilebridge/API.md § DeleteTransaction: cascades only the
         // TransactionCategory rows + the transaction row itself).
         final recAfter = bridge.json('listRecurrences', body: {}) as List;
         expect(recAfter, hasLength(1));

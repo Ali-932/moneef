@@ -1,5 +1,5 @@
 // E2E coverage for T7 "Home & Insights" against the REAL Go core (see
-// mobile/_e2e/main.go + test/e2e/real_bridge.dart — no mocks).
+// mobilebridge/_e2e/main.go + test/e2e/real_bridge.dart — no mocks).
 //
 // Tree:
 //   7.1 Home totals (income/expense/net/recent) match seeded data incl.
@@ -585,7 +585,7 @@ void main() {
 
         // BUG: API.md documents that RefreshPatterns "writes the detected
         // patterns into the patterns table ... Subsequent Patterns() calls
-        // return the freshly-stored set." mobile/patterns.go's
+        // return the freshly-stored set." mobilebridge/patterns.go's
         // RefreshPatterns (lines 37-68) never does this — it only calls
         // pattern_engine.GetUserPatterns and returns the result, unlike its
         // HTTP-handler sibling internal/patterns/pattern_handler.go:91-108
@@ -601,7 +601,7 @@ void main() {
           patternList.patterns.length,
           reason: 'per API.md, Patterns() should return the set that the '
               'Analyze tap above just wrote via RefreshPatterns — instead '
-              'it is always empty because mobile/patterns.go:37-68 never '
+              'it is always empty because mobilebridge/patterns.go:37-68 never '
               'persists.',
         );
       },

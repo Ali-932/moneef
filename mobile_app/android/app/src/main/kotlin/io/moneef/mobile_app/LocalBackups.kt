@@ -7,7 +7,7 @@ import android.net.Uri
 import android.os.Handler
 import android.provider.DocumentsContract
 import io.flutter.plugin.common.MethodChannel
-import mobile.Mobile
+import mobilebridge.Mobilebridge
 import org.json.JSONObject
 import java.io.File
 import java.util.UUID
@@ -114,7 +114,7 @@ class LocalBackups(
 
     /** Called after successful data changes and on boot, never changes CRUD results. */
     fun automaticBackup() {
-        if (prefs.getString("folder", null) == null || Mobile.activeProfileID() <= 0) return
+        if (prefs.getString("folder", null) == null || Mobilebridge.activeProfileID() <= 0) return
         try { backupNow() } catch (_: Exception) { /* status keeps the error for retry */ }
     }
 
@@ -125,7 +125,7 @@ class LocalBackups(
         val temp = File(context.cacheDir, "backup-${UUID.randomUUID()}.zip")
         var document: Uri? = null
         try {
-            val metadata = JSONObject(String(Mobile.createBackup(temp.absolutePath), Charsets.UTF_8))
+            val metadata = JSONObject(String(Mobilebridge.createBackup(temp.absolutePath), Charsets.UTF_8))
             val series = prefs.getString("series", null) ?: UUID.randomUUID().toString().also {
                 prefs.edit().putString("series", it).commit()
             }
@@ -220,7 +220,7 @@ class LocalBackups(
                     }
                 }
             } ?: error("Could not read this backup.")
-            val info = JSONObject(String(Mobile.restoreBackup(temp.absolutePath), Charsets.UTF_8))
+            val info = JSONObject(String(Mobilebridge.restoreBackup(temp.absolutePath), Charsets.UTF_8))
             prefs.edit().putString("folder", folder.toString()).putString("lastBackup", info.getString("created_at"))
                 .remove("error").putBoolean("dismissed", true).commit()
             return mapOf("profileId" to info.getLong("profile_id"))

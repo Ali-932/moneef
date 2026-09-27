@@ -1,6 +1,6 @@
 // T2.2 Create transaction → Income, and T2.3 Create transaction →
 // Validation / negative, e2e against the real Go core
-// (mobile/_e2e/main.go via RealBridge — see mobile/API.md). One
+// (mobilebridge/_e2e/main.go via RealBridge — see mobilebridge/API.md). One
 // testWidgets (or group of sub-cases) per leaf:
 //
 //   2.2.1  one-off income
@@ -577,7 +577,7 @@ void main() {
         // back before that `await` even returns — there is no window left
         // for a second sequential tap to land "mid-flight". A real device
         // has a genuine async gap (JNI hop to the platform thread, see
-        // mobile/API.md § RefreshPatterns "Performance notes"), and two
+        // mobilebridge/API.md § RefreshPatterns "Performance notes"), and two
         // fast taps CAN both be dispatched by the OS before Flutter paints
         // the disabled frame. The only way to reproduce that here is to
         // dispatch two full down+up taps back-to-back with zero `await`

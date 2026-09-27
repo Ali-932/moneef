@@ -8,13 +8,13 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.util.concurrent.Executors
-import mobile.Mobile
+import mobilebridge.Mobilebridge
 
 /**
  * MethodChannel bridge between the Dart layer (`moneef/api`) and the
- * gomobile-bound `mobile.Mobile` Java facade from `moneef.aar`.
+ * gomobile-bound `mobilebridge.Mobilebridge` Java facade from `moneef.aar`.
  *
- * Every Go function from `mobile/API.md` is wired here. Payloads cross
+ * Every Go function from `mobilebridge/API.md` is wired here. Payloads cross
  * the JNI boundary as `ByteArray`; IDs as 64-bit `Long`.
  */
 object MoneefBridge {
@@ -61,90 +61,90 @@ object MoneefBridge {
                 "init" -> {
                     val dbPath = call.argument<String>("dbPath")!!
                     val profileId = (call.argument<Number>("profileId") ?: 0).toLong()
-                    Mobile.init(dbPath, profileId)
+                    Mobilebridge.init(dbPath, profileId)
                     result.success(null)
                 }
                 "shutdown" -> {
-                    Mobile.shutdown()
+                    Mobilebridge.shutdown()
                     result.success(null)
                 }
-                "activeProfileId" -> result.success(Mobile.activeProfileID())
+                "activeProfileId" -> result.success(Mobilebridge.activeProfileID())
                 "setProfileId" -> {
                     val id = (call.argument<Number>("id") ?: 0).toLong()
-                    Mobile.setProfileID(id)
+                    Mobilebridge.setProfileID(id)
                     result.success(null)
                 }
 
                 // ── setup ─────────────────────────────────────────────
-                "setup" -> result.success(Mobile.setup(payload(call)))
+                "setup" -> result.success(Mobilebridge.setup(payload(call)))
 
                 // ── transactions ──────────────────────────────────────
-                "createTransaction" -> result.success(Mobile.createTransaction(payload(call)))
-                "listTransactions" -> result.success(Mobile.listTransactions(payload(call)))
-                "getTransaction" -> result.success(Mobile.getTransaction(idArg(call)))
+                "createTransaction" -> result.success(Mobilebridge.createTransaction(payload(call)))
+                "listTransactions" -> result.success(Mobilebridge.listTransactions(payload(call)))
+                "getTransaction" -> result.success(Mobilebridge.getTransaction(idArg(call)))
                 "updateTransaction" -> result.success(
-                    Mobile.updateTransaction(idArg(call), payload(call))
+                    Mobilebridge.updateTransaction(idArg(call), payload(call))
                 )
                 "deleteTransaction" -> {
-                    Mobile.deleteTransaction(idArg(call))
+                    Mobilebridge.deleteTransaction(idArg(call))
                     result.success(null)
                 }
 
                 // ── recurrences ───────────────────────────────────────
-                "listRecurrences" -> result.success(Mobile.listRecurrences())
-                "recurrenceTimeline" -> result.success(Mobile.recurrenceTimeline())
+                "listRecurrences" -> result.success(Mobilebridge.listRecurrences())
+                "recurrenceTimeline" -> result.success(Mobilebridge.recurrenceTimeline())
                 "updateRecurrence" -> {
-                    Mobile.updateRecurrence(idArg(call), payload(call))
+                    Mobilebridge.updateRecurrence(idArg(call), payload(call))
                     result.success(null)
                 }
                 "deleteRecurrence" -> {
-                    Mobile.deleteRecurrence(idArg(call))
+                    Mobilebridge.deleteRecurrence(idArg(call))
                     result.success(null)
                 }
 
                 // ── currencies ───────────────────────────────────────
-                "listCurrencies" -> result.success(Mobile.listCurrencies())
+                "listCurrencies" -> result.success(Mobilebridge.listCurrencies())
 
                 // ── exchange rates ───────────────────────────────────
-                "listExchangeRates" -> result.success(Mobile.listExchangeRates(payload(call)))
+                "listExchangeRates" -> result.success(Mobilebridge.listExchangeRates(payload(call)))
                 "upsertExchangeRate" -> {
-                    Mobile.upsertExchangeRate(payload(call))
+                    Mobilebridge.upsertExchangeRate(payload(call))
                     result.success(null)
                 }
                 "fetchExchangeRates" -> {
-                    Mobile.fetchExchangeRates()
+                    Mobilebridge.fetchExchangeRates()
                     result.success(null)
                 }
 
                 // ── categories ────────────────────────────────────────
-                "listCategories" -> result.success(Mobile.listCategories(payload(call)))
-                "createCategory" -> result.success(Mobile.createCategory(payload(call)))
+                "listCategories" -> result.success(Mobilebridge.listCategories(payload(call)))
+                "createCategory" -> result.success(Mobilebridge.createCategory(payload(call)))
                 "updateCategory" -> {
-                    Mobile.updateCategory(idArg(call), payload(call))
+                    Mobilebridge.updateCategory(idArg(call), payload(call))
                     result.success(null)
                 }
                 "deleteCategory" -> {
-                    Mobile.deleteCategory(idArg(call))
+                    Mobilebridge.deleteCategory(idArg(call))
                     result.success(null)
                 }
 
                 // ── dashboard & analysis ──────────────────────────────
-                "dashboard" -> result.success(Mobile.dashboard(payload(call)))
-                "analysis" -> result.success(Mobile.analysis(payload(call)))
+                "dashboard" -> result.success(Mobilebridge.dashboard(payload(call)))
+                "analysis" -> result.success(Mobilebridge.analysis(payload(call)))
 
                 // ── patterns ──────────────────────────────────────────
-                "patterns" -> result.success(Mobile.patterns())
-                "refreshPatterns" -> result.success(Mobile.refreshPatterns(payload(call)))
+                "patterns" -> result.success(Mobilebridge.patterns())
+                "refreshPatterns" -> result.success(Mobilebridge.refreshPatterns(payload(call)))
 
                 // ── profile & settings ────────────────────────────────
-                "getProfile" -> result.success(Mobile.getProfile())
+                "getProfile" -> result.success(Mobilebridge.getProfile())
                 "updateProfile" -> {
-                    Mobile.updateProfile(payload(call))
+                    Mobilebridge.updateProfile(payload(call))
                     result.success(null)
                 }
-                "getSettings" -> result.success(Mobile.getSettings())
+                "getSettings" -> result.success(Mobilebridge.getSettings())
                 "updateSettings" -> {
-                    Mobile.updateSettings(payload(call))
+                    Mobilebridge.updateSettings(payload(call))
                     result.success(null)
                 }
 
@@ -152,7 +152,7 @@ object MoneefBridge {
             }
         } catch (e: Exception) {
             // Surface Go errors verbatim so Dart can match the sentinels
-            // listed in mobile/API.md.
+            // listed in mobilebridge/API.md.
             result.error("MOBILE_ERROR", e.message, e.javaClass.name)
         }
     }

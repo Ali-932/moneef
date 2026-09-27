@@ -5,7 +5,7 @@ part 'transaction.freezed.dart';
 part 'transaction.g.dart';
 
 /// Decimal converter — Go's `pkg/types.Money` marshals as a string.
-/// See `mobile/API.md` § Money serialization.
+/// See `mobilebridge/API.md` § Money serialization.
 class _DecimalConverter implements JsonConverter<Decimal, String> {
   const _DecimalConverter();
 

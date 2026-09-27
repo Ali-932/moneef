@@ -1,7 +1,7 @@
 // Realistic canned JSON for every `moneef/api` MethodChannel call, built once
 // per test run from the real clock so date-relative UI ("Today", chart axis
 // labels, day groups) always looks sensible regardless of when the harness
-// runs. Shapes mirror `mobile/API.md` — money is decimal-as-string, dates are
+// runs. Shapes mirror `mobilebridge/API.md` — money is decimal-as-string, dates are
 // RFC3339 UTC.
 //
 // ponytail: hand-authored data instead of a fixture-generation DSL — this is

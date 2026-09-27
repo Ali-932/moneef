@@ -1,6 +1,6 @@
 //go:build smoke
 
-package mobile
+package mobilebridge
 
 import (
 	"archive/zip"

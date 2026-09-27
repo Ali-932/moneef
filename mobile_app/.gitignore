@@ -48,5 +48,5 @@ app.*.map.json
 # test/screenshots --update-goldens --tags screenshots`).
 test/screenshots/goldens/
 
-# gomobile bind output (see mobile/README.md#producing-the-aar).
+# gomobile bind output (see mobilebridge/README.md#producing-the-aar).
 /android/app/libs/

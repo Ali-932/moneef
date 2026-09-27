@@ -1,6 +1,6 @@
 # Moneef Mobile API Reference
 
-The `mobile/` package is the gomobile-bound entry point for the Moneef Go
+The `mobilebridge/` package is the gomobile-bound entry point for the Moneef Go
 core when embedded in a Flutter Android app via a Kotlin `MethodChannel`.
 
 This document is the **single source of truth** for every call available to
@@ -163,7 +163,7 @@ and convert the exception into a `PlatformException` Dart can catch:
 
 ```kotlin
 try {
-    result.success(Mobile.someCall(payload))
+    result.success(Mobilebridge.someCall(payload))
 } catch (e: Exception) {
     result.error("MOBILE_ERROR", e.message, null)
 }
@@ -201,8 +201,8 @@ try {
 **First run (no profile stored locally yet):**
 
 ```dart
-await Mobile.init(dbPath: dbPath, profileId: 0);
-final setupJson = await Mobile.setup({
+await Mobilebridge.init(dbPath: dbPath, profileId: 0);
+final setupJson = await Mobilebridge.setup({
   'first_name': 'Yusuf',
   'last_name':  'Doe',
   'currency_code': 'USD',
@@ -219,7 +219,7 @@ round-trip.
 
 ```dart
 final profileId = prefs.getInt('profile_id')!;
-await Mobile.init(dbPath: dbPath, profileId: profileId);
+await Mobilebridge.init(dbPath: dbPath, profileId: profileId);
 // CRUD is now ready.
 ```
 
@@ -274,7 +274,7 @@ automatic values. These internal source fields are not exposed in JSON.
 "init" -> {
     val dbPath = call.argument<String>("dbPath")!!
     val pid    = (call.argument<Number>("profileId") ?: 0).toLong()
-    Mobile.init(dbPath, pid)
+    Mobilebridge.init(dbPath, pid)
     result.success(null)
 }
 ```
@@ -305,7 +305,7 @@ multi-profile UIs (none today, but kept for future-proofing).
 ```kotlin
 "setProfileId" -> {
     val id = (call.argument<Number>("id") ?: 0).toLong()
-    Mobile.setProfileID(id)
+    Mobilebridge.setProfileID(id)
     result.success(null)
 }
 ```
@@ -322,7 +322,7 @@ during `onDestroy()` of the Flutter activity for clean DB file handles.
 **Kotlin:**
 
 ```kotlin
-"shutdown" -> { Mobile.shutdown(); result.success(null) }
+"shutdown" -> { Mobilebridge.shutdown(); result.success(null) }
 ```
 
 ---
@@ -1053,7 +1053,7 @@ error.
 **Kotlin:**
 
 ```kotlin
-"patterns" -> result.success(Mobile.patterns())
+"patterns" -> result.success(Mobilebridge.patterns())
 ```
 
 **Dart:**
@@ -1127,7 +1127,7 @@ Internally:
 ```kotlin
 "refreshPatterns" -> {
     val payload = call.argument<ByteArray>("payload") ?: "{}".toByteArray()
-    result.success(Mobile.refreshPatterns(payload))
+    result.success(Mobilebridge.refreshPatterns(payload))
 }
 ```
 
@@ -1345,7 +1345,7 @@ Run the in-process JSON contract end-to-end on a Linux/macOS dev box (no
 Android device needed):
 
 ```bash
-go run -tags=smoke ./mobile/_smoke
+go run -tags=smoke ./mobilebridge/_smoke
 ```
 
 This exercises `Init → Setup → CreateCategory → CreateTransaction →

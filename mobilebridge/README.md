@@ -1,4 +1,4 @@
-# `mobile/` — gomobile bindings for Flutter
+# `mobilebridge/` — gomobile bindings for Flutter
 
 This package exposes the Moneef Go core as a JNI-compatible Android library
 (`.aar`). The Flutter Android app calls into the library through a Kotlin
@@ -11,20 +11,20 @@ This package exposes the Moneef Go core as a JNI-compatible Android library
 
 ## Build constraints
 
-Every file under `mobile/` is gated by `//go:build android || smoke`. Default
+Every file under `mobilebridge/` is gated by `//go:build android || smoke`. Default
 builds (`go build ./...`, `go test ./...`) ignore this package entirely. The
 `smoke` tag builds it on the host for the binding tests and the Flutter e2e
 library:
 
 ```bash
-go test -tags smoke ./mobile/
-go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobile/_e2e/
+go test -tags smoke ./mobilebridge/
+go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobilebridge/_e2e/
 ```
 
 To verify the source compiles for Android without invoking `gomobile`:
 
 ```bash
-GOOS=android CGO_ENABLED=0 GOARCH=arm64 go build ./mobile/...
+GOOS=android CGO_ENABLED=0 GOARCH=arm64 go build ./mobilebridge/...
 ```
 
 ## Producing the `.aar`
@@ -40,7 +40,7 @@ gomobile init
 Then bind:
 
 ```bash
-gomobile bind -target=android -androidapi 21 -o build/moneef.aar ./mobile
+gomobile bind -target=android -androidapi 21 -o build/moneef.aar ./mobilebridge
 ```
 
 Output:
@@ -119,23 +119,23 @@ The real bridge lives in the Flutter app. Use it as the reference rather than
 copying snippets:
 
 - `mobile_app/android/app/src/main/kotlin/io/moneef/mobile_app/MoneefBridge.kt`:
-  `moneef/api` channel, dispatches calls to the generated `Mobile` class on a
+  `moneef/api` channel, dispatches calls to the generated `Mobilebridge` class on a
   worker thread.
 - `mobile_app/android/app/src/main/kotlin/io/moneef/mobile_app/LocalBackups.kt`:
   `moneef/backups` channel.
 - `mobile_app/lib/services/native_api.dart`: Dart caller.
 
-`Mobile` is the auto-generated Java class that wraps the Go package. Method
+`Mobilebridge` is the auto-generated Java class that wraps the Go package. Method
 names are lower-camel-cased (`Init` → `init`, `CreateTransaction` →
 `createTransaction`).
 
 ## Out-of-process smoke test
 
-There is also a Go-only driver under `mobile/_smoke/` for validating the
+There is also a Go-only driver under `mobilebridge/_smoke/` for validating the
 JSON contract without an Android device:
 
 ```bash
-go run -tags=smoke ./mobile/_smoke/
+go run -tags=smoke ./mobilebridge/_smoke/
 ```
 
 It opens a temp SQLite file, runs `Init` → `Setup` → `CreateTransaction` →

@@ -20,7 +20,7 @@ import 'real_bridge.dart';
 // ── local test helpers (this file only) ─────────────────────────────────
 
 /// Finds a seeded category id by exact name + type (both are global,
-/// profile_id-null defaults seeded on Init — see mobile/seed_defaults.go).
+/// profile_id-null defaults seeded on Init — see mobilebridge/seed_defaults.go).
 int categoryId(RealBridge bridge, String type, String name) {
   final list = (bridge.json('listCategories', body: {'type': type}) as List)
       .cast<Map<String, dynamic>>();
@@ -35,7 +35,7 @@ int categoryId(RealBridge bridge, String type, String name) {
 }
 
 /// Builds the CreateTransaction payload for a recurring transaction, per
-/// mobile/API.md's "recurrent subscription" shape.
+/// mobilebridge/API.md's "recurrent subscription" shape.
 Map<String, dynamic> recurringPayload({
   required String name,
   required String type,
@@ -266,7 +266,7 @@ void main() {
   testWidgets(
     '5.1.5 end-dated installment recurrence — list shows doc-matching fields',
     (tester) async {
-      // Mirrors mobile/API.md's own worked example numbers exactly so this
+      // Mirrors mobilebridge/API.md's own worked example numbers exactly so this
       // leaf is a straight spec-conformance check.
       final catId = categoryId(bridge, 'expense', 'Entertainment');
       final date = DateTime.now().toUtc();
@@ -699,7 +699,7 @@ void main() {
       );
       expect(deleteCall.arguments, containsPair('id', tplId));
 
-      // Per mobile/API.md's DeleteRecurrence contract, this must succeed
+      // Per mobilebridge/API.md's DeleteRecurrence contract, this must succeed
       // and the row must disappear from both the UI and the DB.
       expect(
         find.text('Delete Me'),
@@ -720,7 +720,7 @@ void main() {
       // transaction FK'd to the new template in the same call
       // (internal/transactions/service/transaction_service.go:39-100), so
       // *every* recurrence has at least one linked transaction by
-      // construction. mobile/API.md documents DeleteRecurrence as leaving
+      // construction. mobilebridge/API.md documents DeleteRecurrence as leaving
       // that transaction in place with a now-dangling
       // recurrence_template_id. Transaction.RecurrenceTemplate has no
       // `constraint:OnDelete:...` tag (internal/models/transaction.go:24-25)

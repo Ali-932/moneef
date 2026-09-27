@@ -504,7 +504,7 @@ void main() {
         await settle(tester);
         expect(tester.takeException(), isNull);
 
-        // mobile/API.md § DeleteCategory promises: "Existing transactions
+        // mobilebridge/API.md § DeleteCategory promises: "Existing transactions
         // retain the relationship via TransactionCategory.category_id even
         // if the category row is gone." That part is true: the join row
         // survives (`TransactionCategory` is not cascade-deleted in
@@ -633,7 +633,7 @@ void main() {
         // Expected (product intent, evidenced by the seeded defaults
         // themselves relying on cross-type name reuse — "Business" and
         // "Gifts" each exist as BOTH an expense and an income default in
-        // mobile/seed_defaults.go): an income category named the same as an
+        // mobilebridge/seed_defaults.go): an income category named the same as an
         // existing EXPENSE category should be allowed; type is the natural
         // uniqueness scope. Currently FAILS — BUG: ExistsByName
         // (internal/categories/repository/category_repository.go
@@ -700,7 +700,7 @@ void main() {
       // blank-looking category name; the Flutter form already treats
       // whitespace-only as "Name is required"): the API layer should reject
       // or trim it too. Currently FAILS — BUG/gap: neither the mobile bridge
-      // (no validator call at all in mobile/categories.go, unlike the HTTP
+      // (no validator call at all in mobilebridge/categories.go, unlike the HTTP
       // handler's `validate.Struct(req)` in
       // internal/categories/category_handler.go) nor
       // CreateCategoryRequest's `required` tag (go-playground's `required`
@@ -722,7 +722,7 @@ void main() {
       );
       await settle(tester);
 
-      // "Food" is one of the 21 seeded defaults (mobile/seed_defaults.go).
+      // "Food" is one of the 21 seeded defaults (mobilebridge/seed_defaults.go).
       await tester.ensureVisible(find.text('Food'));
       await tester.pump();
       await tester.tap(find.text('Food'));

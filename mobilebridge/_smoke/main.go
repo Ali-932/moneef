@@ -1,6 +1,6 @@
 //go:build smoke
 
-// Smoke driver for the mobile package. Runs the real shim against a temp
+// Smoke driver for the mobilebridge package. Runs the real shim against a temp
 // SQLite file on the host (Linux/macOS), exercising Init → Setup →
 // CreateTransaction → ListTransactions → GetTransaction → Dashboard. This is
 // the closest substitute for "load .aar in spike Android app and call it"
@@ -9,7 +9,7 @@
 //
 // Run with:
 //
-//	go run -tags=smoke ./mobile/_smoke/
+//	go run -tags=smoke ./mobilebridge/_smoke/
 package main
 
 import (
@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"moneef/mobile"
+	"moneef/mobilebridge"
 )
 
 func main() {
@@ -31,8 +31,8 @@ func main() {
 
 	log.Printf("smoke: dbPath=%s", dbPath)
 
-	must(mobile.Init(dbPath, 0))
-	defer mobile.Shutdown()
+	must(mobilebridge.Init(dbPath, 0))
+	defer mobilebridge.Shutdown()
 
 	setupPayload := mustJSON(map[string]any{
 		"first_name":    "Smoke",
@@ -40,7 +40,7 @@ func main() {
 		"currency_code": "USD",
 		"language":      "en",
 	})
-	setupResp, err := mobile.Setup(setupPayload)
+	setupResp, err := mobilebridge.Setup(setupPayload)
 	must(err)
 	log.Printf("smoke: Setup → %s", setupResp)
 
@@ -58,7 +58,7 @@ func main() {
 		"icon":  "mdi:coffee",
 		"color": "#7B3F00",
 	})
-	catResp, err := mobile.CreateCategory(catPayload)
+	catResp, err := mobilebridge.CreateCategory(catPayload)
 	must(err)
 	log.Printf("smoke: CreateCategory → %s", catResp)
 
@@ -78,7 +78,7 @@ func main() {
 			{"category_id": category.ID, "amount": "4.50"},
 		},
 	})
-	createResp, err := mobile.CreateTransaction(txnPayload)
+	createResp, err := mobilebridge.CreateTransaction(txnPayload)
 	must(err)
 	log.Printf("smoke: CreateTransaction → %s", createResp)
 
@@ -86,7 +86,7 @@ func main() {
 		"page":     1,
 		"per_page": 10,
 	})
-	listResp, err := mobile.ListTransactions(listPayload)
+	listResp, err := mobilebridge.ListTransactions(listPayload)
 	must(err)
 	log.Printf("smoke: ListTransactions → %s", listResp)
 
@@ -105,11 +105,11 @@ func main() {
 		log.Fatalf("smoke: unexpected list payload: %s", listResp)
 	}
 
-	getResp, err := mobile.GetTransaction(listed.Results[0].ID)
+	getResp, err := mobilebridge.GetTransaction(listed.Results[0].ID)
 	must(err)
 	log.Printf("smoke: GetTransaction → %s", getResp)
 
-	dashResp, err := mobile.Dashboard([]byte("{}"))
+	dashResp, err := mobilebridge.Dashboard([]byte("{}"))
 	must(err)
 	log.Printf("smoke: Dashboard → %s", dashResp)
 

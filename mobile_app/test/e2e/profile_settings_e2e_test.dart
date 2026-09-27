@@ -234,7 +234,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     // List: DB and UI agree. Upsert stores from=USD,to=EUR,rate=0.5 plus
-    // its inverse (currencies.UpsertExchangeRate, mobile/exchange_rates.go);
+    // its inverse (currencies.UpsertExchangeRate, mobilebridge/exchange_rates.go);
     // ListExchangeRates(base=USD) returns the EUR→USD row, rate=1/0.5=2,
     // and the settings row shows the inverse of THAT (0.5) again — a clean
     // round trip for this input.
@@ -264,7 +264,7 @@ void main() {
     expect(find.byType(SnackBar), findsNothing);
 
     // Fetch with no API key configured (fresh profile default:
-    // exchange_rate_api_key == ''): mobile/exchange_rates.go:89
+    // exchange_rate_api_key == ''): mobilebridge/exchange_rates.go:89
     // FetchExchangeRates returns a sentinel error before any network call,
     // so this must be fast, must not crash, and must not hang.
     expect((bridge.json('getSettings') as Map)['exchange_rate_api_key'], '');

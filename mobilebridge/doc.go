@@ -1,6 +1,6 @@
 //go:build android || smoke
 
-// Package mobile is the gomobile-bindable entry point for the Moneef Go core
+// Package mobilebridge is the gomobile-bindable entry point for the Moneef Go core
 // when embedded inside a Flutter Android app.
 //
 // All exported function signatures use only the types gomobile bind can
@@ -15,4 +15,4 @@
 //
 // The whole package is gated by `//go:build android` so `go build ./...`
 // outside of gomobile produces zero linkage against the in-process API.
-package mobile
+package mobilebridge

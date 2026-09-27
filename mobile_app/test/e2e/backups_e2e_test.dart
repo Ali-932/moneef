@@ -8,11 +8,11 @@
 // the rendered UI, once by calling straight into the real Go core via
 // `bridge.json(...)`, independent of whatever the widget tree displays.
 //
-// mobile/_e2e/main.go's dispatch table does not expose CreateBackup /
-// RestoreBackup (see mobile/_e2e/main.go — only CRUD/profile/settings
+// mobilebridge/_e2e/main.go's dispatch table does not expose CreateBackup /
+// RestoreBackup (see mobilebridge/_e2e/main.go — only CRUD/profile/settings
 // methods are wired), so those two Go entry points cannot be driven from
 // here. That round trip is instead exercised directly with
-// `go test -tags smoke ./mobile/` (see the written report).
+// `go test -tags smoke ./mobilebridge/` (see the written report).
 library;
 
 import 'package:flutter/material.dart';
@@ -53,7 +53,7 @@ void main() {
   }
 
   /// Real category lookup by name (seeded by mobile.Init — see
-  /// mobile/seed_defaults.go), so we send a valid `category_id`.
+  /// mobilebridge/seed_defaults.go), so we send a valid `category_id`.
   int categoryId(String name) {
     final cats = (bridge.json('listCategories', body: const {}) as List)
         .cast<Map<String, dynamic>>();
@@ -215,7 +215,7 @@ void main() {
       expect(transactionCount(), 1);
 
       backups.failRestore = false;
-      // mobile/_e2e/main.go's dispatch table doesn't wire RestoreBackup (see
+      // mobilebridge/_e2e/main.go's dispatch table doesn't wire RestoreBackup (see
       // the file header), so we can't invoke the real Go restore through
       // this harness. We reproduce its externally-visible effect — the
       // entire dataset swapped for the archive's — against the same real

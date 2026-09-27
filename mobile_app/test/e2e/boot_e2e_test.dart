@@ -9,7 +9,7 @@
 // read against that same live state; "cold start" adds bridge.invoke on
 // 'shutdown' first.
 //
-// IMPORTANT constraint found while writing this (see mobile/init.go:45-54
+// IMPORTANT constraint found while writing this (see mobilebridge/init.go:45-54
 // and internal/config/config.go): `config.GetConfig()` is a *process-wide*
 // sync.Once. The dbPath from the very first successful Init in this process
 // is fixed forever — a later Init with a different dbPath fails even after
@@ -242,7 +242,7 @@ void main() {
       // Point path_provider at a *different* directory. config.GetConfig()
       // is already locked to expectedDbPath (see file header), so this
       // produces a real, non-"already inited" Go error
-      // (mobile/init.go:52-54) instead of a contrived one.
+      // (mobilebridge/init.go:52-54) instead of a contrived one.
       final wrongDir = Directory.systemTemp.createTempSync(
         'moneef-boot-e2e-wrong-',
       );

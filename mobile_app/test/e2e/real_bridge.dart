@@ -1,8 +1,8 @@
 // Real-core e2e harness: routes the `moneef/api` MethodChannel into the real
-// Go `mobile` package (build/libmoneef_e2e.so, see mobile/_e2e/main.go) over
+// Go `mobilebridge` package (build/libmoneef_e2e.so, see mobilebridge/_e2e/main.go) over
 // dart:ffi. FFI calls are synchronous, so they work inside testWidgets'
 // fake-async zone. Build the lib first:
-//   go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobile/_e2e/
+//   go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobilebridge/_e2e/
 library;
 
 import 'dart:convert';

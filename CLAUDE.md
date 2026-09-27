@@ -17,12 +17,12 @@ go test ./tests/ -run TestSuiteName/TestName  # single test
 air                        # hot-reload (uses .air.toml)
 ```
 
-**Mobile binding (`mobile/`)**
+**Mobile binding (`mobilebridge/`)**
 ```bash
-go test -tags smoke ./mobile/                         # binding tests
-GOOS=android CGO_ENABLED=0 GOARCH=arm64 go build ./mobile/...  # Android compile check
-gomobile bind -target=android -androidapi 21 -o mobile_app/android/app/libs/moneef.aar ./mobile
-go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobile/_e2e/  # needed by Flutter e2e tests
+go test -tags smoke ./mobilebridge/                         # binding tests
+GOOS=android CGO_ENABLED=0 GOARCH=arm64 go build ./mobilebridge/...  # Android compile check
+gomobile bind -target=android -androidapi 21 -o mobile_app/android/app/libs/moneef.aar ./mobilebridge
+go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobilebridge/_e2e/  # needed by Flutter e2e tests
 ```
 
 **Flutter app (`mobile_app/`)**
@@ -37,7 +37,7 @@ tool/design_review.sh                     # analyze + tests + screenshot goldens
 
 Personal finance app. Two runtime modes:
 1. **Standalone HTTP server** — `cmd/api/main.go` on configured port
-2. **Mobile binding** — `mobile/` (gomobile `.aar`) calls the same services in-process; the Flutter app reaches it through Kotlin `MethodChannel`s (`moneef/api`, `moneef/backups`). No HTTP on mobile. Full API: `mobile/API.md`.
+2. **Mobile binding** — `mobilebridge/` (gomobile `.aar`) calls the same services in-process; the Flutter app reaches it through Kotlin `MethodChannel`s (`moneef/api`, `moneef/backups`). No HTTP on mobile. Full API: `mobilebridge/API.md`.
 
 **Startup sequence (HTTP server):**
 ```
@@ -59,8 +59,8 @@ No JWT. Header-based identity only. `pkg/middleware/ProfileMiddleware` reads `X-
 
 ## Build tags
 
-- `mobile/` is gated `//go:build android || smoke` — invisible to plain `go build ./...` / `go test ./...`.
-- `smoke` builds the binding on the host: `mobile/_smoke/` (smoke driver) and `mobile/_e2e/` (c-shared lib the Flutter e2e tests load over `dart:ffi`). `_`-prefixed dirs are skipped by `./...`.
+- `mobilebridge/` is gated `//go:build android || smoke` — invisible to plain `go build ./...` / `go test ./...`.
+- `smoke` builds the binding on the host: `mobilebridge/_smoke/` (smoke driver) and `mobilebridge/_e2e/` (c-shared lib the Flutter e2e tests load over `dart:ffi`). `_`-prefixed dirs are skipped by `./...`.
 - `internal/background.Run`: goroutine on server/CLI, synchronous on `android || smoke` (so derived writes can't race a backup/restore).
 - `cmd/api/` and `cmd/run.go` are `//go:build !android`.
 
@@ -71,7 +71,7 @@ No JWT. Header-based identity only. `pkg/middleware/ProfileMiddleware` reads `X-
 - Migrations: `db.MigrateModels()` runs `AutoMigrate` on every startup — no versioning tool
 - Also creates FTS5 virtual table `icon_lookups_fts` with triggers for merchant icon search
 - Money fields: always `types.Money` (shopspring/decimal), never `float64`
-- DB path: `db_path` from env/`.env`; if empty, `os.UserConfigDir()/moneef/db.sqlite`. On mobile, `mobile.Init(dbPath, ...)` passes it in.
+- DB path: `db_path` from env/`.env`; if empty, `os.UserConfigDir()/moneef/db.sqlite`. On mobile, `mobilebridge.Init(dbPath, ...)` passes it in.
 
 ## Config
 
@@ -82,7 +82,7 @@ No JWT. Header-based identity only. `pkg/middleware/ProfileMiddleware` reads `X-
 
 ## Testing
 
-Integration tests live in `/tests/`: `httptest.Server` + real Chi router + real in-memory SQLite. No mocking. Exceptions: pure helpers may have co-located unit tests (e.g. `internal/analysis/utils`), and binding tests sit in `mobile/*_test.go` (need `-tags smoke`).
+Integration tests live in `/tests/`: `httptest.Server` + real Chi router + real in-memory SQLite. No mocking. Exceptions: pure helpers may have co-located unit tests (e.g. `internal/analysis/utils`), and binding tests sit in `mobilebridge/*_test.go` (need `-tags smoke`).
 
 - Test DB: `file:memdb_<timestamp>?mode=memory&cache=shared`, fresh per suite, full `AutoMigrate` run
 - `db.DB` global is swapped for test DB, restored in `Cleanup()`
@@ -106,7 +106,7 @@ Integration tests live in `/tests/`: `httptest.Server` + real Chi router + real 
 | `pkg/utils/` | `WriteJsonError`, password hashing, date/frequency helpers, currency utils |
 | `internal/background/` | `Run(task)` — async on server, sync on mobile (build-tag split) |
 | `cmd/` | Cobra dev CLI (root `main.go`): `seed`, `seed-transactions`, `seed-merchants`, `fetch-rates`, `run`; `cmd/api/` is the server |
-| `mobile/` | gomobile binding exposing the Go core to Flutter; JSON bytes in/out, `int64` IDs |
+| `mobilebridge/` | gomobile binding exposing the Go core to Flutter; JSON bytes in/out, `int64` IDs |
 | `mobile_app/` | Flutter mobile client (Riverpod + go_router + freezed) over the native bridge |
 
 ## Design Context

@@ -1,13 +1,13 @@
 // T10 — Native bridge contract.
 //
 // Drives every `NativeApi` method (lib/services/native_api.dart) through the
-// REAL `moneef/api` MethodChannel, backed by the real Go `mobile` package
+// REAL `moneef/api` MethodChannel, backed by the real Go `mobilebridge` package
 // over dart:ffi (see test/e2e/real_bridge.dart). No mocks below the channel.
 //
 // Tree:
 //   10.1 every NativeApi method decodes against real Go
 //   10.2 error sentinels propagate through PlatformException
-//   10.3 static diff: MoneefBridge.kt vs native_api.dart vs mobile/*.go
+//   10.3 static diff: MoneefBridge.kt vs native_api.dart vs mobilebridge/*.go
 //   10.4 money/decimal serialization round trip
 //
 // Run: flutter test test/e2e/bridge_contract_e2e_test.dart
@@ -93,7 +93,7 @@ void main() {
       expect(
         categories.length,
         21,
-        reason: 'mobile/seed_defaults.go seeds 21 built-in categories',
+        reason: 'mobilebridge/seed_defaults.go seeds 21 built-in categories',
       );
 
       final txns = await api.listTransactions({});
@@ -378,7 +378,7 @@ void main() {
     });
   });
 
-  // ── 10.3 static diff: MoneefBridge.kt vs native_api.dart vs mobile/*.go ─
+  // ── 10.3 static diff: MoneefBridge.kt vs native_api.dart vs mobilebridge/*.go ─
   group('10.3 static diff across the three layers', () {
     testWidgets(
       '10.3.1 auto-backup `mutations` set covers every DB-writing method',
@@ -403,15 +403,15 @@ void main() {
             .where((s) => s.isNotEmpty)
             .toSet();
 
-        // Independently derived from reading mobile/*.go: every exported
+        // Independently derived from reading mobilebridge/*.go: every exported
         // func that writes to the SQLite DB (not just in-memory state).
-        //   mobile/setup.go           Setup -> creates user+profile+settings
-        //   mobile/transactions.go    Create/Update/DeleteTransaction, DeleteRecurrence
-        //   mobile/categories.go      Create/Update/DeleteCategory
-        //   mobile/exchange_rates.go  UpsertExchangeRate, FetchExchangeRates
-        //   mobile/profile.go         UpdateProfile, UpdateSettings
-        //   mobile/init.go            SetProfileID -> writes moneef_backup_profile table
-        //   mobile/patterns.go        RefreshPatterns -> upserts the patterns table
+        //   mobilebridge/setup.go           Setup -> creates user+profile+settings
+        //   mobilebridge/transactions.go    Create/Update/DeleteTransaction, DeleteRecurrence
+        //   mobilebridge/categories.go      Create/Update/DeleteCategory
+        //   mobilebridge/exchange_rates.go  UpsertExchangeRate, FetchExchangeRates
+        //   mobilebridge/profile.go         UpdateProfile, UpdateSettings
+        //   mobilebridge/init.go            SetProfileID -> writes moneef_backup_profile table
+        //   mobilebridge/patterns.go        RefreshPatterns -> upserts the patterns table
         const dbWritingMethods = {
           'setup',
           'createTransaction',
@@ -464,7 +464,7 @@ void main() {
           expect(
             c.arguments,
             isNull,
-            reason: '${c.method} must not send arguments (mobile/${c.method} '
+            reason: '${c.method} must not send arguments (mobilebridge/${c.method} '
                 'takes no params in Go) but sent ${c.arguments}',
           );
         }
