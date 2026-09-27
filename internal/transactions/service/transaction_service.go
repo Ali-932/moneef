@@ -437,8 +437,10 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 		}
 
 		convertedAmount, convErr := utils.ConvertMoney(db.DB, *tpl.NextPaymentAmount, tpl.CurrencyCode, baseCurrency)
+		displayCurrency := baseCurrency
 		if convErr != nil {
 			convertedAmount = *tpl.NextPaymentAmount
+			displayCurrency = tpl.CurrencyCode
 		}
 		for _, date := range dateSet {
 			occurrences = append(occurrences, dto.RecurrenceOccurrence{
@@ -446,7 +448,7 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 				Name:     tpl.Name,
 				Type:     tpl.Type,
 				Amount:   convertedAmount,
-				Currency: baseCurrency,
+				Currency: displayCurrency,
 				Icon:     tpl.Icon,
 				Color:    tpl.Color,
 				Date:     date,
