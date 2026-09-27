@@ -11,7 +11,6 @@ import (
 	"moneef/internal/models"
 )
 
-// ListCategoriesRequest mirrors the handler's three query params.
 type ListCategoriesRequest struct {
 	Type   string `json:"type"`
 	Custom bool   `json:"custom"`

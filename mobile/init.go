@@ -6,13 +6,18 @@ import (
 	"fmt"
 	"os"
 
+	"gorm.io/gorm"
+
 	"moneef/internal/config"
+	"moneef/internal/currencies"
 	"moneef/internal/db"
 	"moneef/internal/iconlookup"
+	"moneef/internal/transactions/engine"
 )
 
-// Init opens the SQLite database at dbPath, runs migrations, loads the icon
-// lookup cache, and stores the active profile id. profileID may be 0 when
+// Init opens the SQLite database at dbPath, runs migrations, seeds missing
+// icon keywords, refreshes automatic icons, and stores the active profile id.
+// profileID may be 0 when
 // called from a first-run flow where Setup will return a freshly-minted id;
 // in that case the caller must invoke SetProfileID once Setup has returned.
 //
@@ -49,8 +54,25 @@ func Init(dbPath string, profileIDArg int64) error {
 	if err := db.MigrateModels(database); err != nil {
 		return fmt.Errorf("mobile.Init: migrate: %w", err)
 	}
-	if err := iconlookup.LoadCache(database); err != nil {
-		return fmt.Errorf("mobile.Init: icon cache: %w", err)
+	if err := database.Transaction(func(tx *gorm.DB) error {
+		seededIcons, err := iconlookup.SeedDefaults(tx)
+		if err != nil {
+			return fmt.Errorf("seed merchant icons: %w", err)
+		}
+		if err := iconlookup.LoadCache(tx); err != nil {
+			return fmt.Errorf("icon cache: %w", err)
+		}
+		// Classify legacy fallback icons before refreshing built-in categories.
+		// New dictionary entries can also improve previously automatic icons.
+		return engine.RefreshStoredTransactionIcons(tx, seededIcons > 0)
+	}); err != nil {
+		return fmt.Errorf("mobile.Init: prepare icons: %w", err)
+	}
+	if err := seedDefaultCategories(database); err != nil {
+		return fmt.Errorf("mobile.Init: seed default categories: %w", err)
+	}
+	if err := currencies.SeedCurrencies(database); err != nil {
+		return fmt.Errorf("mobile.Init: seed currencies: %w", err)
 	}
 
 	setInitialized(database)
