@@ -1,0 +1,74 @@
+name: mobile_app
+description: "Moneef personal finance tracker"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # MDI glyphs — backend stores category/pattern icons as Iconify `mdi:` names;
+  # this renders them in Flutter.
+  material_design_icons_flutter: ^7.0.7296
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Models
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Native bridge support
+  path_provider: ^2.1.5
+  shared_preferences: ^2.3.3
+
+  # Formatting & money
+  intl: ^0.20.1
+  decimal: ^3.0.2
+
+  # Motion & loading polish
+  animations: ^2.0.11       # Material shared-axis / fade-through transitions
+
+  fl_chart: ^0.70.0
+
+# Upstream package is unmaintained and breaks on modern Flutter (IconData is
+# now `final`, its icon map subclassed it). Vendored + patched copy lives in
+# third_party/ — plain `IconData(...)` consts, same font asset.
+dependency_overrides:
+  material_design_icons_flutter:
+    path: third_party/material_design_icons_flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  path_provider_platform_interface: ^2.1.2
+
+  # Code generation
+  build_runner: ^2.4.13
+  freezed: ^2.5.7
+  json_serializable: ^6.9.0
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope.ttf
+          weight: 800
