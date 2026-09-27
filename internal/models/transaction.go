@@ -7,17 +7,20 @@ import (
 )
 
 type Transaction struct {
-	ID                   uint                  `gorm:"primaryKey" json:"id"`
-	CreatedAt            time.Time             `json:"created_at"`
-	UpdatedAt            time.Time             `json:"updated_at"`
-	ProfileID            uint                  `gorm:"not null;index" json:"profile_id"`
-	Name                 string                `gorm:"type:varchar(255);not null" json:"name"`
-	Type                 string                `gorm:"type:varchar(255);not null;check:type IN ('income', 'expense')" json:"type"`
-	Date                 time.Time             `gorm:"not null" json:"date"`
-	CurrencyCode         string                `gorm:"type:char(3);not null;index" json:"currency_code"`
-	Currency             *Currency             `gorm:"foreignKey:CurrencyCode;references:Code" json:"currency,omitempty"`
-	Icon                 string                `gorm:"type:varchar(255);" json:"icon"`
-	Color                string                `gorm:"type:varchar(255);" json:"color"`
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	ProfileID    uint      `gorm:"not null;index" json:"profile_id"`
+	Name         string    `gorm:"type:varchar(255);not null" json:"name"`
+	Type         string    `gorm:"type:varchar(255);not null;check:type IN ('income', 'expense')" json:"type"`
+	Date         time.Time `gorm:"not null" json:"date"`
+	CurrencyCode string    `gorm:"type:char(3);not null;index" json:"currency_code"`
+	Currency     *Currency `gorm:"foreignKey:CurrencyCode;references:Code" json:"currency,omitempty"`
+	Icon         string    `gorm:"type:varchar(255);" json:"icon"`
+	Color        string    `gorm:"type:varchar(255);" json:"color"`
+	// Empty sources identify legacy rows; automatic values may be refreshed.
+	IconSource           string                `gorm:"type:varchar(16);not null;default:''" json:"-"`
+	ColorSource          string                `gorm:"type:varchar(16);not null;default:''" json:"-"`
 	MerchantName         *string               `gorm:"type:varchar(255);" json:"merchant_name,omitempty"`
 	Notes                *string               `gorm:"type:varchar(255);" json:"notes,omitempty"`
 	TransactionCategory  []TransactionCategory `gorm:"foreignKey:TransactionID" json:"TransactionCategory"`

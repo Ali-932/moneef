@@ -125,6 +125,8 @@ func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) (uint, 
 		CurrencyCode:         p.CurrencyCode,
 		Icon:                 p.Icon,
 		Color:                p.Color,
+		IconSource:           engine.IconSourceForInput(p.Icon),
+		ColorSource:          engine.IconSourceForInput(p.Color),
 		MerchantName:         p.MerchantName,
 		Notes:                p.Notes,
 		RecurrenceTemplateID: p.RecurrenceTemplateID,
@@ -262,6 +264,14 @@ func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest
 		}
 		if req.Notes != nil {
 			updates["notes"] = *req.Notes
+		}
+		if req.Icon != "" {
+			updates["icon"] = req.Icon
+			updates["icon_source"] = engine.IconSourceManual
+		}
+		if req.Color != "" {
+			updates["color"] = req.Color
+			updates["color_source"] = engine.IconSourceManual
 		}
 		if !req.Date.IsZero() {
 			updates["date"] = req.Date

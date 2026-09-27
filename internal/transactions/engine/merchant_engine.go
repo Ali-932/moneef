@@ -2,76 +2,131 @@ package engine
 
 import (
 	"log"
+	"moneef/internal/background"
 	"moneef/internal/db"
 	"moneef/internal/iconlookup"
 	"moneef/internal/models"
+
+	"gorm.io/gorm"
 )
+
+const (
+	IconSourceAutomatic = "auto"
+	IconSourceManual    = "manual"
+)
+
+// IconSourceForInput records whether the caller explicitly supplied a value.
+// Icon and color are tracked separately so a custom color can coexist with an
+// automatically matched merchant icon.
+func IconSourceForInput(value string) string {
+	if value != "" {
+		return IconSourceManual
+	}
+	return IconSourceAutomatic
+}
 
 func ResolveMerchantIcon(transactionID uint) {
 	var transaction models.Transaction
 	if err := db.DB.Preload("TransactionCategory.Category").First(&transaction, transactionID).Error; err != nil {
-		log.Printf("⚠️ [ENGINE] Transaction %d not found for icon resolution: %v", transactionID, err)
+		log.Printf("[IconLookup] Transaction %d: %v", transactionID, err)
 		return
 	}
-
-	if transaction.Icon != "" && transaction.Color != "" {
-		log.Printf("⏭️ [ENGINE] Transaction %d already has icon/color, skipping", transactionID)
-		return
-	}
-
-	fields := []string{}
-	if transaction.MerchantName != nil && *transaction.MerchantName != "" {
-		fields = append(fields, *transaction.MerchantName)
-	}
-	if transaction.Name != "" {
-		fields = append(fields, transaction.Name)
-	}
-	if transaction.Notes != nil && *transaction.Notes != "" {
-		fields = append(fields, *transaction.Notes)
-	}
-
-	for _, field := range fields {
-		icon, color, found := iconlookup.Lookup(field)
-		if found {
-			updates := map[string]interface{}{}
-			if transaction.Icon == "" {
-				updates["icon"] = icon
-			}
-			if transaction.Color == "" {
-				updates["color"] = color
-			}
-			if len(updates) > 0 {
-				if err := db.DB.Model(&models.Transaction{}).Where("id = ?", transactionID).Updates(updates).Error; err != nil {
-					log.Printf("❌ [ENGINE] Failed to update transaction %d icon/color: %v", transactionID, err)
-					return
-				}
-				log.Printf("✅ [ENGINE] Transaction %d matched icon/color", transactionID)
-			}
-			return
-		}
-	}
-
-	if len(transaction.TransactionCategory) > 0 {
-		cat := transaction.TransactionCategory[0].Category
-		updates := map[string]interface{}{}
-		if transaction.Icon == "" && cat.Icon != "" {
-			updates["icon"] = cat.Icon
-		}
-		if transaction.Color == "" && cat.Color != "" {
-			updates["color"] = cat.Color
-		}
-		if len(updates) > 0 {
-			if err := db.DB.Model(&models.Transaction{}).Where("id = ?", transactionID).Updates(updates).Error; err != nil {
-				log.Printf("❌ [ENGINE] Failed to update transaction %d with category fallback: %v", transactionID, err)
-				return
-			}
-			log.Printf("✅ [ENGINE] Transaction %d fell back to category '%s' icon/color", transactionID, cat.Name)
-		}
+	if err := resolveTransactionIcon(db.DB, &transaction); err != nil {
+		log.Printf("[IconLookup] Transaction %d: %v", transactionID, err)
 	}
 }
 
+// RefreshStoredTransactionIcons upgrades legacy rows in bounded batches during
+// mobile initialization. When the dictionary gained entries, re-evaluate all
+// automatic icons too. Explicit choices and financial data remain untouched.
+func RefreshStoredTransactionIcons(database *gorm.DB, includeAutomatic bool) error {
+	query := database.Where("icon_source = '' OR color_source = ''")
+	if includeAutomatic {
+		query = query.Or("icon_source = ? OR color_source = ?", IconSourceAutomatic, IconSourceAutomatic)
+	}
+	var transactions []models.Transaction
+	return query.Preload("TransactionCategory.Category").FindInBatches(&transactions, 200, func(tx *gorm.DB, _ int) error {
+		return database.Transaction(func(batch *gorm.DB) error {
+			for i := range transactions {
+				if err := resolveTransactionIcon(batch, &transactions[i]); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}).Error
+}
+
+func resolveTransactionIcon(database *gorm.DB, transaction *models.Transaction) error {
+	iconSource, colorSource := transaction.IconSource, transaction.ColorSource
+	// Old releases saved category fallbacks without recording their origin.
+	// Only infer inheritance when both saved values match the same category;
+	// preserve other nonempty legacy values as explicit choices.
+	inherited := false
+	for _, split := range transaction.TransactionCategory {
+		if transaction.Icon == split.Category.Icon && transaction.Color == split.Category.Color {
+			inherited = true
+			break
+		}
+	}
+	if iconSource == "" {
+		iconSource = IconSourceForInput(transaction.Icon)
+		if inherited {
+			iconSource = IconSourceAutomatic
+		}
+	}
+	if colorSource == "" {
+		colorSource = IconSourceForInput(transaction.Color)
+		if inherited {
+			colorSource = IconSourceAutomatic
+		}
+	}
+
+	icon, color := "", ""
+	if iconSource == IconSourceAutomatic || colorSource == IconSourceAutomatic {
+		fields := []string{}
+		if transaction.MerchantName != nil {
+			fields = append(fields, *transaction.MerchantName)
+		}
+		fields = append(fields, transaction.Name)
+		if transaction.Notes != nil {
+			fields = append(fields, *transaction.Notes)
+		}
+		found := false
+		for _, field := range fields {
+			icon, color, found = iconlookup.Lookup(field)
+			if found {
+				break
+			}
+		}
+		if !found && len(transaction.TransactionCategory) > 0 {
+			category := transaction.TransactionCategory[0].Category
+			icon, color = category.Icon, category.Color
+		}
+	}
+
+	updates := map[string]interface{}{}
+	if iconSource != transaction.IconSource {
+		updates["icon_source"] = iconSource
+	}
+	if colorSource != transaction.ColorSource {
+		updates["color_source"] = colorSource
+	}
+	if iconSource == IconSourceAutomatic && icon != transaction.Icon {
+		updates["icon"] = icon
+	}
+	if colorSource == IconSourceAutomatic && color != transaction.Color {
+		updates["color"] = color
+	}
+	if len(updates) == 0 {
+		return nil
+	}
+	// Enrichment does not constitute a user edit of the transaction.
+	return database.Model(&models.Transaction{}).Where("id = ?", transaction.ID).UpdateColumns(updates).Error
+}
+
 func ResolveMerchantIconAsync(transactionID uint) {
-	go ResolveMerchantIcon(transactionID)
+	background.Run(func() { ResolveMerchantIcon(transactionID) })
 }
 
 func ResolveCategoryIcon(categoryID uint) {
@@ -114,5 +169,5 @@ func ResolveCategoryIcon(categoryID uint) {
 }
 
 func ResolveCategoryIconAsync(categoryID uint) {
-	go ResolveCategoryIcon(categoryID)
+	background.Run(func() { ResolveCategoryIcon(categoryID) })
 }
