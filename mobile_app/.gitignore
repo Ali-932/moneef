@@ -47,3 +47,6 @@ app.*.map.json
 # Generated design-review screenshots (regenerate with `flutter test
 # test/screenshots --update-goldens --tags screenshots`).
 test/screenshots/goldens/
+
+# gomobile bind output (see mobile/README.md#producing-the-aar).
+/android/app/libs/
