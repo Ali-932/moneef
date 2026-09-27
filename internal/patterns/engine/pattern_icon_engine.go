@@ -2,6 +2,7 @@ package engine
 
 import (
 	"log"
+	"moneef/internal/background"
 	"moneef/internal/db"
 	"moneef/internal/iconlookup"
 	"moneef/internal/models"
@@ -118,7 +119,7 @@ func ResolvePatternIcon(patternID uint) {
 }
 
 func ResolvePatternIconAsync(patternID uint) {
-	go ResolvePatternIcon(patternID)
+	background.Run(func() { ResolvePatternIcon(patternID) })
 }
 
 func extractCategoryFromMetadata(metadata interface{}) string {
