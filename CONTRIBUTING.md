@@ -7,14 +7,7 @@ git clone <repo>
 cd moneef-backend
 cp .example.env .env
 go mod download
-go build -tags sqlite_fts5 ./...   # verify build
-```
-
-For the desktop app, also install [Wails CLI](https://wails.io/docs/gettingstarted/installation) and Node.js 20+:
-
-```bash
-cd desktop/frontend && npm install
-cd desktop && wails dev
+go build ./...   # verify build
 ```
 
 ## Code Style
@@ -48,12 +41,12 @@ Breaking changes: add `!` after type, e.g. `feat!: change API response shape`.
 
 ## Testing
 
-All tests live in `/tests/` (not co-located with packages). Tests use a real in-memory SQLite database — no mocking.
+Integration tests live in `/tests/` and use a real in-memory SQLite database — no mocking. Pure helpers may have co-located unit tests, and the mobile binding tests sit in `mobile/*_test.go` (run with `go test -tags smoke ./mobile/`).
 
 ```bash
-go test -tags sqlite_fts5 ./tests/...                              # all integration tests
-go test -tags sqlite_fts5 ./tests/ -run TestSuiteName/TestName    # single test
-go test -tags sqlite_fts5 -race ./tests/...                       # with race detector
+go test ./tests/...                              # all integration tests
+go test ./tests/ -run TestSuiteName/TestName    # single test
+go test -race ./tests/...                       # with race detector
 ```
 
 Every new feature or bug fix should have a corresponding test.
@@ -61,8 +54,8 @@ Every new feature or bug fix should have a corresponding test.
 ## Pull Request Process
 
 1. Fork and create a branch from `master`.
-2. Make sure `go build -tags sqlite_fts5 ./...` passes.
-3. Make sure `go test -tags sqlite_fts5 -race ./tests/...` passes.
+2. Make sure `go build ./...` passes.
+3. Make sure `go test -race ./tests/...` passes.
 4. Run `go vet ./...` and fix any issues.
 5. Open a PR against `master` with a clear description of what changed and why.
 
