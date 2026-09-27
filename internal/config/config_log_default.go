@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-// SetUpLogs configures process-wide logging. On desktop / server runtimes the
+// SetUpLogs configures process-wide logging. On server / CLI runtimes the
 // log is written to a file `app.log` in the current working directory (matching
 // historical behavior). Returns the open *os.File so callers can close it on
 // shutdown, or nil under `go test`.
