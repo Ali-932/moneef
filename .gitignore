@@ -1,8 +1,7 @@
-# Binaries
-moneef
-main
+# Binaries (anchored: unanchored `main` also matched android/app/src/main/)
+/moneef
+/main
 tmp/
-desktop/desktop
 
 # Database files (recursive)
 *.sqlite
@@ -25,8 +24,6 @@ desktop/desktop
 .DS_Store
 
 # Build
-desktop/frontend/dist/
-desktop/build/bin/
 build/
 
 # Go build artifacts
@@ -40,8 +37,9 @@ build/
 .claude/
 .superpowers/
 skills/
-frontend_design_images/
-docs/
-
+/docs/
+.codex/
+.github/hooks/
+.impeccable/
 # Test artifacts
 tests/recurrences_test.go.bak
