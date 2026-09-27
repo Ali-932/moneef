@@ -8,7 +8,7 @@ the Flutter layer: signatures, request/response JSON schemas, errors,
 Kotlin invocation, and Dart caller.
 
 > **REST analog.** Each entry in this doc is the in-process equivalent of an
-> HTTP endpoint in [README.md](../README.md). The body of a `POST` request
+> HTTP endpoint served by `cmd/api` (routes in `internal/routes/`). The body of a `POST` request
 > becomes the `payload []byte` argument; the JSON response body becomes the
 > returned `[]byte`. URL path params become `int64` arguments. Query params
 > become fields inside the JSON request payload.
@@ -61,7 +61,13 @@ Kotlin invocation, and Dart caller.
   - [`UpdateProfile(payload) error`](#updateprofilepayload-error)
   - [`GetSettings() → []byte`](#getsettings---byte)
   - [`UpdateSettings(payload) error`](#updatesettingspayload-error)
+- [Currencies & exchange rates](#currencies--exchange-rates)
+  - [`ListCurrencies() → []byte`](#listcurrencies---byte)
+  - [`ListExchangeRates(payload) → []byte`](#listexchangeratespayload---byte)
+  - [`UpsertExchangeRate(payload) error`](#upsertexchangeratepayload-error)
+  - [`FetchExchangeRates() error`](#fetchexchangerates-error)
 - [Building the AAR](#building-the-aar)
+- [Local backup functions](#local-backup-functions)
 - [Out-of-process smoke test](#out-of-process-smoke-test)
 
 ---
@@ -223,8 +229,17 @@ await Mobile.init(dbPath: dbPath, profileId: profileId);
 
 ### `Init(dbPath, profileID) error`
 
-Opens the SQLite database, runs migrations, loads the merchant icon cache,
-and (optionally) stores the active profile id.
+Opens the SQLite database, runs migrations, seeds missing merchant keywords
+from the bundled dictionary, loads the icon cache, and (optionally) stores
+the active profile id. This runs before Flutter leaves its loading screen
+and requires no internet connection.
+
+Each startup checks individual keywords, inserts only missing entries, and
+preserves existing mappings. Existing transactions whose saved icon and color
+match a category are treated as legacy category fallbacks and refreshed.
+Other nonempty legacy values are preserved. Automatic and explicit choices
+are tracked separately for icon and color; later transaction edits refresh
+automatic values. These internal source fields are not exposed in JSON.
 
 **Idempotent?** No. Second call without `Shutdown` returns
 `ErrAlreadyInited`. Use this to defend against double-init on app resume.
@@ -242,13 +257,15 @@ and (optionally) stores the active profile id.
 - `mobile.Init: config was already initialized with a different db path …` — process was already pinned to a different db path (config is a `sync.Once` singleton). Restart the process to switch databases.
 - `mobile.Init: db connect: <gorm error>`
 - `mobile.Init: migrate: <gorm error>`
-- `mobile.Init: icon cache: <error>`
+- `mobile.Init: prepare icons: <error>`
 
 **Side effects:**
 
 - Creates `<dbPath>` and the parent dir if missing.
 - Creates the FTS5 virtual table `icon_lookups_fts` if the bundled SQLite
   supports it (modernc does).
+- Seeds missing icon mappings and upgrades legacy transaction icons atomically.
+  Transaction amounts, categories, dates, and edit timestamps are unchanged.
 - Sets the package-level `dbHandle` and `profileID`.
 
 **Kotlin:**
@@ -438,7 +455,7 @@ template AND its first booked transaction.
 | `currency_code` | yes | string(3) | |
 | `transaction_type` | yes | `"expense"` \| `"income"` | |
 | `date` | yes | RFC3339 | |
-| `icon`, `color` | no | string | resolved async if blank |
+| `icon`, `color` | no | string | resolved before returning on mobile when blank; explicit values are preserved |
 | `merchant_name`, `notes` | no | string | |
 | `transaction_categories` | yes | array, min 1 | duplicates rejected |
 | `transaction_categories[].category_id` | yes | uint > 0 | must exist |
@@ -641,6 +658,36 @@ date. Useful for calendar-style UIs.
 
 `amount` is converted into the profile's settings currency where possible
 (falls back to the template's native currency if no rate exists).
+
+---
+
+### `UpdateRecurrence(id, payload) error`
+
+Saves a recurring payment's editable details in the active profile's local
+database. The mobile editor sends the complete form:
+
+```json
+{
+  "name": "Rent",
+  "frequency": "monthly",
+  "next_date": "2026-10-01T00:00:00Z",
+  "has_end_date": true,
+  "end_date": "2027-09-30T23:59:59Z",
+  "is_active": true,
+  "merchant_name": "Landlord",
+  "notes": "Monthly rent"
+}
+```
+
+`name`, `frequency`, `next_date`, `has_end_date`, and `is_active` are required.
+Frequency accepts `daily`, `weekly`, `bi-weekly`, `monthly`, or `yearly`.
+When `has_end_date` is true, `end_date` is required and must be on or after
+`next_date`. Setting `has_end_date` to false clears the saved end date.
+Empty notes and merchant strings clear those fields. Unknown fields are rejected.
+
+This changes the template's schedule and details. Amounts, currencies,
+categories, payment type, and recorded transactions remain unchanged.
+The Android bridge schedules the existing automatic local backup after success.
 
 ---
 
@@ -1203,39 +1250,94 @@ Partial update. All fields optional pointers — omit to leave unchanged.
 
 ---
 
-## Building the AAR
+## Currencies & exchange rates
 
-Install gomobile once:
+### `ListCurrencies() → []byte`
 
-```bash
-go install golang.org/x/mobile/cmd/gomobile@latest
-go install golang.org/x/mobile/cmd/gobind@latest
-gomobile init
-```
+All supported currencies, ordered by code. Needs `Init` only (no active
+profile), same as the public `GET /api/v1/currencies`.
 
-Build:
+**Response JSON:**
 
-```bash
-mkdir -p build
-gomobile bind -target=android -androidapi 21 -o build/moneef.aar ./mobile
-```
-
-Output:
-
-- `build/moneef.aar` — drop into `android/app/libs/` of the Flutter project.
-- `build/moneef-sources.jar` — sources for the Android Studio debugger.
-
-The AAR contains four native ABIs (`armeabi-v7a`, `arm64-v8a`, `x86`,
-`x86_64`), the Java bindings (`classes.jar`), and a minimal Android
-manifest. Total size ≈ 38 MB.
-
-Verify the Android cross-compile *without* invoking gomobile:
-
-```bash
-GOOS=android CGO_ENABLED=0 GOARCH=arm64 go build ./mobile/...
+```json
+[{"code": "USD", "name": "US Dollar", "symbol": "$"}]
 ```
 
 ---
+
+### `ListExchangeRates(payload) → []byte`
+
+Stored rates whose `currency_code_2` is `base`, ordered by
+`currency_code_1`. Payload may be empty; `base` then defaults to the
+profile's `currency_code` setting.
+
+**Request JSON:**
+
+```json
+{"base": "USD"}
+```
+
+**Response JSON:**
+
+```json
+[
+  {
+    "id": 3,
+    "created_at": "2026-09-01T10:00:00Z",
+    "updated_at": "2026-09-01T10:00:00Z",
+    "currency_code_1": "EUR",
+    "currency_code_2": "USD",
+    "rate": "1.08",
+    "last_updated": "2026-09-01T10:00:00Z"
+  }
+]
+```
+
+---
+
+### `UpsertExchangeRate(payload) error`
+
+Manually sets a rate. Writes both directions: `from → to` at `rate` and
+`to → from` at `1 / rate`.
+
+**Request JSON:**
+
+```json
+{"from": "EUR", "to": "USD", "rate": "1.08"}
+```
+
+All three required. `rate` is a decimal string and must be `> 0`.
+
+---
+
+### `FetchExchangeRates() error`
+
+Pulls fresh rates from the exchange-rate API using the
+`exchange_rate_api_key` from settings. Fails with
+`no exchange rate API key configured` when that key is empty.
+
+---
+
+## Building the AAR
+
+See [README.md](./README.md#producing-the-aar) for the gomobile setup and
+bind command.
+
+---
+
+## Local backup functions
+
+- `ActiveProfileID() int64`: returns the active selection, including the profile
+  recovered from a restored database. Zero means setup or restore is needed.
+- `CreateBackup(path string) ([]byte, error)`: writes a new versioned local ZIP
+  snapshot and returns its JSON manifest. The destination must not exist.
+- `RestoreBackup(path string) ([]byte, error)`: validates an archive, replaces
+  the current database with crash recovery, selects its profile, and returns
+  the manifest. Requires `Init`, but does not require `Setup` on a new install.
+
+Android serializes these operations with CRUD on the native worker. Its separate
+`moneef/backups` channel handles local folder selection, status, automatic
+backup, listing, and restoration.
 
 ## Out-of-process smoke test
 
