@@ -9,31 +9,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 go run ./cmd/api/          # start API server
 go run . seed              # seed categories, currencies, users
 go run . seed-transactions # seed realistic transaction data
+go run . seed-merchants    # seed merchant icon lookups
+go run . fetch-rates       # fetch exchange rates
 go test ./...              # all tests
 go test ./tests/...        # integration tests only
 go test ./tests/ -run TestSuiteName/TestName  # single test
 air                        # hot-reload (uses .air.toml)
 ```
 
-**Desktop**
+**Mobile binding (`mobile/`)**
 ```bash
-cd desktop && wails dev    # hot-reload Wails + React
-cd desktop && wails build  # production binary
+go test -tags smoke ./mobile/                         # binding tests
+GOOS=android CGO_ENABLED=0 GOARCH=arm64 go build ./mobile/...  # Android compile check
+gomobile bind -target=android -androidapi 21 -o mobile_app/android/app/libs/moneef.aar ./mobile
+go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobile/_e2e/  # needed by Flutter e2e tests
 ```
 
-**Frontend**
+**Flutter app (`mobile_app/`)**
 ```bash
-cd desktop/frontend && npm run dev    # Vite dev server
-cd desktop/frontend && npm run build  # tsc + vite build
+flutter pub get
+flutter run
+flutter test --exclude-tags screenshots   # unit/widget/e2e tests
+tool/design_review.sh                     # analyze + tests + screenshot goldens
 ```
 
 ## Architecture
 
 Personal finance app. Two runtime modes:
 1. **Standalone HTTP server** — `cmd/api/main.go` on configured port
-2. **Embedded in Wails desktop** — `desktop/app.go` starts same router on fixed `127.0.0.1:7331`
+2. **Mobile binding** — `mobile/` (gomobile `.aar`) calls the same services in-process; the Flutter app reaches it through Kotlin `MethodChannel`s (`moneef/api`, `moneef/backups`). No HTTP on mobile. Full API: `mobile/API.md`.
 
-**Startup sequence (both modes):**
+**Startup sequence (HTTP server):**
 ```
 db.Connect() → db.MigrateModels() → iconlookup.LoadCache() → routes.SetupRoutes() → ListenAndServe()
 ```
@@ -51,25 +57,32 @@ handler.go → dto/ → service/ → repository/
 
 No JWT. Header-based identity only. `pkg/middleware/ProfileMiddleware` reads `X-Profile-ID` header, queries DB for `Profile` (with `User` preloaded), injects `ContextKeyProfileID` and `ContextKeyUserID` into request context. Handlers read via `r.Context().Value(middleware.ContextKeyProfileID).(uint)`.
 
+## Build tags
+
+- `mobile/` is gated `//go:build android || smoke` — invisible to plain `go build ./...` / `go test ./...`.
+- `smoke` builds the binding on the host: `mobile/_smoke/` (smoke driver) and `mobile/_e2e/` (c-shared lib the Flutter e2e tests load over `dart:ffi`). `_`-prefixed dirs are skipped by `./...`.
+- `internal/background.Run`: goroutine on server/CLI, synchronous on `android || smoke` (so derived writes can't race a backup/restore).
+- `cmd/api/` and `cmd/run.go` are `//go:build !android`.
+
 ## Database
 
-- SQLite via GORM, connection string: `<db_path>?_foreign_keys=on&_journal_mode=WAL`
+- SQLite via GORM with `github.com/glebarez/sqlite` (pure Go, no cgo, FTS5 built in); connection string: `<db_path>?_foreign_keys=on&_journal_mode=WAL`
 - Global handle: `db.DB *gorm.DB` — set once in `db.Connect()`, used directly by all repos
 - Migrations: `db.MigrateModels()` runs `AutoMigrate` on every startup — no versioning tool
 - Also creates FTS5 virtual table `icon_lookups_fts` with triggers for merchant icon search
 - Money fields: always `types.Money` (shopspring/decimal), never `float64`
-- Default DB path: `db.sqlite` in project root (dev); `os.UserConfigDir()/moneef/db.sqlite` (prod)
+- DB path: `db_path` from env/`.env`; if empty, `os.UserConfigDir()/moneef/db.sqlite`. On mobile, `mobile.Init(dbPath, ...)` passes it in.
 
 ## Config
 
 `internal/config/config.go` — singleton via `sync.Once`. Loads `.env` via `godotenv`. Keys:
 - `port` — default `:8000`
-- `db_path` — default dev path
+- `db_path` — defaults to the OS config dir (see Database)
 - `exchange_rate_api_key` — for currency rates
 
 ## Testing
 
-All tests in `/tests/` (not co-located). Use `httptest.Server` + real Chi router + real in-memory SQLite. No mocking.
+Integration tests live in `/tests/`: `httptest.Server` + real Chi router + real in-memory SQLite. No mocking. Exceptions: pure helpers may have co-located unit tests (e.g. `internal/analysis/utils`), and binding tests sit in `mobile/*_test.go` (need `-tags smoke`).
 
 - Test DB: `file:memdb_<timestamp>?mode=memory&cache=shared`, fresh per suite, full `AutoMigrate` run
 - `db.DB` global is swapped for test DB, restored in `Cleanup()`
@@ -91,5 +104,18 @@ All tests in `/tests/` (not co-located). Use `httptest.Server` + real Chi router
 | `pkg/pagination/` | Generic `Paginate[T]()` using GORM + query params |
 | `pkg/types/` | `Money` type alias for `shopspring/decimal.Decimal` |
 | `pkg/utils/` | `WriteJsonError`, password hashing, date/frequency helpers, currency utils |
-| `desktop/` | Wails v2 shell; `app.go` embeds HTTP server |
-| `desktop/frontend/` | React 18 + TypeScript + Vite + Tailwind v4 + DaisyUI v5 + Recharts |
+| `internal/background/` | `Run(task)` — async on server, sync on mobile (build-tag split) |
+| `cmd/` | Cobra dev CLI (root `main.go`): `seed`, `seed-transactions`, `seed-merchants`, `fetch-rates`, `run`; `cmd/api/` is the server |
+| `mobile/` | gomobile binding exposing the Go core to Flutter; JSON bytes in/out, `int64` IDs |
+| `mobile_app/` | Flutter mobile client (Riverpod + go_router + freezed) over the native bridge |
+
+## Design Context
+
+`mobile_app/` is the Flutter mobile client. Its design system is documented in:
+- `mobile_app/PRODUCT.md` — register: **product**; users, purpose, brand
+  personality (calm/trustworthy/precise), anti-references, design principles.
+- `mobile_app/DESIGN.md` — visual system (colors, typography, components) when present.
+- Visual tokens live in `mobile_app/lib/theme.dart` (`AppColors`, `AppRadii`,
+  `AppMotion`).
+
+Use the `/impeccable` skill for any mobile UI design work so it loads this context.
