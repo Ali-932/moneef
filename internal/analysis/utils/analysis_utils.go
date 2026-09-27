@@ -4,7 +4,6 @@ import (
 	"moneef/internal/analysis/dto"
 	"moneef/internal/config"
 	"moneef/pkg/types"
-	"sort"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -48,24 +47,24 @@ func GetCategoriesSlicedAndSorted(allCategories []dto.CategorySummary, total typ
 }
 
 func FillMissingDates(amountsPerDay []dto.AmountPerDay, startDate, endDate time.Time) []dto.AmountPerDay {
-	datesAvailable := make(map[string]bool)
+	// The repository returns sums per timestamp. Collapse them into calendar
+	// days before filling gaps, so several payments never become repeated dates.
+	totals := make(map[string]types.Money)
 	for _, apd := range amountsPerDay {
-		datesAvailable[apd.Date.Format("2006-01-02")] = true
+		key := apd.Date.In(startDate.Location()).Format(time.DateOnly)
+		totals[key] = totals[key].Add(apd.Amount)
 	}
-	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
-		key := d.Format("2006-01-02")
-		if datesAvailable[key] {
-			continue
+	startDay := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, startDate.Location())
+	days := make([]dto.AmountPerDay, 0)
+	for d := startDay; !d.After(endDate); d = d.AddDate(0, 0, 1) {
+		amount, ok := totals[d.Format(time.DateOnly)]
+		if !ok {
+			amount = types.MoneyZero()
 		}
-		amountsPerDay = append(amountsPerDay, dto.AmountPerDay{
+		days = append(days, dto.AmountPerDay{
 			Date:   d,
-			Amount: types.MoneyZero(),
+			Amount: amount,
 		})
-		datesAvailable[key] = true
-
 	}
-	sort.Slice(amountsPerDay, func(i, j int) bool {
-		return amountsPerDay[i].Date.Before(amountsPerDay[j].Date)
-	})
-	return amountsPerDay
+	return days
 }
