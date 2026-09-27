@@ -37,7 +37,9 @@ func Setup(payload []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	setProfileIDLocked(int64(profile.ID))
+	if err := SetProfileID(int64(profile.ID)); err != nil {
+		return nil, err
+	}
 	resp := SetupResponse{
 		ProfileID:    int64(profile.ID),
 		UserID:       int64(profile.UserID),

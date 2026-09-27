@@ -25,6 +25,16 @@ import (
 // Shutdown returns ErrAlreadyInited — re-binding to a different database
 // path is intentionally forbidden in-process.
 func Init(dbPath string, profileIDArg int64) error {
+	if err := requireInit(); err == nil {
+		return ErrAlreadyInited
+	}
+	if err := recoverInterruptedRestore(dbPath); err != nil {
+		return err
+	}
+	return initDatabase(dbPath, profileIDArg)
+}
+
+func initDatabase(dbPath string, profileIDArg int64) error {
 	stateMu.RLock()
 	already := initialized
 	stateMu.RUnlock()
@@ -51,6 +61,15 @@ func Init(dbPath string, profileIDArg int64) error {
 	if err != nil {
 		return fmt.Errorf("mobile.Init: db connect: %w", err)
 	}
+	// Failed migrations must release the candidate before rollback replaces it.
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			if conn, e := database.DB(); e == nil {
+				_ = conn.Close()
+			}
+		}
+	}()
 	if err := db.MigrateModels(database); err != nil {
 		return fmt.Errorf("mobile.Init: migrate: %w", err)
 	}
@@ -75,7 +94,17 @@ func Init(dbPath string, profileIDArg int64) error {
 		return fmt.Errorf("mobile.Init: seed currencies: %w", err)
 	}
 
+	if database.Migrator().HasTable("moneef_backup_profile") {
+		var restoredID int64
+		if err := database.Raw("SELECT profile_id FROM moneef_backup_profile WHERE id = 1").Scan(&restoredID).Error; err != nil {
+			return err
+		}
+		if restoredID > 0 {
+			profileIDArg = restoredID
+		}
+	}
 	setInitialized(database)
+	succeeded = true
 	if profileIDArg > 0 {
 		setProfileIDLocked(profileIDArg)
 	}
@@ -90,6 +119,12 @@ func SetProfileID(id int64) error {
 	}
 	if id <= 0 {
 		return fmt.Errorf("mobile.SetProfileID: id must be > 0, got %d", id)
+	}
+	if err := dbHandle.Exec("CREATE TABLE IF NOT EXISTS moneef_backup_profile (id INTEGER PRIMARY KEY CHECK(id=1), profile_id INTEGER NOT NULL)").Error; err != nil {
+		return err
+	}
+	if err := dbHandle.Exec("INSERT OR REPLACE INTO moneef_backup_profile VALUES (1, ?)", id).Error; err != nil {
+		return err
 	}
 	setProfileIDLocked(id)
 	return nil
