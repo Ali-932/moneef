@@ -157,6 +157,8 @@ class NativeApi {
     return _invokeJson('analysis', {
       'start_date': startDate.toUtc().toIso8601String(),
       'end_date': endDate.toUtc().toIso8601String(),
+      // Go groups the daily chart by calendar days in this zone.
+      'tz_offset_minutes': startDate.toLocal().timeZoneOffset.inMinutes,
       if (currency.isNotEmpty) 'currency': currency,
     });
   }

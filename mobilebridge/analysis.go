@@ -18,6 +18,9 @@ type AnalysisRequest struct {
 	StartDate string `json:"start_date"`
 	EndDate   string `json:"end_date"`
 	Currency  string `json:"currency"`
+	// TZOffsetMinutes is the device's UTC offset; daily totals are grouped
+	// by calendar days in that zone. 0 keeps UTC days.
+	TZOffsetMinutes int `json:"tz_offset_minutes"`
 }
 
 func Analysis(payload []byte) ([]byte, error) {
@@ -52,7 +55,8 @@ func Analysis(payload []byte) ([]byte, error) {
 		}
 		currency = settings.CurrencyCode
 	}
-	charts, err := anasvc.GetAllAnalysisChartsService(pid, start, end, currency)
+	loc := time.FixedZone("", req.TZOffsetMinutes*60)
+	charts, err := anasvc.GetAllAnalysisChartsService(pid, start.In(loc), end.In(loc), currency)
 	if err != nil {
 		return nil, err
 	}

@@ -11,10 +11,9 @@
 //       patterns (+ refresh, a seeded clear concentration pattern).
 //   7.4 Cross-tab invalidation after create/delete via the real UI.
 //
-// 7.2's timezone leaf (`7.2c`) reproduces a bug that only shows up when the
+// 7.2's timezone leaf (`7.2c`) guards a bug that only shows up when the
 // host's local timezone is *ahead* of UTC. This machine's ambient TZ is
-// already +3 which is enough, but for a deterministic repro on any host run
-// this file with:
+// already +3 which is enough, but for a deterministic run on any host use:
 //   TZ=Asia/Tokyo flutter test test/e2e/home_insights_e2e_test.dart
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +22,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mobile_app/utils/format.dart';
 import 'package:mobile_app/widgets/insights/insights_widgets.dart'
-    show StatCard, QuickStatsCard, CategoryDonut, PatternList, PatternStatCards;
+    show
+        StatCard,
+        QuickStatsCard,
+        CategoryDonut,
+        PatternList,
+        PatternStatCards,
+        SparklineChart;
 
 import '../screenshots/harness.dart';
 import 'real_bridge.dart';
@@ -103,15 +108,13 @@ void seedTx(
     (from: DateTime(now.year, 1, 1), to: DateTime(now.year, 12, 31, 23, 59, 59));
 
 /// Mirrors `dateRangeFromPreset(DateRangePreset.thisMonth, now)` in
-/// lib/utils/date_range.dart — Insights' "This Month" boundaries (UTC-label
-/// of the *local* calendar date, NOT a true local->UTC conversion).
+/// lib/utils/date_range.dart — Insights' "This Month" boundaries (local
+/// midnight, like Home).
 DateTime insightsThisMonthStart(DateTime now) =>
-    DateTime.utc(now.year, now.month, 1);
+    DateTime(now.year, now.month, 1);
 
-DateTime insightsTodayEnd(DateTime now) {
-  final today = DateTime.utc(now.year, now.month, now.day);
-  return DateTime.utc(today.year, today.month, today.day, 23, 59, 59, 999);
-}
+DateTime insightsTodayEnd(DateTime now) =>
+    DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
 
 Map<String, dynamic> dashboardOf(RealBridge bridge, {DateTime? from, DateTime? to}) {
   return bridge.json(
@@ -135,6 +138,7 @@ Map<String, dynamic> analysisOf(
       'start_date': from.toUtc().toIso8601String(),
       'end_date': to.toUtc().toIso8601String(),
       'currency': currency,
+      'tz_offset_minutes': from.toLocal().timeZoneOffset.inMinutes,
     },
   ) as Map<String, dynamic>;
 }
@@ -370,7 +374,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('7.2c BUG: Home and Insights disagree on "this month" for a same-day transaction under a positive UTC offset', (
+    testWidgets('7.2c Home and Insights agree on "this month" and its day for a transaction just after local midnight under a positive UTC offset', (
       tester,
     ) async {
       final now = DateTime.now();
@@ -409,30 +413,20 @@ void main() {
       final homeDash = dashboardOf(bridge, from: home.from, to: home.to);
       expect(d(homeDash['total_expense'] as String), d('42.00'));
 
-      // Insights ("This Month"): lib/utils/date_range.dart's
-      // dateRangeFromPreset() builds the start boundary from
-      // `DateTime.utc(now.year, now.month, 1)` — the *local* Y/M/D
-      // components relabeled as UTC, not a real local->UTC conversion like
-      // Home uses. Under a positive UTC offset this start boundary is later
-      // than it should be, so a transaction from just after local midnight
-      // (which converts to *before* UTC midnight) is wrongly excluded.
+      // Insights ("This Month") starts at local midnight too. Under a
+      // positive UTC offset the transaction is stored on the previous UTC
+      // day, so a UTC-midnight start would drop it.
       final insightsStart = insightsThisMonthStart(now);
       final insightsEnd = insightsTodayEnd(now);
       final insightsAnalysis = analysisOf(bridge, from: insightsStart, to: insightsEnd);
       expect(
         d(insightsAnalysis['total'] as String),
-        Decimal.zero,
-        reason:
-            'lib/utils/date_range.dart:55-60 dateRangeFromPreset(thisMonth) '
-            'mislabels a local calendar date as UTC instead of converting '
-            'local midnight to UTC (contrast with '
-            'DashboardPeriodKindRange.range() in lib/state/providers.dart:'
-            '310-327, which converts correctly) — a real transaction from '
-            'earlier today is silently dropped from Insights\' "This Month" '
-            'while Home\'s "This month" correctly includes it.',
+        d('42.00'),
+        reason: 'Insights\' "This Month" must include a transaction from '
+            'just after local midnight on the 1st, like Home does.',
       );
 
-      // ---- the same mismatch is visible in the live rendered UI ----
+      // ---- the same agreement in the live rendered UI ----
       await tester.pumpWidget(appUnderTest(themeMode: ThemeMode.light, path: '/home'));
       await settle(tester);
       await expectVisibleText(tester, money('42.00'));
@@ -444,9 +438,28 @@ void main() {
       );
       expect(
         expensesCard.amount,
-        Decimal.zero,
-        reason: 'Insights\' Overview shows \$0.00 in Expenses for the same '
-            'period/transaction that Home just showed \$42.00 for.',
+        d('42.00'),
+        reason: 'Insights\' Overview Expenses must match Home\'s \$42.00.',
+      );
+
+      // The daily chart must put it on the 1st (the local day Activity
+      // shows), not on the last day of the previous month in UTC.
+      await tester.scrollUntilVisible(
+        find.byType(SparklineChart),
+        300,
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            )
+            .first,
+      );
+      final chart = tester.widget<SparklineChart>(find.byType(SparklineChart));
+      final firstDay = '${now.month.toString().padLeft(2, '0')}/01';
+      expect(chart.data.first.label, firstDay);
+      expect(
+        d(chart.data.first.amount),
+        d('42.00'),
+        reason: 'the daily chart must bucket by the device\'s local day',
       );
       expect(tester.takeException(), isNull);
     });

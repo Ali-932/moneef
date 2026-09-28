@@ -846,7 +846,8 @@ comparison.
 {
   "start_date": "2026-06-01T00:00:00Z",
   "end_date":   "2026-06-30T23:59:59Z",
-  "currency":   "USD"
+  "currency":   "USD",
+  "tz_offset_minutes": 180
 }
 ```
 
@@ -855,6 +856,10 @@ comparison.
 | `start_date` | yes | RFC3339 |
 | `end_date` | yes | RFC3339 |
 | `currency` | no | if empty, resolved from `UserSettings.currency_code` |
+| `tz_offset_minutes` | no | device UTC offset (e.g. `180` for UTC+3); `spent_per_day` is grouped by calendar days in that zone. Default `0` (UTC days) |
+
+Each `spent_per_day` date is the calendar day at UTC midnight
+(`2026-06-01T00:00:00Z` means June 1 in the requested zone).
 
 The shim automatically derives the "last period" as the same-length window
 ending at `start_date`.

@@ -54,30 +54,30 @@ class DateRange {
 }
 
 DateRange dateRangeFromPreset(DateRangePreset preset, DateTime now) {
-  final today = DateTime.utc(now.year, now.month, now.day);
+  final today = DateTime(now.year, now.month, now.day);
   switch (preset) {
     case DateRangePreset.thisMonth:
-      final start = DateTime.utc(today.year, today.month, 1);
+      final start = DateTime(today.year, today.month, 1);
       return DateRange(from: start, to: today.endOfDay(), preset: preset);
     case DateRangePreset.lastMonth:
-      final start = DateTime.utc(today.year, today.month - 1, 1);
-      final end = DateTime.utc(today.year, today.month, 0);
+      final start = DateTime(today.year, today.month - 1, 1);
+      final end = DateTime(today.year, today.month, 0);
       return DateRange(from: start, to: end.endOfDay(), preset: preset);
     case DateRangePreset.last30d:
-      final start = today.subtract(const Duration(days: 30));
+      final start = DateTime(today.year, today.month, today.day - 30);
       return DateRange(from: start, to: today.endOfDay(), preset: preset);
     case DateRangePreset.last90d:
-      final start = today.subtract(const Duration(days: 90));
+      final start = DateTime(today.year, today.month, today.day - 90);
       return DateRange(from: start, to: today.endOfDay(), preset: preset);
     case DateRangePreset.last12m:
-      final start = DateTime.utc(today.year - 1, today.month, today.day);
+      final start = DateTime(today.year - 1, today.month, today.day);
       return DateRange(from: start, to: today.endOfDay(), preset: preset);
     case DateRangePreset.thisYear:
-      final start = DateTime.utc(today.year, 1, 1);
+      final start = DateTime(today.year, 1, 1);
       return DateRange(from: start, to: today.endOfDay(), preset: preset);
     case DateRangePreset.allTime:
       return DateRange(
-        from: DateTime.utc(1970, 1, 1),
+        from: DateTime(1970, 1, 1),
         to: today.endOfDay(),
         preset: preset,
       );
@@ -204,7 +204,7 @@ int _isoWeek(DateTime d) {
 }
 
 extension _DateHelpers on DateTime {
-  DateTime endOfDay() => DateTime.utc(year, month, day, 23, 59, 59, 999);
+  DateTime endOfDay() => DateTime(year, month, day, 23, 59, 59, 999);
 }
 
 extension _Pad on int {

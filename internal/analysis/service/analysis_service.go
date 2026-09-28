@@ -13,6 +13,12 @@ import (
 )
 
 func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, currency string) (*dto.AnalysisCharts, error) {
+	// Daily buckets follow the caller's zone (the range's UTC offset). SQLite
+	// compares dates as text, so the queries themselves need UTC bounds.
+	// ponytail: one fixed offset for the whole range; a DST change inside it
+	// shifts that side by an hour. Send an IANA zone name if that matters.
+	loc := startDate.Location()
+	startDate, endDate = startDate.UTC(), endDate.UTC()
 	period := endDate.Sub(startDate)
 	lastPeriodEnd := startDate.Add(-time.Nanosecond)
 	lastPeriodStart := startDate.Add(-period)
@@ -152,8 +158,8 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 		totalLastPeriod = totalLastPeriod.Add(cat.TotalAmount)
 	}
 	spendByCategorySortedLastPeriod := utils.GetCategoriesSlicedAndSorted(spendByCategoryLastPeriod, totalLastPeriod)
-	spendPerDaySorted := utils.FillMissingDates(spendPerDay, startDate, endDate)
-	spendPerDaySortedLastPeriod := utils.FillMissingDates(spendPerDayLastPeriod, lastPeriodStart, lastPeriodEnd)
+	spendPerDaySorted := utils.FillMissingDates(spendPerDay, startDate.In(loc), endDate.In(loc))
+	spendPerDaySortedLastPeriod := utils.FillMissingDates(spendPerDayLastPeriod, lastPeriodStart.In(loc), lastPeriodEnd.In(loc))
 
 	var savingsRate types.Money
 	if !decimal.Decimal(totalIncome).IsZero() {

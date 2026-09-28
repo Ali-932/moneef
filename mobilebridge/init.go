@@ -5,6 +5,7 @@ package mobilebridge
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"gorm.io/gorm"
 
@@ -27,6 +28,12 @@ import (
 func Init(dbPath string, profileIDArg int64) error {
 	if err := requireInit(); err == nil {
 		return ErrAlreadyInited
+	}
+	// Android apps can't write /tmp, and SQLite needs a temp dir once a
+	// transaction outgrows memory (e.g. seeding the icon dictionary). SQLite
+	// reads this once at startup, so set it before anything opens a database.
+	if err := os.Setenv("SQLITE_TMPDIR", filepath.Dir(dbPath)); err != nil {
+		return fmt.Errorf("mobile.Init: cannot set SQLITE_TMPDIR: %w", err)
 	}
 	if err := recoverInterruptedRestore(dbPath); err != nil {
 		return err

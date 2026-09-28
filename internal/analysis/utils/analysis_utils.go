@@ -48,15 +48,21 @@ func GetCategoriesSlicedAndSorted(allCategories []dto.CategorySummary, total typ
 
 func FillMissingDates(amountsPerDay []dto.AmountPerDay, startDate, endDate time.Time) []dto.AmountPerDay {
 	// The repository returns sums per timestamp. Collapse them into calendar
-	// days before filling gaps, so several payments never become repeated dates.
+	// days in the range's zone before filling gaps, so several payments never
+	// become repeated dates.
+	loc := startDate.Location()
 	totals := make(map[string]types.Money)
 	for _, apd := range amountsPerDay {
-		key := apd.Date.In(startDate.Location()).Format(time.DateOnly)
+		key := apd.Date.In(loc).Format(time.DateOnly)
 		totals[key] = totals[key].Add(apd.Amount)
 	}
-	startDay := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, startDate.Location())
+	// Days go out as UTC midnight of the calendar date: the app reads them as
+	// plain dates, not instants.
+	end := endDate.In(loc)
+	lastDay := time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, time.UTC)
+	startDay := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
 	days := make([]dto.AmountPerDay, 0)
-	for d := startDay; !d.After(endDate); d = d.AddDate(0, 0, 1) {
+	for d := startDay; !d.After(lastDay); d = d.AddDate(0, 0, 1) {
 		amount, ok := totals[d.Format(time.DateOnly)]
 		if !ok {
 			amount = types.MoneyZero()

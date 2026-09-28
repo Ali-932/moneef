@@ -54,8 +54,8 @@ class InsightsRangeNotifier extends StateNotifier<DateRange> {
 
   Future<void> setCustom(DateTime from, DateTime to) async {
     state = DateRange(
-      from: DateTime.utc(from.year, from.month, from.day),
-      to: DateTime.utc(to.year, to.month, to.day, 23, 59, 59, 999),
+      from: DateTime(from.year, from.month, from.day),
+      to: DateTime(to.year, to.month, to.day, 23, 59, 59, 999),
       preset: DateRangePreset.custom,
     );
     final prefs = await SharedPreferences.getInstance();
