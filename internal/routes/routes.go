@@ -13,7 +13,7 @@ import (
 func SetupRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(chiMiddleware.Logger)
-	r.Use(desktopCORSMiddleware)
+	r.Use(corsMiddleware)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("/setup", users.SetupHandler)
@@ -34,7 +34,7 @@ func SetupRoutes() http.Handler {
 	return r
 }
 
-func desktopCORSMiddleware(next http.Handler) http.Handler {
+func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")

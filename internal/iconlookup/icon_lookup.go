@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode"
+	"unicode/utf8"
 
 	"gorm.io/gorm"
 )
@@ -62,12 +64,40 @@ func Lookup(text string) (icon string, color string, found bool) {
 	defer cacheMu.RUnlock()
 
 	for _, entry := range cache {
-		if strings.Contains(lower, entry.Keyword) {
+		if matchesKeyword(lower, entry.Keyword) {
 			return entry.Icon, entry.Color, true
 		}
 	}
 
 	return "", "", false
+}
+
+// Very short brand names (notably "x") must stand alone. Otherwise loading
+// the dictionary would assign their icons to unrelated names containing the
+// same letter. Longer merchant names retain the existing substring behavior.
+func matchesKeyword(text, keyword string) bool {
+	if keyword == "" {
+		return false
+	}
+	if utf8.RuneCountInString(keyword) > 3 {
+		return strings.Contains(text, keyword)
+	}
+	isWord := func(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' }
+	for offset := 0; offset <= len(text)-len(keyword); {
+		index := strings.Index(text[offset:], keyword)
+		if index < 0 {
+			return false
+		}
+		start := offset + index
+		end := start + len(keyword)
+		before, _ := utf8.DecodeLastRuneInString(text[:start])
+		after, _ := utf8.DecodeRuneInString(text[end:])
+		if (start == 0 || !isWord(before)) && (end == len(text) || !isWord(after)) {
+			return true
+		}
+		offset = start + len(keyword)
+	}
+	return false
 }
 
 // GetCacheSize returns the number of entries currently loaded.

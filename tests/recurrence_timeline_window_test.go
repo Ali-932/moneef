@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"moneef/internal/db"
@@ -11,6 +12,42 @@ import (
 	"moneef/internal/transactions/service"
 	"moneef/pkg/types"
 )
+
+func TestRecurrenceTimelineCurrencyMatchesAmount(t *testing.T) {
+	for _, converted := range []bool{false, true} {
+		name := "missing rate keeps original currency"
+		if converted {
+			name = "converted amount uses base currency"
+		}
+		t.Run(name, func(t *testing.T) {
+			suite := NewTestSuite(t)
+			defer suite.Cleanup()
+			require.NoError(t, suite.DB.Create(&models.Currency{Code: "IQD", Name: "Iraqi dinar"}).Error)
+			if converted {
+				require.NoError(t, suite.DB.Create(&models.CurrencyExchangeRate{
+					CurrencyCode1: "IQD", CurrencyCode2: "USD", Rate: decimal.RequireFromString("0.001"),
+				}).Error)
+			}
+			amount := types.MoneyFromInt(500000)
+			require.NoError(t, suite.DB.Create(&models.RecurrenceTemplate{
+				ProfileID: testProfileID, Name: "Rent", Type: "expense", Frequency: "monthly",
+				NextDate: time.Now().UTC().AddDate(0, 0, 5), NextPaymentAmount: &amount, CurrencyCode: "IQD", IsActive: true,
+			}).Error)
+			occurrences, err := service.GetRecurrenceTimeline(testProfileID)
+			require.NoError(t, err)
+			require.NotEmpty(t, occurrences)
+			for _, occurrence := range occurrences {
+				if converted {
+					require.Equal(t, "USD", occurrence.Currency)
+					require.Equal(t, "500", occurrence.Amount.String())
+				} else {
+					require.Equal(t, "IQD", occurrence.Currency)
+					require.Equal(t, "500000", occurrence.Amount.String())
+				}
+			}
+		})
+	}
+}
 
 func TestRecurrenceTimelineNext30Days(t *testing.T) {
 	suite := NewTestSuite(t)

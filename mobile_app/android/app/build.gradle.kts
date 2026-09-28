@@ -1,0 +1,53 @@
+plugins {
+    id("com.android.application")
+    id("kotlin-android")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("dev.flutter.flutter-gradle-plugin")
+}
+
+android {
+    namespace = "io.moneef.mobile_app"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
+
+    defaultConfig {
+        applicationId = "io.moneef.mobile_app"
+        // gomobile AAR requires API 21+
+        minSdk = maxOf(flutter.minSdkVersion, 21)
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        debug {
+            // Install the reproducible backup proof alongside the real app.
+            if (providers.gradleProperty("backupProof").orNull == "true") {
+                applicationIdSuffix = ".backupproof"
+            }
+        }
+        release {
+            // Debug signing for now so `flutter run --release` works.
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+}
+
+// Gomobile-bound Go core. Drop new builds into `app/libs/moneef.aar`
+// and re-run the Flutter build to pick up the new symbols.
+dependencies {
+    implementation(files("libs/moneef.aar"))
+}
+
+flutter {
+    source = "../.."
+}

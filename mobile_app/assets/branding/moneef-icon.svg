@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024">
+  <title>Moneef — Fold M</title>
+  <rect width="100" height="100" rx="24" fill="#6C5CE7"/>
+  <g transform="translate(11 11) scale(1.21875)">
+    <path d="M10 49V15h9l13 15 13-15h9v34H43V32L32 44 21 32v17Z" fill="#FFFFFF"/>
+    <path d="m19 15 13 15-8 9-5-6Z" fill="#6C5CE7" opacity="0.22"/>
+  </g>
+</svg>

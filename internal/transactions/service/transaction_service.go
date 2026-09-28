@@ -125,6 +125,8 @@ func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) (uint, 
 		CurrencyCode:         p.CurrencyCode,
 		Icon:                 p.Icon,
 		Color:                p.Color,
+		IconSource:           engine.IconSourceForInput(p.Icon),
+		ColorSource:          engine.IconSourceForInput(p.Color),
 		MerchantName:         p.MerchantName,
 		Notes:                p.Notes,
 		RecurrenceTemplateID: p.RecurrenceTemplateID,
@@ -262,6 +264,14 @@ func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest
 		}
 		if req.Notes != nil {
 			updates["notes"] = *req.Notes
+		}
+		if req.Icon != "" {
+			updates["icon"] = req.Icon
+			updates["icon_source"] = engine.IconSourceManual
+		}
+		if req.Color != "" {
+			updates["color"] = req.Color
+			updates["color_source"] = engine.IconSourceManual
 		}
 		if !req.Date.IsZero() {
 			updates["date"] = req.Date
@@ -437,8 +447,10 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 		}
 
 		convertedAmount, convErr := utils.ConvertMoney(db.DB, *tpl.NextPaymentAmount, tpl.CurrencyCode, baseCurrency)
+		displayCurrency := baseCurrency
 		if convErr != nil {
 			convertedAmount = *tpl.NextPaymentAmount
+			displayCurrency = tpl.CurrencyCode
 		}
 		for _, date := range dateSet {
 			occurrences = append(occurrences, dto.RecurrenceOccurrence{
@@ -446,7 +458,7 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 				Name:     tpl.Name,
 				Type:     tpl.Type,
 				Amount:   convertedAmount,
-				Currency: baseCurrency,
+				Currency: displayCurrency,
 				Icon:     tpl.Icon,
 				Color:    tpl.Color,
 				Date:     date,

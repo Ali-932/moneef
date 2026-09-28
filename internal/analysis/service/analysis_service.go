@@ -14,7 +14,7 @@ import (
 
 func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, currency string) (*dto.AnalysisCharts, error) {
 	period := endDate.Sub(startDate)
-	lastPeriodEnd := startDate
+	lastPeriodEnd := startDate.Add(-time.Nanosecond)
 	lastPeriodStart := startDate.Add(-period)
 
 	var mu sync.Mutex

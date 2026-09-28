@@ -1,0 +1,9 @@
+# `screenshots` is applied to test/screenshots/app_screenshots_test.dart via
+# a file-level @Tags(['screenshots']) annotation. Declaring it here just
+# silences "tag not declared" — the tests gate their own skip on
+# `autoUpdateGoldenFiles` (see that file), so plain `flutter test` always
+# skips them cleanly and
+# `flutter test test/screenshots --update-goldens --tags screenshots` always
+# runs them, regardless of any skip config here.
+tags:
+  screenshots: {}
