@@ -120,6 +120,7 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) (uint, error) {
 
 	trx := &models.Transaction{
+		UsdRate:              usdRate(tx, p.CurrencyCode),
 		ProfileID:            p.ProfileID,
 		Name:                 p.Name,
 		Type:                 p.Type,
@@ -257,6 +258,15 @@ func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest
 		}
 		if req.CurrencyCode != "" {
 			updates["currency_code"] = req.CurrencyCode
+			// Only a new currency takes a new rate; other edits keep the frozen one.
+			var current string
+			if err := tx.Model(&models.Transaction{}).Where("id = ? AND profile_id = ?", id, profileID).
+				Pluck("currency_code", &current).Error; err != nil {
+				return err
+			}
+			if current != req.CurrencyCode {
+				updates["usd_rate"] = usdRate(tx, req.CurrencyCode)
+			}
 		}
 		if req.TransactionType != "" {
 			updates["type"] = req.TransactionType
@@ -307,6 +317,15 @@ func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest
 	}
 	engine.ResolveMerchantIconAsync(id)
 	return nil
+}
+
+// usdRate is today's settings rate for 1 USD in currency, or nil when there is none.
+func usdRate(tx *gorm.DB, currency string) *decimal.Decimal {
+	rate, err := utils.ConvertAmount(tx, decimal.NewFromInt(1), "USD", currency)
+	if err != nil {
+		return nil
+	}
+	return &rate
 }
 
 func DeleteTransaction(id uint, profileID uint) error {

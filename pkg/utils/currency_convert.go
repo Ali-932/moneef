@@ -43,8 +43,21 @@ func WithCurrencyConversion(txTableAlias string, baseCurrency string) func(*gorm
 				txTableAlias,
 			),
 			baseCurrency,
-		)
+		).
+			Joins("CROSS JOIN (SELECT ? AS code) base_currency", baseCurrency).
+			Joins("LEFT JOIN currency_exchange_rates usd_base ON usd_base.currency_code1 = 'USD' AND usd_base.currency_code2 = base_currency.code")
 	}
+}
+
+// TransactionConvertedAmount converts a transactions row with its frozen
+// UsdRate: amount ÷ usd_rate is the USD value, × today's USD→base rate.
+// Rows without one fall back to ConvertedAmount's current rate.
+func TransactionConvertedAmount(amountColumn, txTableAlias string) string {
+	return fmt.Sprintf(
+		"(%[1]s * CASE WHEN %[2]s.currency_code = base_currency.code THEN 1 "+
+			"ELSE COALESCE(CASE WHEN base_currency.code = 'USD' THEN 1.0 ELSE usd_base.rate END / %[2]s.usd_rate, cer.rate, 1) END)",
+		amountColumn, txTableAlias,
+	)
 }
 
 // ConvertedAmount returns a SQL expression that multiplies a raw amount

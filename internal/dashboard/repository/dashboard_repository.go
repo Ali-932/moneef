@@ -13,7 +13,7 @@ import (
 
 func GetPeriodTotals(tx *gorm.DB, profileID uint, startDate, endDate time.Time, baseCurrency string) (*dto.PeriodTotals, error) {
 	var result dto.PeriodTotals
-	ca := utils.ConvertedAmount("tc.amount")
+	ca := utils.TransactionConvertedAmount("tc.amount", "transactions")
 	err := tx.Model(&models.Transaction{}).
 		Select(fmt.Sprintf("COALESCE(SUM(CASE WHEN transactions.type = 'income' THEN %s ELSE 0 END), 0) as income, COALESCE(SUM(CASE WHEN transactions.type = 'expense' THEN %s ELSE 0 END), 0) as expense", ca, ca)).
 		Joins("JOIN transaction_categories tc ON transactions.id = tc.transaction_id").
@@ -43,7 +43,7 @@ func GetRecentTransactions(tx *gorm.DB, profileID uint, limit int) ([]models.Tra
 func GetTopCategory(tx *gorm.DB, profileID uint, startDate, endDate time.Time, baseCurrency string) (*dto.TopCategory, error) {
 	var result dto.TopCategory
 	err := tx.Table("transactions t").
-		Select(fmt.Sprintf("c.id as category_id, c.name as category_name, SUM(%s) as total_amount", utils.ConvertedAmount("tc.amount"))).
+		Select(fmt.Sprintf("c.id as category_id, c.name as category_name, SUM(%s) as total_amount", utils.TransactionConvertedAmount("tc.amount", "t"))).
 		Joins("JOIN transaction_categories tc ON t.id = tc.transaction_id").
 		Joins("JOIN categories c ON tc.category_id = c.id").
 		Scopes(utils.WithCurrencyConversion("t", baseCurrency)).
@@ -65,7 +65,7 @@ func GetTopCategory(tx *gorm.DB, profileID uint, startDate, endDate time.Time, b
 func GetAvgDailySpend(tx *gorm.DB, profileID uint, startDate, endDate time.Time, baseCurrency string) (types.Money, error) {
 	var total types.Money
 	err := tx.Table("transactions t").
-		Select(fmt.Sprintf("COALESCE(SUM(%s), 0) as total", utils.ConvertedAmount("tc.amount"))).
+		Select(fmt.Sprintf("COALESCE(SUM(%s), 0) as total", utils.TransactionConvertedAmount("tc.amount", "t"))).
 		Joins("JOIN transaction_categories tc ON t.id = tc.transaction_id").
 		Scopes(utils.WithCurrencyConversion("t", baseCurrency)).
 		Where("t.profile_id = ? AND t.type = 'expense' AND t.date >= ? AND t.date <= ?", profileID, startDate, endDate).
@@ -113,7 +113,7 @@ func GetUpcomingRecurring(tx *gorm.DB, profileID uint, currentDate time.Time, li
 func GetBiggestTransaction(tx *gorm.DB, profileID uint, startDate, endDate time.Time, baseCurrency string) (dto.BiggestTransaction, error) {
 	var result dto.BiggestTransaction
 	err := tx.Table("transactions t").
-		Select(fmt.Sprintf("t.name as name, %s as amount, c.icon as icon, c.color as color", utils.ConvertedAmount("tc.amount"))).
+		Select(fmt.Sprintf("t.name as name, %s as amount, c.icon as icon, c.color as color", utils.TransactionConvertedAmount("tc.amount", "t"))).
 		Joins("JOIN transaction_categories tc ON t.id = tc.transaction_id").
 		Joins("JOIN categories c ON tc.category_id = c.id").
 		Scopes(utils.WithCurrencyConversion("t", baseCurrency)).
@@ -130,7 +130,7 @@ func GetBiggestTransaction(tx *gorm.DB, profileID uint, startDate, endDate time.
 func GetTopMerchant(tx *gorm.DB, profileID uint, startDate, endDate time.Time, baseCurrency string) (dto.TopMerchant, error) {
 	var result dto.TopMerchant
 	err := tx.Table("transactions t").
-		Select(fmt.Sprintf("t.merchant_name as name, COALESCE(SUM(%s), 0) as amount", utils.ConvertedAmount("tc.amount"))).
+		Select(fmt.Sprintf("t.merchant_name as name, COALESCE(SUM(%s), 0) as amount", utils.TransactionConvertedAmount("tc.amount", "t"))).
 		Joins("JOIN transaction_categories tc ON t.id = tc.transaction_id").
 		Scopes(utils.WithCurrencyConversion("t", baseCurrency)).
 		Where("t.profile_id = ? AND t.type = 'expense' AND t.date >= ? AND t.date <= ? AND t.merchant_name != ''", profileID, startDate, endDate).

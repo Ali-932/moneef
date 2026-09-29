@@ -838,6 +838,8 @@ Notes:
 
 - `currency_code` is taken from `UserSettings.currency_code`; all amounts
   in the response are converted into that currency where possible.
+  Each transaction keeps the USD rate from settings at save time, so later
+  rate changes don't re-value it (older transactions use today's rate).
 - `top_category` is `null` if no expenses in the period.
 - `upcoming_recurring` is the next 5 within ~30 days.
 

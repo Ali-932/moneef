@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"moneef/pkg/types"
 	"time"
@@ -26,6 +27,9 @@ type Transaction struct {
 	TransactionCategory  []TransactionCategory `gorm:"foreignKey:TransactionID" json:"TransactionCategory"`
 	RecurrenceTemplateID *uint                 `gorm:"index" json:"recurrence_template_id,omitempty"`
 	RecurrenceTemplate   *RecurrenceTemplate   `gorm:"foreignKey:RecurrenceTemplateID" json:"recurrence_template,omitempty"`
+	// UsdRate is units of CurrencyCode per 1 USD, frozen from settings on save.
+	// Nil for older rows; totals then use today's rate.
+	UsdRate *decimal.Decimal `gorm:"type:decimal(19,6)" json:"-"`
 }
 
 func (t *Transaction) GetTotal(db *gorm.DB) (*types.Money, error) {
