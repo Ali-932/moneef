@@ -267,6 +267,10 @@ automatic values. These internal source fields are not exposed in JSON.
 - Seeds missing icon mappings and upgrades legacy transaction icons atomically.
   Transaction amounts, categories, dates, and edit timestamps are unchanged.
 - Sets the package-level `dbHandle` and `profileID`.
+- Books due recurring payments for the active profile (see
+  [Recurrences](#recurrences)). This also runs when `Init` returns
+  `ErrAlreadyInited`, because that means the app was reopened. Failures
+  are logged and never fail `Init`.
 
 **Kotlin:**
 
@@ -591,6 +595,13 @@ Cascade-deletes the `TransactionCategory` rows then the transaction.
 Recurrences are created **alongside** a transaction (via the
 `is_recurrent: true` form of `CreateTransaction`). These endpoints manage
 the templates themselves.
+
+When the app opens (`Init`, including a restore), every active template
+whose `next_date` has passed gets one real transaction per missed
+occurrence, dated at that occurrence and linked by `recurrence_template_id`.
+`next_date` then moves past now. Plans with an end date book at most
+`amount_left_to_pay`, splitting a short last payment across categories by
+their shares, and are set `is_active: false` once paid off or past `end_date`.
 
 ### `ListRecurrences() → []byte`
 

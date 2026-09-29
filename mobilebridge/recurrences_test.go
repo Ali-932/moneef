@@ -63,8 +63,8 @@ func TestUpdateRecurrenceOffline(t *testing.T) {
 	original := read()
 	id := int64(original.ID)
 	valid := map[string]any{
-		"name": "Office rent", "frequency": "weekly", "next_date": "2026-10-10T12:00:00Z",
-		"has_end_date": true, "end_date": "2026-12-31T23:59:59Z", "is_active": false,
+		"name": "Office rent", "frequency": "weekly", "next_date": "2099-10-10T12:00:00Z",
+		"has_end_date": true, "end_date": "2099-12-31T23:59:59Z", "is_active": false,
 		"merchant_name": "Landlord", "notes": "New weekly schedule",
 	}
 	encode := func(v any) []byte { b, e := json.Marshal(v); must(e); return b }
@@ -117,8 +117,19 @@ func TestUpdateRecurrenceOffline(t *testing.T) {
 	if got.HasEndDate || got.EndDate != nil || !got.IsActive || *got.Notes != "" || *got.MerchantName != "" {
 		t.Fatal("cleared details or status did not survive reopening the database")
 	}
-	expected, _ := time.Parse(time.RFC3339, "2026-10-10T12:00:00Z")
+	expected, _ := time.Parse(time.RFC3339, "2099-10-10T12:00:00Z")
 	if !got.NextDate.Equal(expected) {
 		t.Fatal("next payment date changed after reopening")
+	}
+	// Reopening the app books the payments that fell due while it was closed:
+	// weekly from 8 days ago is due twice.
+	valid["next_date"] = time.Now().AddDate(0, 0, -8).UTC().Format(time.RFC3339)
+	must(UpdateRecurrence(id, encode(valid)))
+	must(Shutdown())
+	must(Init(path, profileID))
+	var afterReopen []models.Transaction
+	must(dbHandle.Where("profile_id = ?", profileID).Find(&afterReopen).Error)
+	if len(afterReopen) != 3 || !read().NextDate.After(time.Now()) {
+		t.Fatalf("reopening booked %d transactions, want 2 more", len(afterReopen)-1)
 	}
 }

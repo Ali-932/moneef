@@ -27,6 +27,8 @@ import (
 // path is intentionally forbidden in-process.
 func Init(dbPath string, profileIDArg int64) error {
 	if err := requireInit(); err == nil {
+		// The process outlived the Activity, but the app was still reopened.
+		bookDueRecurrences()
 		return ErrAlreadyInited
 	}
 	// Android apps can't write /tmp, and SQLite needs a temp dir once a
@@ -115,6 +117,7 @@ func initDatabase(dbPath string, profileIDArg int64) error {
 	if profileIDArg > 0 {
 		setProfileIDLocked(profileIDArg)
 	}
+	bookDueRecurrences()
 	return nil
 }
 

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 	"time"
 
@@ -81,4 +82,14 @@ func UpdateRecurrence(id int64, payload []byte) error {
 		return fmt.Errorf("recurring payment not found")
 	}
 	return err
+}
+
+func bookDueRecurrences() {
+	pid, err := getProfileID()
+	if err != nil {
+		return
+	}
+	if _, err := txnsvc.CreateDueRecurrences(pid, time.Now()); err != nil {
+		log.Printf("mobile: booking due recurrences: %v", err)
+	}
 }

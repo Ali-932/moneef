@@ -2,9 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/shopspring/decimal"
-	"gorm.io/gorm"
 	"log"
 	"moneef/internal/db"
 	"moneef/internal/models"
@@ -16,6 +15,9 @@ import (
 	"moneef/pkg/utils"
 	"sort"
 	"time"
+
+	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
 
 func HandleTransactionCreation(params dto.TransactionCreationParams) error {
@@ -328,6 +330,98 @@ func DeleteRecurrence(profileID, id uint) error {
 	return repository.DeleteRecurrenceTemplate(profileID, id)
 }
 
+// CreateDueRecurrences books every occurrence of the profile's active
+// templates dated at or before now and moves next_date past it. A finite plan
+// books at most what is left to pay and stops once its end date passes or
+// nothing is left. Returns how many transactions were created.
+func CreateDueRecurrences(profileID uint, now time.Time) (int, error) {
+	templates, err := repository.ListRecurrenceTemplates(profileID)
+	if err != nil {
+		return 0, err
+	}
+	var created []uint
+	var errs []error
+	for _, tpl := range templates {
+		if !tpl.IsActive || tpl.NextDate.After(now) {
+			continue
+		}
+		total := decimal.Zero
+		for _, c := range tpl.TransactionCategory {
+			total = total.Add(decimal.Decimal(*c.Amount))
+		}
+		finite := tpl.HasEndDate && tpl.AmountLeftToPay != nil
+		var left decimal.Decimal
+		if finite {
+			left = decimal.Decimal(*tpl.AmountLeftToPay)
+		}
+		ended := func() bool {
+			return (tpl.HasEndDate && tpl.EndDate != nil && tpl.NextDate.After(*tpl.EndDate)) ||
+				(finite && !left.IsPositive())
+		}
+		var booked []uint
+		err := db.DB.Transaction(func(tx *gorm.DB) error {
+			for !ended() && !tpl.NextDate.After(now) {
+				pay := total
+				if finite {
+					pay = decimal.Min(left, total)
+				}
+				// A short last payment is split by the categories' shares; the
+				// last category takes the rounding remainder.
+				amounts := make(map[uint]decimal.Decimal, len(tpl.TransactionCategory))
+				rest := pay
+				for i, c := range tpl.TransactionCategory {
+					amt := decimal.Decimal(*c.Amount)
+					if pay.LessThan(total) {
+						if i < len(tpl.TransactionCategory)-1 {
+							amt = amt.Mul(pay).DivRound(total, 4)
+						} else {
+							amt = rest
+						}
+						rest = rest.Sub(amt)
+					}
+					amounts[c.CategoryID] = amt
+				}
+				id, err := CreateTransactionWithTx(tx, dto.CreateTransactionParams{
+					ProfileID: tpl.ProfileID, Name: tpl.Name, Type: tpl.Type, Date: tpl.NextDate,
+					CurrencyCode: tpl.CurrencyCode, Icon: tpl.Icon, Color: tpl.Color,
+					MerchantName: tpl.MerchantName, Notes: tpl.Notes,
+					CategoriesTransaction: amounts, RecurrenceTemplateID: &tpl.ID,
+				})
+				if err != nil {
+					return err
+				}
+				booked = append(booked, id)
+				left = left.Sub(pay)
+				// ponytail: steps from the stored date, so a schedule on the 29th-31st
+				// clamps after a short month and stays there. Anchor on start_date if that matters.
+				next := addFrequency(tpl.NextDate, tpl.Frequency)
+				if !next.After(tpl.NextDate) {
+					return fmt.Errorf("unsupported frequency %q", tpl.Frequency)
+				}
+				tpl.NextDate = next
+			}
+			updates := map[string]interface{}{"next_date": tpl.NextDate, "is_active": !ended()}
+			if finite {
+				updates["amount_left_to_pay"] = left
+				updates["next_payment_amount"] = decimal.Max(decimal.Min(left, total), decimal.Zero)
+			}
+			return tx.Model(&models.RecurrenceTemplate{}).Where("id = ?", tpl.ID).Updates(updates).Error
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf("recurrence %d: %w", tpl.ID, err))
+			continue
+		}
+		created = append(created, booked...)
+	}
+	for _, id := range created {
+		engine.ResolveMerchantIconAsync(id)
+	}
+	if len(created) > 0 {
+		log.Printf("🔄 [SERVICE] Booked %d due recurring transactions", len(created))
+	}
+	return len(created), errors.Join(errs...)
+}
+
 func daysInMonth(y int, m time.Month) int {
 	return time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC).Day()
 }
@@ -348,12 +442,12 @@ func addFrequency(t time.Time, freq string) time.Time {
 			targetMonth = 1
 		}
 		day := min(t.Day(), daysInMonth(targetYear, targetMonth))
-		return time.Date(targetYear, targetMonth, day, 0, 0, 0, 0, time.UTC)
+		return time.Date(targetYear, targetMonth, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
 	case "yearly":
 		y, m, d := t.Date()
 		targetYear := y + 1
 		day := min(d, daysInMonth(targetYear, m))
-		return time.Date(targetYear, m, day, 0, 0, 0, 0, time.UTC)
+		return time.Date(targetYear, m, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
 	default:
 		return t
 	}
