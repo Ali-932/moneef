@@ -17,6 +17,7 @@
   <a href="#download">Download</a> •
   <a href="#features">Features</a> •
   <a href="#privacy">Privacy</a> •
+  <a href="#architecture">Architecture</a> •
   <a href="#license">License</a>
 </p>
 
@@ -64,6 +65,23 @@ key from [exchangerate-api.com](https://www.exchangerate-api.com/) in
 **Profile → Live exchange rates**. Without a key, you type the rates in
 yourself.
 
+## Architecture
+
+A call from the UI goes through four layers:
+
+```
+Flutter UI (mobile_app/, Riverpod + go_router + freezed)
+    │  Kotlin MethodChannels: moneef/api, moneef/backups
+    ▼
+mobilebridge/ (gomobile AAR: JSON bytes in and out, int64 IDs)
+    │
+    ▼
+Go services: internal/<feature>/{dto,service,repository}
+    │
+    ▼
+SQLite via GORM (github.com/glebarez/sqlite: pure Go, no cgo)
+```
+
 <details>
 <summary><b>Build from source</b></summary>
 
@@ -100,21 +118,6 @@ go test -tags smoke ./mobilebridge/
 go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobilebridge/_e2e/
 cd mobile_app
 flutter test --exclude-tags screenshots
-```
-
-A call from the UI goes through four layers:
-
-```
-Flutter UI (mobile_app/, Riverpod + go_router + freezed)
-    │  Kotlin MethodChannels: moneef/api, moneef/backups
-    ▼
-mobilebridge/ (gomobile AAR: JSON bytes in and out, int64 IDs)
-    │
-    ▼
-Go services: internal/<feature>/{dto,service,repository}
-    │
-    ▼
-SQLite via GORM (github.com/glebarez/sqlite: pure Go, no cgo)
 ```
 
 For more detail, see [`mobilebridge/README.md`](mobilebridge/README.md) for the
