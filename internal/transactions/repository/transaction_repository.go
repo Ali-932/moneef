@@ -35,7 +35,7 @@ func CreateTransactionCategoryBulk(tx *gorm.DB, transactionCategories []*models.
 
 func GetTransactionByID(db *gorm.DB, id uint, profileID uint) (*models.Transaction, error) {
 	var transaction models.Transaction
-	err := db.Preload("TransactionCategory.Category").
+	err := db.Preload("TransactionCategory.Category", models.WithDeleted).
 		Where("id = ? AND profile_id = ?", id, profileID).
 		First(&transaction).Error
 	if err != nil {
@@ -46,7 +46,7 @@ func GetTransactionByID(db *gorm.DB, id uint, profileID uint) (*models.Transacti
 
 func ListTransactionsQuery(db *gorm.DB, profileID uint, txType string, categoryID uint, dateFrom, dateTo, search, categoryName, sort string) *gorm.DB {
 	query := db.Model(&models.Transaction{}).
-		Preload("TransactionCategory.Category").
+		Preload("TransactionCategory.Category", models.WithDeleted).
 		Where("transactions.profile_id = ?", profileID)
 
 	if txType != "" {
@@ -73,14 +73,14 @@ func ListTransactionsQuery(db *gorm.DB, profileID uint, txType string, categoryI
 	}
 
 	switch sort {
-	case "date_asc":
+	case "date":
 		query = query.Order("transactions.date asc")
-	case "amount_asc":
+	case "amount":
 		query = query.
 			Joins("LEFT JOIN transaction_categories tc_sort ON tc_sort.transaction_id = transactions.id").
 			Group("transactions.id").
 			Order("SUM(tc_sort.amount) ASC")
-	case "amount_desc":
+	case "-amount":
 		query = query.
 			Joins("LEFT JOIN transaction_categories tc_sort ON tc_sort.transaction_id = transactions.id").
 			Group("transactions.id").

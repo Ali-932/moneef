@@ -809,8 +809,8 @@ Partial update. Omit fields you don't want to change.
 
 ### `DeleteCategory(id) error`
 
-Removes the category. Existing transactions retain the relationship via
-`TransactionCategory.category_id` even if the category row is gone.
+Hides the category from lists and pickers. The row is kept (soft delete), so
+existing transactions and charts still show it by name.
 
 ---
 
@@ -906,8 +906,10 @@ comparison.
 Each `spent_per_day` date is the calendar day at UTC midnight
 (`2026-06-01T00:00:00Z` means June 1 in the requested zone).
 
-The shim automatically derives the "last period" as the same-length window
-ending at `start_date`.
+The "last period" is the same days of the previous month when the range starts
+on the 1st and stays in one month (Sep 1–5 → Aug 1–5, capped to the shorter
+month); any other range compares with the same-length window ending at
+`start_date`.
 
 **Response JSON:**
 

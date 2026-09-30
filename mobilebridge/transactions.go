@@ -85,6 +85,9 @@ func CreateTransaction(payload []byte) ([]byte, error) {
 	}); err != nil {
 		return nil, err
 	}
+	if req.IsRecurrent != nil && *req.IsRecurrent {
+		bookDueRecurrences() // a start date in the past has payments due now
+	}
 	return []byte(`{"message":"transaction created"}`), nil
 }
 

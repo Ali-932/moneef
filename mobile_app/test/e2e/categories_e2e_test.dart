@@ -299,7 +299,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('6.2.2 edit icon → persisted; clearing to None does not persist (bug)', (
+    testWidgets('6.2.2 edit icon → persisted; clearing to None clears it', (
       tester,
     ) async {
       final cat = createCatViaBridge(
@@ -471,7 +471,7 @@ void main() {
     });
 
     testWidgets(
-      '6.3.2 delete category used by a transaction → dangling FK renders blank (bug)',
+      '6.3.2 a deleted category keeps its name on its transactions',
       (tester) async {
         final cat = createCatViaBridge('UsedByTx E2E', 'expense');
         final catId = (cat['id'] as num).toInt();
@@ -504,37 +504,16 @@ void main() {
         await settle(tester);
         expect(tester.takeException(), isNull);
 
-        // mobilebridge/API.md § DeleteCategory promises: "Existing transactions
-        // retain the relationship via TransactionCategory.category_id even
-        // if the category row is gone." That part is true: the join row
-        // survives (`TransactionCategory` is not cascade-deleted in
-        // practice, despite the `constraint:OnDelete:CASCADE` tag on
-        // TransactionCategory.Category in internal/models/transaction.go:51
-        // — SQLite evidently isn't enforcing it here). But the *embedded*
-        // `Category` GORM preloads is a value type, not `*Category`, so a
-        // miss can't be represented as null — it comes back as the Go zero
-        // value: id 0, name/icon/color all "".
+        // Deleting hides the category from lists but keeps the row, so the
+        // transaction still shows it by name.
         tx = bridge.json('getTransaction', id: txId) as Map<String, dynamic>;
         final txCats = tx['TransactionCategory'] as List;
-        expect(txCats, hasLength(1), reason: 'join row itself is NOT cascade-deleted');
-        expect(txCats.single['category_id'], catId, reason: 'dangling FK, as documented');
-        final danglingCategory = txCats.single['Category'] as Map;
-        expect(
-          danglingCategory['name'],
-          '',
-          reason:
-              'BUG: the zero-value Category comes back with name/icon/color '
-              'as empty strings rather than the field being absent/null. '
-              'mobile_app/lib/screens/transaction_detail_screen.dart '
-              '_CategoryRow does `(c.category?[\'name\'] as String?) ?? '
-              '\'Category \${c.categoryId}\'` — a `??` fallback that only '
-              'catches null, not empty string, so the UI renders a blank '
-              'nameless row instead of a "Category $catId" placeholder.',
-        );
+        expect(txCats, hasLength(1));
+        expect(txCats.single['category_id'], catId);
+        expect((txCats.single['Category'] as Map)['name'], 'UsedByTx E2E');
+        final listed = bridge.json('listCategories', body: {}) as List;
+        expect(listed.map((c) => c['id']), isNot(contains(catId)));
 
-        // User-visible fallout: the amount is NOT lost (the join row and its
-        // amount survive), but the category breakdown row for it renders
-        // with a blank name.
         await tester.pumpWidget(
           appUnderTest(
             themeMode: ThemeMode.light,
@@ -542,38 +521,14 @@ void main() {
           ),
         );
         await settle(tester);
-        expect(
-          find.text('Category breakdown'),
-          findsOneWidget,
-          reason: 'section still renders — the join row still exists',
-        );
-        expect(
-          find.textContaining('250.00'),
-          findsWidgets,
-          reason: 'amount is preserved, unlike the category name',
-        );
-        expect(
-          find.text('UsedByTx E2E'),
-          findsNothing,
-          reason: 'sanity: the deleted category\'s old name is gone',
-        );
-        // Expected (product intent, evidenced by the screen's own fallback
-        // logic): a dangling category should render as "Category $catId",
-        // not a blank line. Currently FAILS — BUG: see the `danglingCategory
-        // ['name']` assertion above for the root cause (empty string, not
-        // null, defeats the `??` fallback in transaction_detail_screen.dart
-        // `_CategoryRow`).
-        expect(
-          find.text('Category $catId'),
-          findsOneWidget,
-          reason: 'a dangling category should show a readable placeholder, not render blank',
-        );
+        expect(find.text('UsedByTx E2E'), findsOneWidget);
+        expect(find.textContaining('250.00'), findsWidgets);
       },
     );
   });
 
   group('6.4 Negative', () {
-    testWidgets('6.4.1 duplicate name, same type → rejected with a clean error message (bug: leaked)', (
+    testWidgets('6.4.1 duplicate name, same type → rejected with a clean error message', (
       tester,
     ) async {
       createCatViaBridge('Rent E2E', 'expense');
@@ -626,7 +581,7 @@ void main() {
     });
 
     testWidgets(
-      '6.4.2 duplicate name, different type → should be allowed (bug: rejected)',
+      '6.4.2 duplicate name, different type → allowed',
       (tester) async {
         createCatViaBridge('Bonus E2E', 'expense');
 
@@ -647,6 +602,7 @@ void main() {
         expect(created?['type'], 'income');
 
         // Same behavior should hold through the real UI.
+        createCatViaBridge('Refund E2E', 'expense');
         setGoldenSurface(tester);
         await tester.pumpWidget(
           appUnderTest(
@@ -657,7 +613,7 @@ void main() {
         await settle(tester);
         await tester.tap(find.byTooltip('Add category'));
         await settle(tester);
-        await tester.enterText(field('Name'), 'Bonus E2E');
+        await tester.enterText(field('Name'), 'Refund E2E');
         await tester.tap(find.text('Expense'));
         await settle(tester);
         await tester.tap(find.text('Income'));
@@ -807,7 +763,7 @@ void main() {
       );
     });
 
-    testWidgets('6.4.6 renaming to an existing name should be blocked (bug: allowed)', (
+    testWidgets('6.4.6 renaming to an existing name is blocked', (
       tester,
     ) async {
       createCatViaBridge('Utilities E2E', 'expense');

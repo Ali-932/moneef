@@ -63,7 +63,7 @@ func (engine *Engine) Analyze(transactions []models.Transaction) ([]models.Patte
 func GetUserPatterns(profileId uint, startDate, endDate *time.Time) ([]models.Pattern, error) {
 	var transactions []models.Transaction
 	query := db.DB.
-		Preload("TransactionCategory.Category").
+		Preload("TransactionCategory.Category", models.WithDeleted).
 		Where("profile_id = ? AND type = ?", profileId, "expense")
 	if startDate != nil && endDate != nil {
 		query = query.Where("date >= ? AND date <= ?", *startDate, *endDate)

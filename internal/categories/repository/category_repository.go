@@ -60,10 +60,11 @@ func DeleteCategory(id uint, profileID uint) error {
 	return nil
 }
 
-func ExistsByName(profileID uint, name string) (bool, error) {
+// ExistsByName reports whether another category of the same type already uses name.
+func ExistsByName(profileID uint, name string, catType *string, excludeID uint) (bool, error) {
 	var count int64
 	err := db.DB.Model(&models.Category{}).
-		Where("(profile_id = ? OR profile_id IS NULL) AND name = ?", profileID, name).
+		Where("(profile_id = ? OR profile_id IS NULL) AND name = ? AND type IS ? AND id <> ?", profileID, name, catType, excludeID).
 		Count(&count).Error
 	return count > 0, err
 }

@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 /// Turns a caught error into a short, user-facing message. Screens must never
 /// render raw exception/stack text — a finance app should stay calm and
 /// trustworthy, not leak `Exception: ...` blobs at the user.
@@ -8,6 +10,9 @@ String userMessage(
   Object error, {
   String fallback = 'Something went wrong. Please try again.',
 }) {
+  if (error is PlatformException) {
+    return userMessage(error.message ?? fallback, fallback: fallback);
+  }
   final cleaned = error
       .toString()
       .replaceFirst(

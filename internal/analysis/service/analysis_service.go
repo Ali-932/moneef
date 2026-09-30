@@ -18,10 +18,9 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 	// ponytail: one fixed offset for the whole range; a DST change inside it
 	// shifts that side by an hour. Send an IANA zone name if that matters.
 	loc := startDate.Location()
+	lastPeriodStart, lastPeriodEnd := previousPeriod(startDate, endDate)
 	startDate, endDate = startDate.UTC(), endDate.UTC()
-	period := endDate.Sub(startDate)
-	lastPeriodEnd := startDate.Add(-time.Nanosecond)
-	lastPeriodStart := startDate.Add(-period)
+	lastPeriodStart, lastPeriodEnd = lastPeriodStart.UTC(), lastPeriodEnd.UTC()
 
 	var mu sync.Mutex
 
@@ -188,4 +187,18 @@ func GetAllAnalysisChartsService(profileId uint, startDate, endDate time.Time, c
 	}
 
 	return &res, nil
+}
+
+// previousPeriod is what a range is compared with: the same days of last month
+// when the range starts on the 1st and stays in one month (this month so far,
+// last month), otherwise the same length right before it. Times are local.
+func previousPeriod(start, end time.Time) (time.Time, time.Time) {
+	if start.Day() == 1 && start.Year() == end.Year() && start.Month() == end.Month() {
+		prevStart := start.AddDate(0, -1, 0)
+		lastDay := time.Date(start.Year(), start.Month(), 0, 0, 0, 0, 0, start.Location()).Day()
+		prevEnd := time.Date(prevStart.Year(), prevStart.Month(), min(end.Day(), lastDay),
+			end.Hour(), end.Minute(), end.Second(), end.Nanosecond(), end.Location())
+		return prevStart, prevEnd
+	}
+	return start.Add(-end.Sub(start)), start.Add(-time.Nanosecond)
 }

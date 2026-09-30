@@ -364,7 +364,7 @@ void main() {
   });
 
   testWidgets(
-    '5.1.7 BUG next_date of a recurrence started in the past stays in the past',
+    '5.1.7 a recurrence started in the past books what is due and moves next_date forward',
     (tester) async {
       // A finance app's "next payment" should never sit in the past. There
       // is no job anywhere in the codebase that advances
@@ -395,13 +395,7 @@ void main() {
       // Root cause: internal/transactions/service/transaction_service.go:164
       // sets NextDate = CalculateNextOccurrence(startDate, freq) exactly
       // once, at creation, and nothing ever recomputes it.
-      expect(
-        nextDate.isBefore(DateTime.now().toUtc()),
-        isTrue,
-        reason:
-            'BUG: "next" payment date is 14 days in the past and never rolls forward',
-      );
-
+      expect(nextDate.isAfter(DateTime.now().toUtc()), isTrue);
       setGoldenSurface(tester);
       await tester.pumpWidget(
         appUnderTest(themeMode: ThemeMode.light, path: '/profile/recurrences'),
@@ -411,7 +405,7 @@ void main() {
       // The UI renders whatever stale date the core hands it, with no
       // "overdue" affordance.
       expect(
-        find.textContaining('Weekly · next ${formatDateLong(nextDate)}'),
+        find.text('Next ${formatDateLong(nextDate)}'),
         findsOneWidget,
       );
     },
@@ -483,7 +477,7 @@ void main() {
   });
 
   testWidgets(
-    '5.2.2 BUG monthly recurrence started on Jan 31 skips February entirely',
+    '5.2.2 monthly recurrence on Jan 31 next falls on Feb 28',
     (tester) async {
       // Deterministic, clock-independent: CalculateNextOccurrence uses raw
       // time.AddDate (pkg/utils/date_frequency.go:19), which does NOT clamp
@@ -493,7 +487,7 @@ void main() {
       // explicitly clamps via daysInMonth. The two "advance one month"
       // implementations disagree.
       final catId = categoryId(bridge, 'expense', 'Housing');
-      final date = DateTime.utc(2026, 1, 31);
+      final date = DateTime.utc(2099, 1, 31); // future: nothing booked yet
       bridge.json(
         'createTransaction',
         body: recurringPayload(
@@ -515,7 +509,7 @@ void main() {
 
       // Sensible, expected behavior (matches the clamped semantics the app
       // itself uses one call site over, for the timeline): last day of Feb.
-      final sensibleNext = DateTime.utc(2026, 2, 28);
+      final sensibleNext = DateTime.utc(2099, 2, 28);
       expect(
         actualNext.year == sensibleNext.year &&
             actualNext.month == sensibleNext.month &&
@@ -530,7 +524,7 @@ void main() {
   );
 
   testWidgets(
-    '5.2.3 BUG yearly recurrence started on a leap day (Feb 29) skips into March',
+    '5.2.3 yearly recurrence on Feb 29 next falls on Feb 28',
     (tester) async {
       // Same root cause as 5.2.2, applied to the yearly case.
       final catId = categoryId(bridge, 'expense', 'Insurance');
@@ -566,7 +560,7 @@ void main() {
   );
 
   testWidgets(
-    '5.2.4 BUG timeline shows occurrences past the recurrence end_date',
+    '5.2.4 timeline stops at the recurrence end_date',
     (tester) async {
       // GetActiveRecurrenceTemplatesForProfile only excludes a template
       // whose *whole* end_date already elapsed before the window

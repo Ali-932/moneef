@@ -39,8 +39,7 @@ class TransactionRow extends ConsumerWidget {
     );
     final category = transaction.categories.isEmpty
         ? (isIncome ? 'Income' : 'Expense')
-        : (transaction.categories.first.category?['name'] ?? 'Category')
-              .toString();
+        : _categoryName(transaction.categories.first.category);
     final extra = transaction.categories.length > 1
         ? ' +${transaction.categories.length - 1}'
         : '';
@@ -164,4 +163,10 @@ class TransactionGroupHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A category deleted before deletes were kept comes back without a name.
+String _categoryName(Map<String, dynamic>? category) {
+  final name = (category?['name'] ?? '').toString();
+  return name.isEmpty ? 'Deleted category' : name;
 }

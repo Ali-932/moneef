@@ -90,6 +90,8 @@ String formatGroupLabel(DateTime d, {DateTime? now}) {
 }
 
 String formatPeriodLabel(DateTime from, DateTime to) {
+  from = from.toLocal();
+  to = to.toLocal();
   if (from.year == to.year && from.month == to.month) {
     return DateFormat('MMM y').format(from);
   }

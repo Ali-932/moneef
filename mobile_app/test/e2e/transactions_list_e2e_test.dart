@@ -491,7 +491,7 @@ void main() {
     await tester.enterText(field('Search transactions'), 'zzz-no-such-transaction');
     await settle(tester);
     expect(listState(tester).data!.results, isEmpty);
-    expect(find.textContaining('No transactions yet'), findsOneWidget);
+    expect(find.text('No transactions match these filters.'), findsOneWidget);
 
     expect(
       find.textContaining('Tap the + button to add one'),

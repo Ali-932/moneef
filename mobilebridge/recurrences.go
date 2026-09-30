@@ -81,6 +81,9 @@ func UpdateRecurrence(id int64, payload []byte) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("recurring payment not found")
 	}
+	if err == nil {
+		bookDueRecurrences() // a next date in the past has payments due now
+	}
 	return err
 }
 

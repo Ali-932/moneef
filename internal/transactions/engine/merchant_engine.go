@@ -27,7 +27,7 @@ func IconSourceForInput(value string) string {
 
 func ResolveMerchantIcon(transactionID uint) {
 	var transaction models.Transaction
-	if err := db.DB.Preload("TransactionCategory.Category").First(&transaction, transactionID).Error; err != nil {
+	if err := db.DB.Preload("TransactionCategory.Category", models.WithDeleted).First(&transaction, transactionID).Error; err != nil {
 		log.Printf("[IconLookup] Transaction %d: %v", transactionID, err)
 		return
 	}
@@ -45,7 +45,7 @@ func RefreshStoredTransactionIcons(database *gorm.DB, includeAutomatic bool) err
 		query = query.Or("icon_source = ? OR color_source = ?", IconSourceAutomatic, IconSourceAutomatic)
 	}
 	var transactions []models.Transaction
-	return query.Preload("TransactionCategory.Category").FindInBatches(&transactions, 200, func(tx *gorm.DB, _ int) error {
+	return query.Preload("TransactionCategory.Category", models.WithDeleted).FindInBatches(&transactions, 200, func(tx *gorm.DB, _ int) error {
 		return database.Transaction(func(batch *gorm.DB) error {
 			for i := range transactions {
 				if err := resolveTransactionIcon(batch, &transactions[i]); err != nil {

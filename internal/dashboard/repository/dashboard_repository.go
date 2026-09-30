@@ -29,7 +29,7 @@ func GetPeriodTotals(tx *gorm.DB, profileID uint, startDate, endDate time.Time, 
 
 func GetRecentTransactions(tx *gorm.DB, profileID uint, limit int) ([]models.Transaction, error) {
 	var transactions []models.Transaction
-	err := tx.Preload("TransactionCategory.Category").
+	err := tx.Preload("TransactionCategory.Category", models.WithDeleted).
 		Where("profile_id = ?", profileID).
 		Order("date desc, created_at desc").
 		Limit(limit).
@@ -54,10 +54,10 @@ func GetTopCategory(tx *gorm.DB, profileID uint, startDate, endDate time.Time, b
 		Scan(&result).Error
 
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
 		return nil, err
+	}
+	if result.CategoryID == 0 { // no expenses in the period
+		return nil, nil
 	}
 	return &result, nil
 }

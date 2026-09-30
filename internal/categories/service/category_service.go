@@ -24,7 +24,7 @@ func CreateCategory(profileID uint, req dto.CreateCategoryRequest) (*models.Cate
 		Icon:      req.Icon,
 		Color:     req.Color,
 	}
-	exists, err := repository.ExistsByName(profileID, req.Name)
+	exists, err := repository.ExistsByName(profileID, req.Name, &req.Type, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -49,10 +49,21 @@ func DeleteCategory(id uint, profileID uint) error {
 func UpdateCategory(id uint, profileID uint, req dto.UpdateCategoryRequest) error {
 	updates := make(map[string]interface{})
 	if req.Name != "" {
+		existing, err := repository.GetCategoryByID(id, profileID)
+		if err != nil {
+			return err
+		}
+		exists, err := repository.ExistsByName(profileID, req.Name, existing.Type, id)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return ErrDuplicateName
+		}
 		updates["name"] = req.Name
 	}
-	if req.Icon != "" {
-		updates["icon"] = req.Icon
+	if req.Icon != nil { // "" clears the icon
+		updates["icon"] = *req.Icon
 	}
 	if req.Color != "" {
 		updates["color"] = req.Color

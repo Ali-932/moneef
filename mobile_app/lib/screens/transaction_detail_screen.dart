@@ -372,7 +372,8 @@ class _CategoryRow extends StatelessWidget {
     final p = context.palette;
     final hex = c.category?['color'] as String?;
     final color = hex == null || hex.isEmpty ? p.primary : _hexToColor(hex);
-    final name = (c.category?['name'] as String?) ?? 'Category ${c.categoryId}';
+    final raw = (c.category?['name'] as String?) ?? '';
+    final name = raw.isEmpty ? 'Deleted category' : raw;
     final share = total > Decimal.zero
         ? (c.amount / total).toDouble().clamp(0.0, 1.0)
         : 0.0;

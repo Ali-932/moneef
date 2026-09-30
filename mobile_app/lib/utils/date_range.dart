@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:decimal/decimal.dart';
 import 'package:intl/intl.dart';
 
@@ -45,7 +47,25 @@ class DateRange {
 
   int get days => to.difference(from).inDays;
 
+  /// Same rule as the Go analysis: the same days of last month for a range
+  /// that starts on the 1st and stays in one month, otherwise the same length
+  /// right before it.
   ({DateTime from, DateTime to}) previousPeriod() {
+    if (from.day == 1 && from.year == to.year && from.month == to.month) {
+      final prevStart = DateTime(from.year, from.month - 1, 1);
+      final lastDay = DateTime(from.year, from.month, 0).day;
+      final prevEnd = DateTime(
+        prevStart.year,
+        prevStart.month,
+        min(to.day, lastDay),
+        to.hour,
+        to.minute,
+        to.second,
+        to.millisecond,
+        to.microsecond,
+      );
+      return (from: prevStart, to: prevEnd);
+    }
     final ms = to.difference(from);
     final prevEnd = from.subtract(const Duration(milliseconds: 1));
     final prevStart = prevEnd.subtract(ms);

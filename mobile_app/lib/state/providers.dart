@@ -196,6 +196,16 @@ class TransactionFilter {
   final String sort;
   final int? accountId;
 
+  /// Whether anything narrows the list (sort order doesn't).
+  bool get isFiltering =>
+      type.isNotEmpty ||
+      categoryId != null ||
+      categoryName.isNotEmpty ||
+      dateFrom != null ||
+      dateTo != null ||
+      search.isNotEmpty ||
+      accountId != null;
+
   TransactionFilter copyWith({
     String? type,
     int? categoryId,

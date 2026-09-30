@@ -584,6 +584,9 @@ func GetRecurrenceTimeline(profileID uint) ([]dto.RecurrenceOccurrence, error) {
 			displayCurrency = tpl.CurrencyCode
 		}
 		for _, date := range dateSet {
+			if tpl.HasEndDate && tpl.EndDate != nil && date.After(*tpl.EndDate) {
+				continue
+			}
 			occurrences = append(occurrences, dto.RecurrenceOccurrence{
 				ID:       tpl.ID,
 				Name:     tpl.Name,

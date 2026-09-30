@@ -38,7 +38,7 @@ func CreateTransactionCategoryRecurrentBulk(tx *gorm.DB, transactionCategories [
 func ListRecurrenceTemplates(profileID uint) ([]models.RecurrenceTemplate, error) {
 	var list []models.RecurrenceTemplate
 	err := db.DB.
-		Preload("TransactionCategory.Category").
+		Preload("TransactionCategory.Category", models.WithDeleted).
 		Where("profile_id = ?", profileID).
 		Order("next_date ASC").
 		Find(&list).Error

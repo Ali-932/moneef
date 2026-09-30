@@ -19,11 +19,6 @@ import '../widgets/common/skeletons.dart';
 import '../widgets/common/staggered_animated_item.dart';
 import '../widgets/transaction_row.dart';
 
-/// Bridge refusals ("this account still has activity") arrive as
-/// PlatformException; show their message, not the wrapper.
-String _message(Object e) =>
-    userMessage(e is PlatformException ? (e.message ?? e) : e);
-
 void _refreshAccounts(WidgetRef ref) {
   ref.invalidate(accountsProvider);
   ref.invalidate(accountActivityProvider);
@@ -33,7 +28,7 @@ void _showError(BuildContext context, Object e) {
   if (!context.mounted) return;
   ScaffoldMessenger.of(
     context,
-  ).showSnackBar(SnackBar(content: Text(_message(e))));
+  ).showSnackBar(SnackBar(content: Text(userMessage(e))));
 }
 
 /// Rose "Delete" confirmation, like the other delete dialogs in the app.
@@ -672,7 +667,7 @@ class _ErrorText extends StatelessWidget {
     child: Padding(
       padding: const EdgeInsets.all(24),
       child: Text(
-        error is String ? error as String : _message(error),
+        error is String ? error as String : userMessage(error),
         style: TextStyle(color: context.palette.negativeText),
         textAlign: TextAlign.center,
       ),

@@ -8,7 +8,7 @@ type CreateCategoryRequest struct {
 }
 
 type UpdateCategoryRequest struct {
-	Name  string `json:"name"`
-	Icon  string `json:"icon"`
-	Color string `json:"color"`
+	Name  string  `json:"name"`
+	Icon  *string `json:"icon"`
+	Color string  `json:"color"`
 }

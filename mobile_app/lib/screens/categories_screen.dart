@@ -704,7 +704,7 @@ class _CategoryEditorState extends ConsumerState<_CategoryEditor> {
         await api.updateCategory(widget.existing!.id, {
           'name': name,
           if (color.isNotEmpty) 'color': color,
-          if (_selectedIcon.isNotEmpty) 'icon': _selectedIcon,
+          'icon': _selectedIcon, // "" clears it ("None")
         });
         saved = widget.existing!.copyWith(
           name: name,

@@ -95,7 +95,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             activeCategoryName: filter.categoryName,
             onSelect: (name) => ref
                 .read(transactionFilterProvider.notifier)
-                .update((f) => f.copyWith(categoryName: name)),
+                .update(
+                  (f) => f.copyWith(categoryName: name, clearCategoryId: true),
+                ),
           ),
           Expanded(
             child: _TransactionsList(
@@ -129,6 +131,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
     if (result != null) {
       ref.read(transactionFilterProvider.notifier).state = result;
+      _searchController.text = result.search;
     }
   }
 
@@ -152,7 +155,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     if (range != null) {
       ref
           .read(transactionFilterProvider.notifier)
-          .update((f) => f.copyWith(dateFrom: range.start, dateTo: range.end));
+          .update(
+            (f) => f.copyWith(
+              dateFrom: range.start,
+              // The picker's end is that day's midnight; include the whole day.
+              dateTo: range.end.add(const Duration(days: 1, microseconds: -1)),
+            ),
+          );
     }
   }
 }
@@ -515,7 +524,9 @@ class _TransactionsList extends ConsumerWidget {
     if (txns.isEmpty) {
       return RefreshIndicator(
         onRefresh: () => ref.read(transactionsListProvider.notifier).refresh(),
-        child: const _EmptyState(),
+        child: _EmptyState(
+          filtered: ref.watch(transactionFilterProvider).isFiltering,
+        ),
       );
     }
     final groups = _groupByDay(txns);
@@ -575,7 +586,8 @@ class _TransactionsList extends ConsumerWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.filtered});
+  final bool filtered;
 
   @override
   Widget build(BuildContext context) {
@@ -588,7 +600,9 @@ class _EmptyState extends StatelessWidget {
         const SizedBox(height: 12),
         Center(
           child: Text(
-            'No transactions yet.\nTap the + button to add one.',
+            filtered
+                ? 'No transactions match these filters.'
+                : 'No transactions yet.\nTap the + button to add one.',
             textAlign: TextAlign.center,
             style: TextStyle(color: palette.muted),
           ),
@@ -734,7 +748,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                     onChanged: (v) => setState(
                       () => _draft = v == null
                           ? _draft.copyWith(clearCategoryId: true)
-                          : _draft.copyWith(categoryId: v),
+                          : _draft.copyWith(categoryId: v, categoryName: ''),
                     ),
                   ),
                   const SizedBox(height: 20),

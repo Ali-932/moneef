@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Category struct {
 	ID               uint      `gorm:"primaryKey" json:"id"`
@@ -12,4 +16,9 @@ type Category struct {
 	Icon             string    `gorm:"not null; type:varchar(255);" json:"icon"`
 	Color            string    `gorm:"not null; type:varchar(255);" json:"color"`
 	ParentCategoryID *uint     `json:"parent_category_id,omitempty"`
+	// Deleting keeps the row, so transactions keep their category.
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// WithDeleted also loads deleted categories, for preloading a transaction's.
+func WithDeleted(db *gorm.DB) *gorm.DB { return db.Unscoped() }
