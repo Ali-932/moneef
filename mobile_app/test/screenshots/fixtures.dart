@@ -742,8 +742,9 @@ class Fixtures {
       .toList();
 
   Map<String, dynamic> dashboard({bool empty = false}) {
-    final periodStart = DateTime.utc(now.year, now.month, 1);
-    final periodEnd = DateTime.utc(now.year, now.month + 1, 0, 23, 59, 59);
+    // Local month bounds, as the app sends them (DashboardPeriodKind.range).
+    final periodStart = DateTime(now.year, now.month, 1).toUtc();
+    final periodEnd = DateTime(now.year, now.month + 1, 0, 23, 59, 59).toUtc();
     if (empty) {
       return {
         'period': {
@@ -894,9 +895,9 @@ class Fixtures {
         for (final r in recurrences.where((r) => r['is_active'] == true))
           {
             'name': r['name'],
+            'type': r['type'],
             'amount': r['next_payment_amount'],
             'date': r['next_date'],
-            'currency': 'USD',
           },
       ],
     };

@@ -1298,8 +1298,9 @@ profile).
 ### `ListExchangeRates(payload) → []byte`
 
 Stored rates whose `currency_code_2` is `base`, ordered by
-`currency_code_1`. Payload may be empty; `base` then defaults to the
-profile's `currency_code` setting.
+`currency_code_1`. Payload may be empty; `base` then defaults to `USD`,
+because rates are anchored to USD whatever the default currency is. So the
+list doesn't change when the default currency changes.
 
 **Request JSON:**
 
@@ -1327,8 +1328,10 @@ profile's `currency_code` setting.
 
 ### `UpsertExchangeRate(payload) error`
 
-Manually sets a rate. Writes both directions: `from → to` at `rate` and
-`to → from` at `1 / rate`.
+Manually sets a currency's rate against USD, so `from` or `to` must be
+`USD`; anything else is an error. Writes both directions (`from → to` at
+`rate`, `to → from` at `1 / rate`), then the direct rate between that
+currency and every other currency with a USD rate, so any pair converts.
 
 **Request JSON:**
 
