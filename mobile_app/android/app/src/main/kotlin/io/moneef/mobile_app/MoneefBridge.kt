@@ -31,7 +31,7 @@ object MoneefBridge {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private lateinit var backups: LocalBackups
-    private val mutations = setOf("setup", "createTransaction", "updateTransaction", "deleteTransaction", "updateRecurrence", "deleteRecurrence", "createCategory", "updateCategory", "deleteCategory", "upsertExchangeRate", "fetchExchangeRates", "updateProfile", "updateSettings")
+    private val mutations = setOf("setup", "createTransaction", "updateTransaction", "deleteTransaction", "updateRecurrence", "deleteRecurrence", "createCategory", "updateCategory", "deleteCategory", "upsertExchangeRate", "fetchExchangeRates", "updateProfile", "updateSettings", "createAccount", "updateAccount", "deleteAccount", "createTransfer", "deleteTransfer", "setBalance")
 
     fun onActivityResult(request: Int, code: Int, data: Intent?): Boolean =
         ::backups.isInitialized && backups.onActivityResult(request, code, data)
@@ -125,6 +125,28 @@ object MoneefBridge {
                 }
                 "deleteCategory" -> {
                     Mobilebridge.deleteCategory(idArg(call))
+                    result.success(null)
+                }
+
+                // ── accounts ─────────────────────────────────────────
+                "listAccounts" -> result.success(Mobilebridge.listAccounts())
+                "createAccount" -> result.success(Mobilebridge.createAccount(payload(call)))
+                "updateAccount" -> {
+                    Mobilebridge.updateAccount(idArg(call), payload(call))
+                    result.success(null)
+                }
+                "deleteAccount" -> {
+                    Mobilebridge.deleteAccount(idArg(call))
+                    result.success(null)
+                }
+                "listTransfers" -> result.success(Mobilebridge.listTransfers(idArg(call)))
+                "createTransfer" -> result.success(Mobilebridge.createTransfer(payload(call)))
+                "deleteTransfer" -> {
+                    Mobilebridge.deleteTransfer(idArg(call))
+                    result.success(null)
+                }
+                "setBalance" -> {
+                    Mobilebridge.setBalance(payload(call))
                     result.success(null)
                 }
 

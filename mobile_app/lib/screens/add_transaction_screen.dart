@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/account.dart';
 import '../models/category.dart';
 import '../models/currency.dart';
 import '../state/providers.dart';
@@ -18,6 +20,8 @@ import '../utils/format.dart';
 import '../widgets/common/labeled_switch_row.dart';
 import '../widgets/common/picker_field.dart';
 import 'categories_screen.dart';
+
+const _lastAccountKey = 'last_account_id';
 
 /// Full-screen create/edit form. When [initialId] is non-null the form
 /// loads the existing transaction (via `transactionByIdProvider`) and
@@ -62,6 +66,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   String _type = 'expense';
   String _currencyCode = 'USD';
+  int? _accountId;
   DateTime _date = DateTime.now();
   bool _isRecurrent = false;
   RecurrenceFrequency _recurrentFreq = RecurrenceFrequency.monthly;
@@ -91,6 +96,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     _categoryRows.add(
       _CategoryRowState(amountController: TextEditingController()),
     );
+    if (widget.initialId == null) {
+      SharedPreferences.getInstance().then((prefs) {
+        final last = prefs.getInt(_lastAccountKey);
+        if (mounted && _accountId == null) {
+          setState(() => _accountId = last);
+        }
+      }).ignore(); // no stored choice: the first account applies
+    }
   }
 
   @override
@@ -162,6 +175,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           _notesController.text = t.notes;
           _type = t.type;
           _currencyCode = t.currencyCode;
+          _accountId = t.accountId;
           _date = t.date;
           _setCategoryRowsFromAmounts(
             t.categories
@@ -176,8 +190,33 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     return _buildForm(context);
   }
 
+  /// The account this transaction goes to; null while there is only one.
+  Account? _selectedAccount(List<Account> accounts) {
+    if (accounts.length < 2) return null;
+    return accounts.where((a) => a.id == _accountId).firstOrNull ??
+        accounts.first;
+  }
+
+  Future<void> _pickAccount(List<Account> accounts) async {
+    final picked = await showPickerBottomSheet<Account>(
+      context: context,
+      title: 'Account',
+      items: accounts,
+      labelBuilder: (a) => a.name,
+      selectedItem: _selectedAccount(accounts),
+      itemEquals: (a, b) => a.id == b.id,
+      showSearch: false,
+    );
+    if (picked != null && picked.id != _accountId) {
+      setState(() => _accountId = picked.id);
+      _markDirty();
+    }
+  }
+
   Widget _buildForm(BuildContext context) {
     final palette = context.palette;
+    final accounts = ref.watch(accountsProvider).valueOrNull ?? const [];
+    final selectedAccount = _selectedAccount(accounts);
     final categoriesAsync = ref.watch(categoriesProvider);
     final categories = categoriesAsync.maybeWhen(
       data: (d) => d.where((c) => c.type == _type).toList(),
@@ -268,6 +307,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   ),
                 ],
               ),
+              if (selectedAccount != null) ...[
+                const SizedBox(height: 16),
+                const _FieldLabel('Account'),
+                PickerField(
+                  placeholder: 'Select account',
+                  selectedLabel: selectedAccount.name,
+                  onTap: () => _pickAccount(accounts),
+                ),
+              ],
               const SizedBox(height: 24),
               const _FieldLabel('Split by category'),
               ..._categoryRows.asMap().entries.map((entry) {
@@ -552,6 +600,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       recurrentEndDate: _recurrentEndDate,
       recurrentTotalAmount: parseAmountInput(_recurrentTotalController.text),
       recurrentPaidPreviously: parseAmountInput(_recurrentPaidController.text),
+      accountId: _selectedAccount(
+        ref.read(accountsProvider).valueOrNull ?? const [],
+      )?.id,
     );
 
     final validationError = draft.validate();
@@ -570,6 +621,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       final ctrl = ref.read(transactionsMutationProvider);
       if (widget.initialId == null) {
         await ctrl.create(draft);
+        if (draft.accountId case final id?) {
+          SharedPreferences.getInstance()
+              .then((prefs) => prefs.setInt(_lastAccountKey, id))
+              .ignore();
+        }
       } else {
         await ctrl.update(widget.initialId!, draft);
       }

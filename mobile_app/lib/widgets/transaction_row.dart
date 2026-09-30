@@ -1,12 +1,14 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/transaction.dart';
+import '../state/providers.dart';
 import '../theme.dart';
 import '../utils/format.dart';
 import '../utils/mdi.dart';
 import 'common/design.dart';
 
-class TransactionRow extends StatelessWidget {
+class TransactionRow extends ConsumerWidget {
   const TransactionRow({
     super.key,
     required this.transaction,
@@ -18,9 +20,18 @@ class TransactionRow extends StatelessWidget {
   final bool showDate;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     final isIncome = transaction.type == 'income';
+    // The account only tells something once there is more than one.
+    final accounts = ref.watch(accountsProvider).valueOrNull ?? const [];
+    final accountName = accounts.length < 2
+        ? null
+        : accounts
+              .where((a) => a.id == transaction.accountId)
+              .firstOrNull
+              ?.name;
+    final account = accountName == null ? '' : ' · $accountName';
     final amount = formatMoney(
       isIncome ? transaction.totalAmount : -transaction.totalAmount,
       transaction.currencyCode,
@@ -78,7 +89,7 @@ class TransactionRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$category$extra · ${showDate ? formatDateShort(transaction.date) : formatClock(transaction.date)}',
+                      '$category$extra$account · ${showDate ? formatDateShort(transaction.date) : formatClock(transaction.date)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: palette.muted, fontSize: 11),

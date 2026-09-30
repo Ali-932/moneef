@@ -137,6 +137,43 @@ class NativeApi {
   Future<void> updateCategory(int id, Map<String, dynamic> body) =>
       _invoke<void>('updateCategory', {'id': id, 'payload': _encodeBody(body)});
 
+  // ── accounts ──────────────────────────────────────────────────────
+
+  Future<List<dynamic>> listAccounts() => _invokeJsonList('listAccounts');
+
+  Future<Map<String, dynamic>> createAccount(String name) =>
+      _invokeJson('createAccount', {'name': name});
+
+  Future<void> updateAccount(int id, String name) => _invoke<void>(
+    'updateAccount',
+    {'id': id, 'payload': _encodeBody({'name': name})},
+  );
+
+  Future<void> deleteAccount(int id) =>
+      _invoke<void>('deleteAccount', {'id': id});
+
+  /// The account's 20 latest transfers and balance corrections, newest first.
+  Future<List<dynamic>> listTransfers(int accountId) =>
+      _invokeJsonList('listTransfers', id: accountId);
+
+  Future<Map<String, dynamic>> createTransfer(Map<String, dynamic> body) =>
+      _invokeJson('createTransfer', body);
+
+  Future<void> deleteTransfer(int id) =>
+      _invoke<void>('deleteTransfer', {'id': id});
+
+  Future<void> setBalance({
+    required int accountId,
+    required String currency,
+    required String amount,
+  }) => _invoke<void>('setBalance', {
+    'payload': _encodeBody({
+      'account_id': accountId,
+      'currency': currency,
+      'amount': amount,
+    }),
+  });
+
   Future<void> deleteCategory(int id) =>
       _invoke<void>('deleteCategory', {'id': id});
 
@@ -228,10 +265,14 @@ class NativeApi {
   Future<List<dynamic>> _invokeJsonList(
     String method, {
     Map<String, dynamic>? body,
+    int? id,
   }) async {
-    final args = body == null
+    final args = body == null && id == null
         ? null
-        : <String, dynamic>{'payload': _encodeBody(body)};
+        : <String, dynamic>{
+            if (id != null) 'id': id,
+            if (body != null) 'payload': _encodeBody(body),
+          };
     final bytes = await _channel.invokeMethod<Uint8List>(method, args);
     if (bytes == null || bytes.isEmpty) return <dynamic>[];
     final decoded = jsonDecode(utf8.decode(bytes));

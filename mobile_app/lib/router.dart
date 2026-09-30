@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import 'screens/accounts_screen.dart';
 import 'screens/add_transaction_screen.dart';
 import 'screens/backups_screen.dart';
 import 'screens/categories_screen.dart';
@@ -74,6 +75,18 @@ final List<RouteBase> appRoutes = [
       child: AddTransactionScreen(
         initialId: int.parse(state.pathParameters['id']!),
       ),
+    ),
+  ),
+  GoRoute(
+    path: '/profile/accounts',
+    pageBuilder: (_, state) =>
+        sharedAxisPage(key: state.pageKey, child: const AccountsScreen()),
+  ),
+  GoRoute(
+    path: '/profile/accounts/:id',
+    pageBuilder: (_, state) => sharedAxisPage(
+      key: state.pageKey,
+      child: AccountScreen(id: int.parse(state.pathParameters['id']!)),
     ),
   ),
   GoRoute(

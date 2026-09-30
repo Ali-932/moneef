@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/glebarez/sqlite"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 
 	"moneef/internal/db"
@@ -89,6 +89,8 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 		&models.CurrencyExchangeRate{},
 		&models.Pattern{},
 		&models.IconLookup{},
+		&models.Account{},
+		&models.Transfer{},
 	)
 	require.NoError(t, err, "Failed to migrate test database")
 

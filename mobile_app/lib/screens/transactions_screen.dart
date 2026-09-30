@@ -267,6 +267,22 @@ class _ActiveFilterChips extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final chips = <_FilterChipData>[];
 
+    if (filter.accountId != null) {
+      final accounts = ref.watch(accountsProvider).valueOrNull ?? const [];
+      final name = accounts
+          .where((a) => a.id == filter.accountId)
+          .firstOrNull
+          ?.name;
+      chips.add(
+        _FilterChipData(
+          label: name == null ? 'One account' : 'Account: $name',
+          onRemove: () => ref
+              .read(transactionFilterProvider.notifier)
+              .update((f) => f.copyWith(clearAccountId: true)),
+        ),
+      );
+    }
+
     if (filter.type.isNotEmpty) {
       final label = filter.type == 'expense' ? 'Expenses' : 'Income';
       chips.add(

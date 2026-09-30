@@ -28,6 +28,7 @@ type TransactionRequest struct {
 	RecurrentPaidPreviously *decimal.Decimal             `json:"recurrent_paid_previously"`
 	RecurrentHasEndDate     *bool                        `json:"recurrent_has_end_date"`
 	RecurrentEndDate        *time.Time                   `json:"recurrent_end_date"`
+	AccountID               *uint                        `json:"account_id"`
 	TransactionCategories   []TransactionCategoryRequest `json:"transaction_categories" validate:"required,min=1,dive"`
 }
 
@@ -41,6 +42,7 @@ type TransactionUpdateRequest struct {
 	MerchantName          *string                      `json:"merchant_name"`
 	Notes                 *string                      `json:"notes"`
 	TransactionCategories []TransactionCategoryRequest `json:"transaction_categories" validate:"omitempty,min=1,dive"`
+	AccountID             *uint                        `json:"account_id"`
 }
 
 func (tr *TransactionUpdateRequest) Validate() error {

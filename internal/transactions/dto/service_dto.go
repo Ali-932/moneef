@@ -25,6 +25,7 @@ type TransactionCreationParams struct {
 	EndDate               *time.Time
 	HasEndDate            *bool
 	IsActive              *bool
+	AccountID             *uint
 }
 
 type CreateTransactionParams struct {
@@ -39,6 +40,7 @@ type CreateTransactionParams struct {
 	Notes                 *string
 	CategoriesTransaction map[uint]decimal.Decimal
 	RecurrenceTemplateID  *uint
+	AccountID             *uint
 }
 
 type CreateTransactionRecurrentParams struct {
@@ -60,6 +62,7 @@ type CreateTransactionRecurrentParams struct {
 	AmountPaidPreviously  *decimal.Decimal
 	AmountLeftToPay       *decimal.Decimal
 	TotalAmountToPay      *decimal.Decimal
+	AccountID             *uint
 }
 
 type RecurrenceOccurrence struct {

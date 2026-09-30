@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	accsvc "moneef/internal/accounts/service"
 	"moneef/internal/db"
 	"moneef/internal/models"
 	"moneef/internal/transactions/dto"
@@ -42,6 +43,10 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 			recID    uint
 			recIDPtr *uint
 		)
+		accountID, err := accsvc.Resolve(tx, params.ProfileID, params.AccountID)
+		if err != nil {
+			return err
+		}
 
 		if params.IsRecurrent != nil && *params.IsRecurrent {
 			log.Println("🔄 [SERVICE] Processing recurrent transaction setup")
@@ -78,6 +83,7 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 				IsActive:              isActive,
 				AmountPaidPreviously:  params.AmountPaidPreviously,
 				TotalAmountToPay:      params.TotalAmountToPay,
+				AccountID:             &accountID,
 			}
 			Id, err := CreateTransactionRecurrentWithTx(tx, p)
 			recID = Id
@@ -101,6 +107,7 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 			Notes:                 params.Notes,
 			CategoriesTransaction: params.CategoriesTransaction,
 			RecurrenceTemplateID:  recIDPtr,
+			AccountID:             &accountID,
 		})
 		if err != nil {
 			log.Printf("❌ [SERVICE] Failed to create transaction: %v", err)
@@ -118,9 +125,17 @@ func HandleTransactionCreation(params dto.TransactionCreationParams) error {
 }
 
 func CreateTransactionWithTx(tx *gorm.DB, p dto.CreateTransactionParams) (uint, error) {
+	if p.AccountID == nil { // recurring payments saved before accounts existed
+		id, err := accsvc.Resolve(tx, p.ProfileID, nil)
+		if err != nil {
+			return 0, err
+		}
+		p.AccountID = &id
+	}
 
 	trx := &models.Transaction{
 		UsdRate:              usdRate(tx, p.CurrencyCode),
+		AccountID:            p.AccountID,
 		ProfileID:            p.ProfileID,
 		Name:                 p.Name,
 		Type:                 p.Type,
@@ -196,6 +211,7 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p dto.CreateTransactionRecurr
 	}
 
 	trxRecurrent := &models.RecurrenceTemplate{
+		AccountID:    p.AccountID,
 		ProfileID:    p.ProfileID,
 		Name:         p.Name,
 		Type:         p.Type,
@@ -270,6 +286,12 @@ func UpdateTransaction(id uint, profileID uint, req dto.TransactionUpdateRequest
 		}
 		if req.TransactionType != "" {
 			updates["type"] = req.TransactionType
+		}
+		if req.AccountID != nil {
+			if _, err := accsvc.Resolve(tx, profileID, req.AccountID); err != nil {
+				return err
+			}
+			updates["account_id"] = *req.AccountID
 		}
 		if req.MerchantName != nil {
 			updates["merchant_name"] = *req.MerchantName
@@ -404,7 +426,7 @@ func CreateDueRecurrences(profileID uint, now time.Time) (int, error) {
 					ProfileID: tpl.ProfileID, Name: tpl.Name, Type: tpl.Type, Date: tpl.NextDate,
 					CurrencyCode: tpl.CurrencyCode, Icon: tpl.Icon, Color: tpl.Color,
 					MerchantName: tpl.MerchantName, Notes: tpl.Notes,
-					CategoriesTransaction: amounts, RecurrenceTemplateID: &tpl.ID,
+					CategoriesTransaction: amounts, RecurrenceTemplateID: &tpl.ID, AccountID: tpl.AccountID,
 				})
 				if err != nil {
 					return err

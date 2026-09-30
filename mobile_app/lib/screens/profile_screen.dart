@@ -947,6 +947,18 @@ class _ManagementCard extends StatelessWidget {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: QuietIcon(
+                    icon: Icons.account_balance_wallet_outlined,
+                    color: palette.primary,
+                    size: 36,
+                  ),
+                  title: const Text('Accounts'),
+                  subtitle: const Text('Where your money lives'),
+                  trailing: Icon(Icons.chevron_right, color: palette.muted),
+                  onTap: () => context.push('/profile/accounts'),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: QuietIcon(
                     icon: Icons.grid_view_rounded,
                     color: palette.primary,
                     size: 36,

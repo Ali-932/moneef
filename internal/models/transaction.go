@@ -29,7 +29,8 @@ type Transaction struct {
 	RecurrenceTemplate   *RecurrenceTemplate   `gorm:"foreignKey:RecurrenceTemplateID" json:"recurrence_template,omitempty"`
 	// UsdRate is units of CurrencyCode per 1 USD, frozen from settings on save.
 	// Nil for older rows; totals then use today's rate.
-	UsdRate *decimal.Decimal `gorm:"type:decimal(19,6)" json:"-"`
+	UsdRate   *decimal.Decimal `gorm:"type:decimal(19,6)" json:"-"`
+	AccountID *uint            `gorm:"index" json:"account_id,omitempty"`
 }
 
 func (t *Transaction) GetTotal(db *gorm.DB) (*types.Money, error) {
@@ -86,6 +87,7 @@ type RecurrenceTemplate struct {
 	HasEndDate           bool                         `gorm:"default:false" json:"has_end_date"`
 	IsActive             bool                         `gorm:"default:true" json:"is_active"`
 	Transactions         []Transaction                `gorm:"foreignKey:RecurrenceTemplateID" json:"transactions,omitempty"`
+	AccountID            *uint                        `gorm:"index" json:"account_id,omitempty"`
 }
 
 type RecurrenceTemplateCategory struct {

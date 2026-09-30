@@ -66,7 +66,7 @@ No JWT. Header-based identity only. `pkg/middleware/ProfileMiddleware` reads `X-
 
 ## Database
 
-- SQLite via GORM with `github.com/glebarez/sqlite` (pure Go, no cgo, FTS5 built in); connection string: `<db_path>?_foreign_keys=on&_journal_mode=WAL`
+- SQLite via GORM with `github.com/glebarez/sqlite` (pure Go, no cgo, FTS5 built in); connection string: plain `<db_path>`. Foreign keys are deliberately **not** enforced (deleting a category keeps its splits; a cascade would wipe their amounts), so rules like "can't delete an account with activity" live in code
 - Global handle: `db.DB *gorm.DB` — set once in `db.Connect()`, used directly by all repos
 - Migrations: `db.MigrateModels()` runs `AutoMigrate` on every startup — no versioning tool
 - Also creates FTS5 virtual table `icon_lookups_fts` with triggers for merchant icon search

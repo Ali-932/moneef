@@ -44,6 +44,7 @@ class Transaction with _$Transaction {
     @JsonKey(name: 'TransactionCategory')
     @Default(<TransactionCategory>[])
     List<TransactionCategory> categories,
+    @JsonKey(name: 'account_id') int? accountId,
   }) = _Transaction;
 
   factory Transaction.fromJson(Map<String, dynamic> json) =>

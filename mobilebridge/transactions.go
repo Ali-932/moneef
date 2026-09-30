@@ -27,6 +27,7 @@ type ListTransactionsRequest struct {
 	Sort         string `json:"sort"`
 	Page         int    `json:"page"`
 	PerPage      int    `json:"per_page"`
+	AccountID    uint   `json:"account_id"`
 }
 
 // PaginatedTransactions is the in-process equivalent of
@@ -73,6 +74,7 @@ func CreateTransaction(payload []byte) ([]byte, error) {
 		MerchantName:          req.MerchantName,
 		Notes:                 req.Notes,
 		CategoriesTransaction: cats,
+		AccountID:             req.AccountID,
 		IsRecurrent:           req.IsRecurrent,
 		Frequency:             req.RecurrentFreq,
 		AmountPaidPreviously:  req.RecurrentPaidPreviously,
@@ -110,6 +112,9 @@ func ListTransactions(payload []byte) ([]byte, error) {
 	}
 
 	query := txnsvc.ListTransactions(pid, req.Type, req.CategoryID, req.DateFrom, req.DateTo, req.Search, req.CategoryName, req.Sort)
+	if req.AccountID > 0 {
+		query = query.Where("transactions.account_id = ?", req.AccountID)
+	}
 
 	var count int64
 	if err := query.Session(&gorm.Session{}).Count(&count).Error; err != nil {

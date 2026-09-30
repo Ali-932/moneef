@@ -42,6 +42,7 @@ _$TransactionImpl _$$TransactionImplFromJson(Map<String, dynamic> json) =>
               )
               .toList() ??
           const <TransactionCategory>[],
+      accountId: (json['account_id'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$$TransactionImplToJson(_$TransactionImpl instance) =>
@@ -56,4 +57,5 @@ Map<String, dynamic> _$$TransactionImplToJson(_$TransactionImpl instance) =>
       'merchant_name': instance.merchantName,
       'notes': instance.notes,
       'TransactionCategory': instance.categories,
+      'account_id': instance.accountId,
     };

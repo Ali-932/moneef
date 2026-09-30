@@ -42,6 +42,7 @@ Kotlin invocation, and Dart caller.
   - [`ListRecurrences() → []byte`](#listrecurrences---byte)
   - [`RecurrenceTimeline() → []byte`](#recurrencetimeline---byte)
   - [`DeleteRecurrence(id) error`](#deleterecurrenceid-error)
+- [Accounts](#accounts)
 - [Categories](#categories)
   - [`ListCategories(payload) → []byte`](#listcategoriespayload---byte)
   - [`CreateCategory(payload) → []byte`](#createcategorypayload---byte)
@@ -707,6 +708,37 @@ The Android bridge schedules the existing automatic local backup after success.
 Deletes the recurrence template. Already-booked transactions referring to
 it stay but `recurrence_template_id` becomes a dangling FK (matches HTTP
 behavior).
+
+---
+
+## Accounts
+
+An account is just a name (Cash, Bank, Savings); any currency can be in it.
+Transactions and recurring payments carry an `account_id`: pass it to
+`CreateTransaction` / `UpdateTransaction`, or omit it for the default account
+(the first one; "Main" is created on first use and takes every transaction
+without an account). Recurring bookings go to their template's account.
+`ListTransactions` accepts `account_id` to filter. Transfers live in their own
+table and never count as income or expense.
+
+| Function | Payload / args | Returns |
+|---|---|---|
+| `ListAccounts()` | – | `[{id, name, balances: [{currency, amount}], approx_total?}]` |
+| `CreateAccount(payload)` | `{"name": "Cash"}` | the account |
+| `UpdateAccount(id, payload)` | `{"name": "Wallet"}` | error only |
+| `DeleteAccount(id)` | – | error `this account still has activity` if anything uses it |
+| `ListTransfers(accountID)` | – | the account's 20 latest transfers, newest first |
+| `CreateTransfer(payload)` | `{"from_account_id", "to_account_id", "from_currency", "from_amount", "to_currency"?, "to_amount"?, "date"?}` | the transfer |
+| `DeleteTransfer(id)` | – | error only |
+| `SetBalance(payload)` | `{"account_id", "currency", "amount"}` | error only |
+
+- Balance per currency = income − expenses + transfers in − transfers out.
+  `approx_total` sums them in the default currency at today's rates, and is
+  omitted when a currency has no rate.
+- `to_currency` / `to_amount` default to the "from" side. Same account is
+  allowed only with different currencies (changing money inside one wallet).
+- `SetBalance` stores the gap to the real amount as a transfer with no
+  `from_account_id`; its `to_amount` can be negative.
 
 ---
 

@@ -284,6 +284,8 @@ mixin _$Transaction {
   @JsonKey(name: 'TransactionCategory')
   List<TransactionCategory> get categories =>
       throw _privateConstructorUsedError;
+  @JsonKey(name: 'account_id')
+  int? get accountId => throw _privateConstructorUsedError;
 
   /// Serializes this Transaction to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -313,6 +315,7 @@ abstract class $TransactionCopyWith<$Res> {
     @JsonKey(name: 'merchant_name') String merchantName,
     String notes,
     @JsonKey(name: 'TransactionCategory') List<TransactionCategory> categories,
+    @JsonKey(name: 'account_id') int? accountId,
   });
 }
 
@@ -341,6 +344,7 @@ class _$TransactionCopyWithImpl<$Res, $Val extends Transaction>
     Object? merchantName = null,
     Object? notes = null,
     Object? categories = null,
+    Object? accountId = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -384,6 +388,10 @@ class _$TransactionCopyWithImpl<$Res, $Val extends Transaction>
                 ? _value.categories
                 : categories // ignore: cast_nullable_to_non_nullable
                       as List<TransactionCategory>,
+            accountId: freezed == accountId
+                ? _value.accountId
+                : accountId // ignore: cast_nullable_to_non_nullable
+                      as int?,
           )
           as $Val,
     );
@@ -410,6 +418,7 @@ abstract class _$$TransactionImplCopyWith<$Res>
     @JsonKey(name: 'merchant_name') String merchantName,
     String notes,
     @JsonKey(name: 'TransactionCategory') List<TransactionCategory> categories,
+    @JsonKey(name: 'account_id') int? accountId,
   });
 }
 
@@ -437,6 +446,7 @@ class __$$TransactionImplCopyWithImpl<$Res>
     Object? merchantName = null,
     Object? notes = null,
     Object? categories = null,
+    Object? accountId = freezed,
   }) {
     return _then(
       _$TransactionImpl(
@@ -480,6 +490,10 @@ class __$$TransactionImplCopyWithImpl<$Res>
             ? _value._categories
             : categories // ignore: cast_nullable_to_non_nullable
                   as List<TransactionCategory>,
+        accountId: freezed == accountId
+            ? _value.accountId
+            : accountId // ignore: cast_nullable_to_non_nullable
+                  as int?,
       ),
     );
   }
@@ -500,6 +514,7 @@ class _$TransactionImpl implements _Transaction {
     this.notes = '',
     @JsonKey(name: 'TransactionCategory')
     final List<TransactionCategory> categories = const <TransactionCategory>[],
+    @JsonKey(name: 'account_id') this.accountId,
   }) : _categories = categories;
 
   factory _$TransactionImpl.fromJson(Map<String, dynamic> json) =>
@@ -538,8 +553,12 @@ class _$TransactionImpl implements _Transaction {
   }
 
   @override
+  @JsonKey(name: 'account_id')
+  final int? accountId;
+
+  @override
   String toString() {
-    return 'Transaction(id: $id, name: $name, type: $type, date: $date, currencyCode: $currencyCode, icon: $icon, color: $color, merchantName: $merchantName, notes: $notes, categories: $categories)';
+    return 'Transaction(id: $id, name: $name, type: $type, date: $date, currencyCode: $currencyCode, icon: $icon, color: $color, merchantName: $merchantName, notes: $notes, categories: $categories, accountId: $accountId)';
   }
 
   @override
@@ -561,7 +580,9 @@ class _$TransactionImpl implements _Transaction {
             const DeepCollectionEquality().equals(
               other._categories,
               _categories,
-            ));
+            ) &&
+            (identical(other.accountId, accountId) ||
+                other.accountId == accountId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -578,6 +599,7 @@ class _$TransactionImpl implements _Transaction {
     merchantName,
     notes,
     const DeepCollectionEquality().hash(_categories),
+    accountId,
   );
 
   /// Create a copy of Transaction
@@ -607,6 +629,7 @@ abstract class _Transaction implements Transaction {
     final String notes,
     @JsonKey(name: 'TransactionCategory')
     final List<TransactionCategory> categories,
+    @JsonKey(name: 'account_id') final int? accountId,
   }) = _$TransactionImpl;
 
   factory _Transaction.fromJson(Map<String, dynamic> json) =
@@ -635,6 +658,9 @@ abstract class _Transaction implements Transaction {
   @override
   @JsonKey(name: 'TransactionCategory')
   List<TransactionCategory> get categories;
+  @override
+  @JsonKey(name: 'account_id')
+  int? get accountId;
 
   /// Create a copy of Transaction
   /// with the given fields replaced by the non-null parameter values.

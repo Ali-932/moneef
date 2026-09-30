@@ -51,6 +51,7 @@ class TransactionDraft {
     this.recurrentEndDate,
     this.recurrentTotalAmount,
     this.recurrentPaidPreviously,
+    this.accountId,
   });
 
   final String name;
@@ -69,6 +70,10 @@ class TransactionDraft {
   final DateTime? recurrentEndDate;
   final Decimal? recurrentTotalAmount;
   final Decimal? recurrentPaidPreviously;
+
+  /// Null leaves the choice to the backend: the default account on create,
+  /// unchanged on edit.
+  final int? accountId;
 
   Decimal get totalAmount =>
       categories.fold(Decimal.zero, (sum, c) => sum + c.amount);
@@ -118,6 +123,7 @@ class TransactionDraft {
       if (color.isNotEmpty) 'color': color,
       if (merchantName.isNotEmpty) 'merchant_name': merchantName,
       if (notes.isNotEmpty) 'notes': notes,
+      if (accountId != null) 'account_id': accountId,
       'transaction_categories': categories
           .map((c) => c.toJson())
           .toList(growable: false),
@@ -155,6 +161,7 @@ class TransactionDraft {
       'date': date.toUtc().toIso8601String(),
       if (merchantName.isNotEmpty) 'merchant_name': merchantName,
       'notes': notes,
+      if (accountId != null) 'account_id': accountId,
       'transaction_categories': categories
           .map((c) => c.toJson())
           .toList(growable: false),
@@ -179,6 +186,8 @@ class TransactionsMutationController {
     _ref.invalidate(patternsProvider);
     _ref.invalidate(recurrenceTimelineProvider);
     _ref.invalidate(recurrencesProvider);
+    _ref.invalidate(accountsProvider);
+    _ref.invalidate(accountActivityProvider);
   }
 
   Future<void> create(TransactionDraft draft) async {

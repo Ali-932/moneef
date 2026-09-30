@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/account.dart';
 import '../models/app_settings.dart';
 import '../models/category.dart';
 import '../models/currency.dart';
@@ -102,6 +103,40 @@ final themeModeProvider = Provider<ThemeMode>((ref) {
 
 // ── exchange rates ──────────────────────────────────────────────────
 
+// ── accounts ────────────────────────────────────────────────────────
+
+final accountsProvider = FutureProvider<List<Account>>((ref) async {
+  final boot = ref.watch(bootControllerProvider);
+  if (boot.stage != BootStage.ready) return <Account>[];
+  final raw = await ref.watch(nativeApiProvider).listAccounts();
+  return raw
+      .cast<Map<String, dynamic>>()
+      .map(Account.fromJson)
+      .toList(growable: false);
+});
+
+/// An account's 20 latest [Transaction]s and [Transfer]s, newest first.
+final accountActivityProvider = FutureProvider.family<List<Object>, int>((
+  ref,
+  accountId,
+) async {
+  final api = ref.watch(nativeApiProvider);
+  final page = PaginatedTransactions.fromJson(
+    await api.listTransactions({
+      'account_id': accountId,
+      'sort': '-date',
+      'per_page': 20,
+    }),
+  );
+  final transfers = (await api.listTransfers(
+    accountId,
+  )).cast<Map<String, dynamic>>().map(Transfer.fromJson);
+  DateTime dateOf(Object o) => o is Transaction ? o.date : (o as Transfer).date;
+  final items = <Object>[...page.results, ...transfers]
+    ..sort((a, b) => dateOf(b).compareTo(dateOf(a)));
+  return items.take(20).toList(growable: false);
+});
+
 final exchangeRatesProvider = FutureProvider<List<ExchangeRate>>((ref) async {
   final boot = ref.watch(bootControllerProvider);
   if (boot.stage != BootStage.ready) return <ExchangeRate>[];
@@ -149,6 +184,7 @@ class TransactionFilter {
     this.dateTo,
     this.search = '',
     this.sort = '-date',
+    this.accountId,
   });
 
   final String type;
@@ -158,6 +194,7 @@ class TransactionFilter {
   final DateTime? dateTo;
   final String search;
   final String sort;
+  final int? accountId;
 
   TransactionFilter copyWith({
     String? type,
@@ -167,8 +204,10 @@ class TransactionFilter {
     DateTime? dateTo,
     String? search,
     String? sort,
+    int? accountId,
     bool clearCategoryId = false,
     bool clearDates = false,
+    bool clearAccountId = false,
   }) {
     return TransactionFilter(
       type: type ?? this.type,
@@ -178,6 +217,7 @@ class TransactionFilter {
       dateTo: clearDates ? null : (dateTo ?? this.dateTo),
       search: search ?? this.search,
       sort: sort ?? this.sort,
+      accountId: clearAccountId ? null : (accountId ?? this.accountId),
     );
   }
 
@@ -190,6 +230,7 @@ class TransactionFilter {
       if (dateTo != null) 'date_to': dateTo!.toUtc().toIso8601String(),
       'search': search,
       'sort': sort,
+      if (accountId != null) 'account_id': accountId,
       'page': page,
       'per_page': perPage,
     };

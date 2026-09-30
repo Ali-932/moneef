@@ -87,6 +87,22 @@ func dispatch(method string, a args) (res []byte, n *int64, err error) {
 		err = mobilebridge.UpdateCategory(a.ID, p)
 	case "deleteCategory":
 		err = mobilebridge.DeleteCategory(a.ID)
+	case "listAccounts":
+		res, err = mobilebridge.ListAccounts()
+	case "createAccount":
+		res, err = mobilebridge.CreateAccount(p)
+	case "updateAccount":
+		err = mobilebridge.UpdateAccount(a.ID, p)
+	case "deleteAccount":
+		err = mobilebridge.DeleteAccount(a.ID)
+	case "listTransfers":
+		res, err = mobilebridge.ListTransfers(a.ID)
+	case "createTransfer":
+		res, err = mobilebridge.CreateTransfer(p)
+	case "deleteTransfer":
+		err = mobilebridge.DeleteTransfer(a.ID)
+	case "setBalance":
+		err = mobilebridge.SetBalance(p)
 	case "dashboard":
 		res, err = mobilebridge.Dashboard(p)
 	case "analysis":
