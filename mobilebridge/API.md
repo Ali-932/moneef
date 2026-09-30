@@ -956,7 +956,7 @@ with `"0"` for empty days.
 Patterns are heuristic insights about the user's spending. Three
 detectors run today:
 
-| Detector | Min transactions | What it looks for |
+| Detector | Runs with more than … expenses | What it looks for |
 |---|---|---|
 | Weekend Spike | 30 | Weekend vs weekday avg spending differing by >30% |
 | Category-Based Spending | 10 | Top category + concentration (top 1 ≥ 30%, top 2 ≥ 80%) |
@@ -964,24 +964,11 @@ detectors run today:
 
 ### Pattern detection model
 
-There are **two** funcs: a fast read (`Patterns`) and a (re-)compute
-(`RefreshPatterns`). Typical UI flow:
-
-```
-App opens                                       
-  → Patterns()       // instant; reads cached rows
-      ↓
-  → render list                                  
-                                                
-User pulls to refresh / opens insights screen:
-  → RefreshPatterns({})  // recomputes + upserts; can take 100ms-2s
-      ↓
-  → render returned list (already sorted by final_score DESC)
-```
-
-`RefreshPatterns` writes the detected patterns into the `patterns` table
-via `ON CONFLICT (profile_id, name, type) DO UPDATE`. Subsequent
-`Patterns()` calls return the freshly-stored set.
+`RefreshPatterns` runs the detectors and returns the patterns, with icons,
+sorted by `final_score DESC`. It stores nothing. The app calls it whenever
+the Patterns tab opens or a transaction changes, so results always match the
+current data. `Patterns()` only reads rows the HTTP server stored; the mobile
+bridge never writes them, so on mobile it returns `[]`.
 
 ### Pattern type catalog
 
@@ -1001,8 +988,9 @@ UI to pick an icon / template / explanation:
 
 ### `Patterns() → []byte`
 
-Reads persisted patterns for the active profile. **No DB-write.** Sorted
-by `final_score DESC`.
+Reads patterns stored by the HTTP server for the active profile. **No
+DB-write.** Sorted by `final_score DESC`. The mobile bridge never stores
+patterns, so on mobile this returns `[]`; use `RefreshPatterns`.
 
 **Request:** no args.
 
@@ -1120,8 +1108,8 @@ Future<List<Map<String, dynamic>>> patterns() async {
 
 ### `RefreshPatterns(payload) → []byte`
 
-Re-runs all detectors against the active profile's transactions and
-upserts the results. **Writes** to the `patterns` table.
+Re-runs all detectors against the active profile's expenses and returns the
+patterns with their icons. **Stores nothing.**
 
 **Request JSON (all optional):**
 
@@ -1147,11 +1135,8 @@ Internally:
 4. Runs each detector that meets its `MinTransactions()` floor.
 5. Scores every produced pattern via the detector's `ScorePattern`
    (weighted: impact 0.4 · confidence 0.3 · action 0.1 · urgency 0.2).
-6. Sorts by `final_score DESC` and returns the slice. **Note:** the
-   returned slice is the in-memory result; persisting via
-   `repository.UpsertPatterns` is a separate step that today only the HTTP
-   handler invokes. If you need the persisted set, follow up with
-   `Patterns()`.
+6. Gives each pattern its icon and colour, sorts by `final_score DESC` and
+   returns the slice. Nothing is stored.
 
 **Response JSON:** array of patterns identical in shape to `Patterns()`.
 

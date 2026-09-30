@@ -1383,6 +1383,10 @@ class _HeatmapMonth extends StatelessWidget {
   }
 }
 
+/// Detectors need more than 10 expenses in the period (see mobilebridge/API.md).
+const _noPatterns =
+    'Patterns appear once this period has more than 10 expenses.';
+
 class PatternPreviewList extends StatelessWidget {
   const PatternPreviewList({super.key, required this.patterns});
 
@@ -1391,7 +1395,7 @@ class PatternPreviewList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    if (patterns.isEmpty) return const EmptyBox('No patterns found.');
+    if (patterns.isEmpty) return const EmptyBox(_noPatterns);
     return Container(
       decoration: BoxDecoration(
         color: palette.card,
@@ -1417,7 +1421,7 @@ class PatternList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    if (patterns.isEmpty) return const EmptyBox('No patterns found.');
+    if (patterns.isEmpty) return const EmptyBox(_noPatterns);
     return Container(
       decoration: BoxDecoration(
         color: palette.card,

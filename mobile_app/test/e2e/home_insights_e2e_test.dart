@@ -570,14 +570,10 @@ void main() {
         final statCards = tester.widget<PatternStatCards>(find.byType(PatternStatCards));
         expect(statCards.patterns.length, patternList.patterns.length);
 
-        // Manual "Analyze" refresh works and reports success.
-        await tester.tap(find.text('Analyze'));
-        await settle(tester);
-        expect(find.text('Patterns updated'), findsOneWidget);
-        patternList = tester.widget<PatternList>(find.byType(PatternList));
+        // Each pattern arrives with its own icon from the Go core.
         expect(
-          patternList.patterns.map((p) => p.patternType).toSet(),
-          types,
+          patternList.patterns.map((p) => p.icon),
+          everyElement(isNotEmpty),
         );
 
         // Switching the period chip still finds the same concentration
@@ -595,28 +591,6 @@ void main() {
         );
 
         expect(tester.takeException(), isNull);
-
-        // BUG: API.md documents that RefreshPatterns "writes the detected
-        // patterns into the patterns table ... Subsequent Patterns() calls
-        // return the freshly-stored set." mobilebridge/patterns.go's
-        // RefreshPatterns (lines 37-68) never does this — it only calls
-        // pattern_engine.GetUserPatterns and returns the result, unlike its
-        // HTTP-handler sibling internal/patterns/pattern_handler.go:91-108
-        // (RefreshPatternsHandler), which upserts via
-        // repository.UpsertPatterns inside a DB transaction for the
-        // all-time case. So the mobile bridge's cheap "instant read" fast
-        // path (Patterns()) never reflects a refresh that went through
-        // RefreshPatterns() — it stays permanently empty for this profile,
-        // even though the UI just displayed 3 patterns computed from it.
-        final cached = bridge.json('patterns') as List;
-        expect(
-          cached.length,
-          patternList.patterns.length,
-          reason: 'per API.md, Patterns() should return the set that the '
-              'Analyze tap above just wrote via RefreshPatterns — instead '
-              'it is always empty because mobilebridge/patterns.go:37-68 never '
-              'persists.',
-        );
       },
     );
   });

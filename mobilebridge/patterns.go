@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"moneef/internal/db"
+	"moneef/internal/patterns/engine"
 	"moneef/internal/patterns/pattern_engine"
 	patternsrepo "moneef/internal/patterns/repository"
 )
@@ -63,6 +64,9 @@ func RefreshPatterns(payload []byte) ([]byte, error) {
 	list, err := pattern_engine.GetUserPatterns(pid, start, end)
 	if err != nil {
 		return nil, err
+	}
+	for i := range list {
+		engine.ResolvePatternIconInMemory(&list[i])
 	}
 	if list == nil {
 		return []byte("[]"), nil

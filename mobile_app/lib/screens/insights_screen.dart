@@ -10,7 +10,6 @@ import '../state/insights_providers.dart';
 import '../state/providers.dart';
 import '../theme.dart';
 import '../utils/date_range.dart';
-import '../utils/errors.dart';
 import '../utils/format.dart';
 import '../widgets/common/picker_field.dart';
 import '../widgets/common/date_picker_style.dart';
@@ -634,72 +633,13 @@ class _PatternsBody extends ConsumerWidget {
         children: [
           PatternStatCards(patterns: patterns),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              const Expanded(child: SectionHeader('Spending patterns')),
-              const _AnalyzeButton(),
-            ],
-          ),
+          const SectionHeader('Spending patterns'),
           const SizedBox(height: 12),
           _PeriodChips(active: period),
           const SizedBox(height: 12),
           PatternList(patterns: patterns),
         ],
       ),
-    );
-  }
-}
-
-/// Refreshes the provider, which runs detection for the selected period.
-class _AnalyzeButton extends ConsumerStatefulWidget {
-  const _AnalyzeButton();
-
-  @override
-  ConsumerState<_AnalyzeButton> createState() => _AnalyzeButtonState();
-}
-
-class _AnalyzeButtonState extends ConsumerState<_AnalyzeButton> {
-  bool _busy = false;
-
-  Future<void> _run() async {
-    if (_busy) return;
-    HapticFeedback.selectionClick();
-    setState(() => _busy = true);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      ref.invalidate(patternsProvider);
-      await ref.read(patternsProvider.future);
-      if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text('Patterns updated')));
-    } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(userMessage(e))));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.palette;
-    return FilledButton.icon(
-      onPressed: _busy ? null : _run,
-      style: FilledButton.styleFrom(
-        backgroundColor: palette.accentFill,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        shape: const RoundedRectangleBorder(borderRadius: AppRadii.pill),
-      ),
-      icon: _busy
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : const Icon(Icons.refresh_rounded, size: 16),
-      label: Text(_busy ? 'Analyzing…' : 'Analyze'),
     );
   }
 }
