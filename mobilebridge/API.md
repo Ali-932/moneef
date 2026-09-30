@@ -855,7 +855,7 @@ Single call that builds the home-screen summary for a date range.
     "avg_transaction": "4.50"
   },
   "upcoming_recurring": [
-    {"name": "Netflix", "amount": "15.00", "date": "2026-07-01T00:00:00Z"}
+    {"name": "Netflix", "type": "expense", "amount": "15.00", "date": "2026-07-01T00:00:00Z"}
   ]
 }
 ```

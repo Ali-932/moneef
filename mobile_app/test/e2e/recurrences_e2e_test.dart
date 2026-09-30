@@ -11,6 +11,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile_app/theme.dart';
 import 'package:mobile_app/utils/format.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -410,6 +411,54 @@ void main() {
       );
     },
   );
+
+  testWidgets('5.1.8 Home "Coming up" shows a recurring income as income', (
+    tester,
+  ) async {
+    final catId = categoryId(bridge, 'income', 'Salary');
+    bridge.json(
+      'createTransaction',
+      body: recurringPayload(
+        name: 'Upcoming Salary',
+        type: 'income',
+        currency: 'USD',
+        date: DateTime.now().toUtc(),
+        freq: 'weekly',
+        categoryId: catId,
+        amount: '1234.56',
+      ),
+    );
+
+    setGoldenSurface(tester);
+    await tester.pumpWidget(
+      appUnderTest(themeMode: ThemeMode.light, path: '/home'),
+    );
+    await settle(tester);
+    for (
+      var i = 0;
+      i < 10 && find.text('Coming up').evaluate().isEmpty;
+      i++
+    ) {
+      await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+      await tester.pump();
+    }
+    await settle(tester);
+    expect(tester.takeException(), isNull);
+    // Recent shows today's booked payment as +$1,234.56; the next one is
+    // in "Coming up" as $1,234.56. Totals also show $1,234.56, so look only
+    // inside the rows named after the recurrence.
+    expect(find.textContaining(RegExp(r'^-.*1,234\.56')), findsNothing);
+    final amount = find.descendant(
+      of: find.ancestor(
+        of: find.text('Upcoming Salary'),
+        matching: find.byType(Row),
+      ),
+      matching: find.text(formatMoney(Decimal.parse('1234.56'), 'USD')),
+    );
+    expect(amount, findsOneWidget);
+    final palette = tester.element(amount).palette;
+    expect(tester.widget<Text>(amount).style?.color, palette.positiveText);
+  });
 
   // ── 5.2 Timeline occurrences correct per frequency + end date ───────────
 

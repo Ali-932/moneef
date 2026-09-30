@@ -155,7 +155,10 @@ class _DashboardBody extends StatelessWidget {
         const SizedBox(height: 20),
         _SectionHeader(title: 'Coming up'),
         const SizedBox(height: 8),
-        _UpcomingRecurringCard(items: summary.upcomingRecurring),
+        _UpcomingRecurringCard(
+          items: summary.upcomingRecurring,
+          currency: summary.currencyCode,
+        ),
       ],
     );
   }
@@ -659,8 +662,9 @@ class _RecentList extends StatelessWidget {
 }
 
 class _UpcomingRecurringCard extends StatelessWidget {
-  const _UpcomingRecurringCard({required this.items});
+  const _UpcomingRecurringCard({required this.items, required this.currency});
   final List<Map<String, dynamic>> items;
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
@@ -689,7 +693,7 @@ class _UpcomingRecurringCard extends StatelessWidget {
       child: Column(
         children: [
           for (var i = 0; i < items.length; i++) ...[
-            _UpcomingRecurringRow(item: items[i]),
+            _UpcomingRecurringRow(item: items[i], currency: currency),
             if (i < items.length - 1)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
@@ -703,8 +707,10 @@ class _UpcomingRecurringCard extends StatelessWidget {
 }
 
 class _UpcomingRecurringRow extends StatelessWidget {
-  const _UpcomingRecurringRow({required this.item});
+  const _UpcomingRecurringRow({required this.item, required this.currency});
   final Map<String, dynamic> item;
+  // Amounts arrive converted to the settings currency.
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
@@ -714,7 +720,7 @@ class _UpcomingRecurringRow extends StatelessWidget {
     final amount = Decimal.tryParse(amountStr) ?? Decimal.zero;
     final dateStr = item['date'] as String?;
     final date = dateStr != null ? DateTime.parse(dateStr) : null;
-    final currency = item['currency'] as String? ?? '';
+    final isIncome = item['type'] == 'income';
 
     return Row(
       children: [
@@ -734,9 +740,9 @@ class _UpcomingRecurringRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              formatMoney(-amount, currency),
+              formatMoney(isIncome ? amount : -amount, currency),
               style: TextStyle(
-                color: palette.negativeText,
+                color: isIncome ? palette.positiveText : palette.negativeText,
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
               ),

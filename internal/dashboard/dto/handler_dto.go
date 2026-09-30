@@ -52,6 +52,7 @@ type TopMerchant struct {
 
 type RecurringPayment struct {
 	Name   string      `json:"name"`
+	Type   string      `json:"type"`
 	Amount types.Money `json:"amount"`
 	Date   time.Time   `json:"date"`
 }

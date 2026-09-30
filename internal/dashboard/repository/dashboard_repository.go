@@ -98,7 +98,7 @@ func GetUpcomingRecurring(tx *gorm.DB, profileID uint, currentDate time.Time, li
 	endDate := currentDate.AddDate(0, 1, 0)
 	var results []dto.RecurringPayment
 	err := tx.Table("recurrence_templates rt").
-		Select(fmt.Sprintf("rt.name as name, %s as amount, rt.next_date as date", utils.ConvertedAmount("rt.next_payment_amount"))).
+		Select(fmt.Sprintf("rt.name as name, rt.type as type, %s as amount, rt.next_date as date", utils.ConvertedAmount("rt.next_payment_amount"))).
 		Scopes(utils.WithCurrencyConversion("rt", baseCurrency)).
 		Where("rt.is_active = true AND rt.profile_id = ? AND rt.next_date >= ? AND rt.next_date <= ?", profileID, currentDate, endDate).
 		Order("rt.next_date ASC").
