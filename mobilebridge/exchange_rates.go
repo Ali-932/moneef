@@ -19,12 +19,7 @@ type listExchangeRatesRequest struct {
 }
 
 func ListExchangeRates(payload []byte) ([]byte, error) {
-	pid, err := getProfileID()
-	if err != nil {
-		return nil, err
-	}
-	uid, err := resolveUserID(pid)
-	if err != nil {
+	if _, err := getProfileID(); err != nil {
 		return nil, err
 	}
 
@@ -37,11 +32,7 @@ func ListExchangeRates(payload []byte) ([]byte, error) {
 
 	base := req.Base
 	if base == "" {
-		settings, err := usersvc.GetSettings(uid)
-		if err != nil {
-			return nil, err
-		}
-		base = settings.CurrencyCode
+		base = "USD" // rates are anchored to USD, whatever the default currency
 	}
 
 	rates, err := currencies.GetExchangeRates(base)
@@ -78,11 +69,14 @@ func UpsertExchangeRate(payload []byte) error {
 		return errors.New("rate must be a positive number")
 	}
 
-	if err := currencies.CreateUpdateCurrencyRate(req.From, req.To, rate); err != nil {
-		return err
+	// Rates are anchored to USD, so one side must be USD.
+	switch {
+	case req.From == "USD" && req.To != "USD":
+		return currencies.SetUsdRate(req.To, rate)
+	case req.To == "USD" && req.From != "USD":
+		return currencies.SetUsdRate(req.From, decimal.NewFromInt(1).Div(rate))
 	}
-	inverse := decimal.NewFromInt(1).Div(rate)
-	return currencies.CreateUpdateCurrencyRate(req.To, req.From, inverse)
+	return errors.New("rates are set against USD: from or to must be USD")
 }
 
 func FetchExchangeRates() error {

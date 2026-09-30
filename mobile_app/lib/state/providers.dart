@@ -148,8 +148,8 @@ final exchangeRatesProvider = FutureProvider<List<ExchangeRate>>((ref) async {
       .toList(growable: false);
 });
 
-/// Currencies usable in transactions: the base/default currency plus every
-/// currency the user has added an exchange rate for.
+/// Currencies usable in transactions: the default currency, plus USD and every
+/// currency with a USD rate once the default itself converts to USD.
 final availableCurrenciesProvider = FutureProvider<List<Currency>>((ref) async {
   final boot = ref.watch(bootControllerProvider);
   if (boot.stage != BootStage.ready) return <Currency>[];
@@ -160,9 +160,13 @@ final availableCurrenciesProvider = FutureProvider<List<Currency>>((ref) async {
 
   final byCode = {for (final c in master) c.code: c};
 
-  final codes = <String>{settings.currencyCode};
-  for (final r in rates) {
-    if (r.from.isNotEmpty) codes.add(r.from);
+  final base = settings.currencyCode;
+  final codes = <String>{base};
+  if (base == 'USD' || rates.any((r) => r.from == base)) {
+    codes.add('USD');
+    for (final r in rates) {
+      if (r.from.isNotEmpty) codes.add(r.from);
+    }
   }
 
   final result = <Currency>[];

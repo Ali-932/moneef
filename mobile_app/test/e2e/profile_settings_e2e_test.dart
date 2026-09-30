@@ -331,4 +331,53 @@ void main() {
     expect(find.byType(ProfileScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('8.6 rates stay against USD when the default currency changes', (
+    tester,
+  ) async {
+    for (final rate in [
+      {'from': 'USD', 'to': 'EUR', 'rate': '0.9'},
+      {'from': 'USD', 'to': 'IQD', 'rate': '1500'},
+    ]) {
+      bridge.json('upsertExchangeRate', body: rate);
+    }
+    bridge.json('updateSettings', body: {'currency_code': 'IQD'});
+
+    Future<void> openCurrencies() async {
+      setGoldenSurface(tester);
+      await tester.pumpWidget(const SizedBox()); // drop cached providers
+      await tester.pumpWidget(
+        appUnderTest(themeMode: ThemeMode.light, path: '/profile'),
+      );
+      await settle(tester);
+      await _scrollProfileTo(tester, bottom: true);
+      await settle(tester);
+      expect(tester.takeException(), isNull);
+    }
+
+    Future<List<String>> usable() async {
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(ProfileScreen)),
+      );
+      final list = await container.read(availableCurrenciesProvider.future);
+      return [for (final c in list) c.code];
+    }
+
+    await openCurrencies();
+    expect(find.text('1 USD ='), findsNWidgets(2));
+    expect(find.text('0.9'), findsOneWidget);
+    expect(find.text('1500'), findsOneWidget);
+    expect(find.textContaining('your default currency'), findsNothing);
+    expect(await usable(), ['EUR', 'IQD', 'USD']);
+
+    // A default without a USD rate can't convert the others yet.
+    bridge.json('updateSettings', body: {'currency_code': 'GBP'});
+    await openCurrencies();
+    expect(
+      find.text('Add GBP, your default currency, to use other currencies.'),
+      findsOneWidget,
+    );
+    expect(find.text('1 USD ='), findsNWidgets(2));
+    expect(await usable(), ['GBP']);
+  });
 }

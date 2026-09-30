@@ -594,12 +594,10 @@ class _CurrenciesCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
-    final settingsAsync = ref.watch(settingsProvider);
     final ratesAsync = ref.watch(exchangeRatesProvider);
-    final base = settingsAsync.maybeWhen(
-      data: (s) => s.currencyCode,
-      orElse: () => '',
-    );
+    // Rates are anchored to USD, whatever the default currency.
+    const base = 'USD';
+    final defaultCode = ref.watch(settingsProvider).valueOrNull?.currencyCode;
 
     return _Card(
       child: Column(
@@ -609,18 +607,14 @@ class _CurrenciesCard extends ConsumerWidget {
             children: [
               const Expanded(child: _SectionTitle('Currencies')),
               TextButton.icon(
-                onPressed: base.isEmpty
-                    ? null
-                    : () => _openAddCurrency(context, ref, base),
+                onPressed: () => _openAddCurrency(context, ref, base),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add'),
               ),
             ],
           ),
           Text(
-            base.isEmpty
-                ? ''
-                : 'Rates relative to your base currency ($base). Only added currencies can be used in transactions.',
+            'Rates are set against USD. Only added currencies can be used in transactions.',
             style: TextStyle(color: palette.muted, fontSize: 12),
           ),
           const SizedBox(height: 12),
@@ -631,6 +625,21 @@ class _CurrenciesCard extends ConsumerWidget {
               style: TextStyle(color: palette.negativeText),
             ),
             data: (rates) {
+              // Other currencies convert to the default through its USD rate.
+              if (defaultCode != null &&
+                  defaultCode != base &&
+                  !rates.any((r) => r.from == defaultCode)) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add $defaultCode, your default currency, to use other currencies.',
+                      style: TextStyle(color: palette.ink, fontSize: 13),
+                    ),
+                    for (final r in rates) _RateRow(rate: r, base: base),
+                  ],
+                );
+              }
               if (rates.isEmpty) {
                 return Text(
                   'No currencies added yet. Tap Add or update rates to get started.',

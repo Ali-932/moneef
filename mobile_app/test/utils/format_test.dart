@@ -10,6 +10,9 @@ void main() {
     expect(inverseRateString(Decimal.parse('1250')), '0.0008');
     // Trailing zeros trimmed.
     expect(inverseRateString(Decimal.parse('0.5')), '2');
+    // Stored inverses aren't exact: round, so 1500 doesn't read 1499.999999.
+    expect(inverseRateString(Decimal.parse('0.0006666666666667')), '1500');
+    expect(inverseRateString(Decimal.parse('1.1111111111111112')), '0.9');
     // Guard: non-positive rate → empty (no divide-by-zero).
     expect(inverseRateString(Decimal.zero), '');
   });

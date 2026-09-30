@@ -22,7 +22,9 @@ String currencySymbol(String code) =>
 /// plain, trimmed number string suitable for an editable field.
 String inverseRateString(Decimal stored, {int scale = 6}) {
   if (stored <= Decimal.zero) return '';
-  final inv = (Decimal.one / stored).toDecimal(scaleOnInfinitePrecision: scale);
+  final inv = (Decimal.one / stored)
+      .toDecimal(scaleOnInfinitePrecision: scale + 4)
+      .round(scale: scale);
   final s = inv.toString();
   // Trim trailing zeros so the field shows "1314.4" not "1314.400000".
   return s.contains('.')

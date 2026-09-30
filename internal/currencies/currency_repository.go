@@ -22,6 +22,13 @@ func GetExchangeRates(baseCurrency string) ([]models.CurrencyExchangeRate, error
 	return rates, err
 }
 
+// GetUsdRates returns the USD→X rows: how many X one USD buys.
+func GetUsdRates() ([]models.CurrencyExchangeRate, error) {
+	var rates []models.CurrencyExchangeRate
+	err := db.DB.Where("currency_code1 = 'USD'").Find(&rates).Error
+	return rates, err
+}
+
 func CreateUpdateCurrencyRate(base string, target string, rate decimal.Decimal) error {
 	currencyRate := models.CurrencyExchangeRate{
 		CurrencyCode1: base,
