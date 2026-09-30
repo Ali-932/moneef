@@ -1,14 +1,60 @@
 name: CI
+
 on: [push, pull_request]
+
 jobs:
-  build:
+  go:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
-      - name: Build
-        run: go build ./...
+          go-version-file: go.mod
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Vet mobile binding
+        run: go vet -tags smoke ./mobilebridge/...
+
       - name: Test
-        run: go test -race ./tests/...
+        run: go test ./...
+
+      - name: Test mobile binding
+        run: go test -tags smoke ./mobilebridge/
+
+      - name: Android compile check
+        run: GOOS=android CGO_ENABLED=0 GOARCH=arm64 go build ./mobilebridge/...
+
+  flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # Flutter's e2e tests load this over dart:ffi; ubuntu-latest ships gcc,
+      # so the cgo c-shared build needs no extra setup.
+      - name: Build e2e bridge library
+        run: go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobilebridge/_e2e/
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: mobile_app
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: mobile_app
+        run: flutter analyze
+
+      - name: Test
+        working-directory: mobile_app
+        run: flutter test --exclude-tags screenshots

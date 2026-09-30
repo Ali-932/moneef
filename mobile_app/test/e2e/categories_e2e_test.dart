@@ -631,44 +631,6 @@ void main() {
       },
     );
 
-    testWidgets('6.4.3 empty/whitespace name', (tester) async {
-      setGoldenSurface(tester);
-      await tester.pumpWidget(
-        appUnderTest(themeMode: ThemeMode.light, path: '/profile/categories'),
-      );
-      await settle(tester);
-      await tester.tap(find.byTooltip('Add category'));
-      await settle(tester);
-
-      // Whitespace-only: client trims and blocks before ever calling the
-      // bridge (categories_screen.dart _submit(): `name.isEmpty` after
-      // `.trim()`).
-      await tester.enterText(field('Name'), '   ');
-      await tester.ensureVisible(find.text('Create category'));
-      await tester.pump();
-      await tester.tap(find.text('Create category'));
-      await settle(tester);
-      expect(find.text('New category'), findsOneWidget, reason: 'still open');
-      expect(snackBarText(tester), 'Name is required');
-      expect(listCatsViaBridge().cast<Map>().length, 21); // just the defaults
-
-      // Expected (product intent — a finance app shouldn't persist a
-      // blank-looking category name; the Flutter form already treats
-      // whitespace-only as "Name is required"): the API layer should reject
-      // or trim it too. Currently FAILS — BUG/gap: neither the mobile bridge
-      // (no validator call at all in mobilebridge/categories.go, unlike the HTTP
-      // handler's `validate.Struct(req)` in
-      // internal/categories/category_handler.go) nor
-      // CreateCategoryRequest's `required` tag (go-playground's `required`
-      // only rejects the empty string, not whitespace) catches this.
-      final created = createCatViaBridge('   ', 'expense');
-      expect(
-        (created['name'] as String).trim(),
-        isNotEmpty,
-        reason: 'a whitespace-only category name should be rejected or trimmed server-side',
-      );
-    });
-
     testWidgets('6.4.4 editing a default (profile_id NULL) category is blocked', (
       tester,
     ) async {

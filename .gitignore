@@ -41,5 +41,3 @@ skills/
 .codex/
 .github/hooks/
 .impeccable/
-# Test artifacts
-tests/recurrences_test.go.bak

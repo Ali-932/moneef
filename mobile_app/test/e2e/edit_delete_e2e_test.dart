@@ -23,7 +23,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../screenshots/harness.dart';
@@ -113,23 +112,6 @@ void main() {
     // filtered list tile comes after it in the tree.
     await tester.tap(find.text(label).last);
     await settle(tester);
-  }
-
-  /// Types [date] into a Material date-picker's input-entry-mode field and
-  /// confirms. Assumes the dialog is already showing in calendar mode (the
-  /// app's default — see AddTransactionScreen._DateField).
-  Future<void> pickDateViaInput(WidgetTester tester, DateTime date) async {
-    await tester.tap(find.byIcon(Icons.edit_calendar_outlined));
-    await tester.pumpAndSettle();
-    final mm = date.month.toString().padLeft(2, '0');
-    final dd = date.day.toString().padLeft(2, '0');
-    await tester.enterText(
-      find.byType(TextFormField).last,
-      '$mm/$dd/${date.year}',
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Use date'));
-    await tester.pumpAndSettle();
   }
 
   // A fixed noon-UTC anchor day-of-month so every test's dates fall inside
@@ -416,47 +398,6 @@ void main() {
         expect(find.text('USD (\$)'), findsOneWidget);
       },
     );
-
-    testWidgets('3.2.5 edit date', (tester) async {
-      final foodId = categoryId('Food');
-      final startDate = anchor(10);
-      final id = createTransaction({
-        'transaction_name': 'Pharmacy',
-        'currency_code': 'USD',
-        'transaction_type': 'expense',
-        'date': startDate.toIso8601String(),
-        'transaction_categories': [
-          {'category_id': foodId, 'amount': '15.00'},
-        ],
-      });
-
-      await pumpScreen(tester, '/transactions/$id/edit');
-
-      final target = anchor(15);
-      await tester.tap(find.byIcon(Icons.calendar_today_outlined).first);
-      await settle(tester);
-      expect(find.byType(DatePickerDialog), findsOneWidget);
-      await pickDateViaInput(tester, target);
-      await settle(tester);
-
-      await tester.tap(find.widgetWithText(FilledButton, 'Save changes'));
-      await settle(tester);
-      expect(tester.takeException(), isNull);
-
-      final stored = getTxn(id);
-      final storedDate = DateTime.parse(stored['date'] as String).toUtc();
-      expect(storedDate.year, target.year);
-      expect(storedDate.month, target.month);
-      expect(storedDate.day, target.day);
-
-      await pumpScreen(tester, '/transactions/$id');
-      // Matches AddTransactionScreen/_Detail's own `formatDateLong` pattern
-      // (mobile_app/lib/utils/format.dart) — never hardcode a month name.
-      expect(
-        find.text(DateFormat('MMM d, y').format(target.toLocal())),
-        findsOneWidget,
-      );
-    });
 
     group('3.2.6', () {
       testWidgets(

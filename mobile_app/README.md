@@ -1,17 +1,9 @@
-# Moneef
+# Moneef — Flutter app
 
-Moneef personal finance tracker
+See the [root README](../README.md) for what Moneef is, the architecture, and
+how to build the whole project. This file covers app-specific tooling only.
 
 ## Screenshots
-
-Six app screens with sample data. The grid follows your light or dark theme.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/screenshot-grid-dark.png">
-  <img src="docs/screenshots/screenshot-grid-light.png" alt="Moneef home, transactions, add transaction, insights, spending analysis, and recurring payments in a three-column grid" width="1440">
-</picture>
-
-[Light grid](docs/screenshots/screenshot-grid-light.png) · [Dark grid](docs/screenshots/screenshot-grid-dark.png)
 
 To regenerate the grids from the saved screenshot goldens, install `rsvg-convert`
 from librsvg and run:
@@ -32,13 +24,6 @@ flutter test test/screenshots --update-goldens --tags screenshots
 Install JDK 21 alongside Flutter and the Android SDK. The project's
 `android/gradle/gradle-daemon-jvm.properties` selects an installed JDK 21 for
 Gradle, even when Flutter uses a newer Java version bundled with Android Studio.
-
-From this directory, run:
-
-```sh
-flutter pub get
-flutter run
-```
 
 The launcher name is Moneef. After changing native icons or launch resources,
 stop the app and run `flutter run` again; hot reload does not replace these

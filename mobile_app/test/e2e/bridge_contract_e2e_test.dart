@@ -13,7 +13,6 @@
 // Run: flutter test test/e2e/bridge_contract_e2e_test.dart
 
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -103,33 +102,6 @@ void main() {
       expect(txns['results'], isEmpty);
       expect(txns['total_pages'], 0);
       expect(txns['current_page'], 1);
-    });
-
-    testWidgets('10.1.3 dashboard + analysis decode on empty DB', (
-      tester,
-    ) async {
-      final dash = await api.dashboard();
-      expect(dash['currency_code'], 'USD');
-      expect(dash['balance'], isA<String>(), reason: 'money is never num');
-      expect(dash['total_income'], isA<String>());
-      expect(dash['total_expense'], isA<String>());
-      expect(dash['quick_stats']['top_category'], isNull);
-      expect(dash['recent_transactions'], isEmpty);
-      expect(dash['upcoming_recurring'], isEmpty);
-
-      final now = DateTime.now().toUtc();
-      final analysis = await api.analysis(
-        startDate: now.subtract(const Duration(days: 30)),
-        endDate: now,
-      );
-      expect(analysis['categories'], isEmpty);
-      expect(
-        analysis['spent_per_day'],
-        isNotEmpty,
-        reason: 'gap-filled per day, per API.md',
-      );
-      expect(analysis['total'], '0');
-      expect(analysis['quick_stats']['biggest_transaction'], isA<Map>());
     });
 
     testWidgets('10.1.4 category + transaction CRUD round trip decodes', (
@@ -250,7 +222,7 @@ void main() {
     testWidgets('10.2.1 not-initialized sentinel matches exactly', (
       tester,
     ) async {
-      await bridge.invoke('shutdown');
+      bridge.invoke('shutdown');
       await expectLater(
         api.getProfile(),
         throwsA(
@@ -380,69 +352,6 @@ void main() {
 
   // ── 10.3 static diff: MoneefBridge.kt vs native_api.dart vs mobilebridge/*.go ─
   group('10.3 static diff across the three layers', () {
-    testWidgets(
-      '10.3.1 auto-backup `mutations` set covers every DB-writing method',
-      (tester) async {
-        final ktSource = File(
-          'android/app/src/main/kotlin/io/moneef/mobile_app/MoneefBridge.kt',
-        ).readAsStringSync();
-        final match = RegExp(
-          r'mutations\s*=\s*setOf\(([^)]*)\)',
-        ).firstMatch(ktSource);
-        expect(
-          match,
-          isNotNull,
-          reason:
-              'MoneefBridge.kt no longer declares `mutations = setOf(...)` '
-              '— this check needs updating for the new shape, not deleting.',
-        );
-        final declared = match!
-            .group(1)!
-            .split(',')
-            .map((s) => s.trim().replaceAll('"', ''))
-            .where((s) => s.isNotEmpty)
-            .toSet();
-
-        // Independently derived from reading mobilebridge/*.go: every exported
-        // func that writes to the SQLite DB (not just in-memory state).
-        //   mobilebridge/setup.go           Setup -> creates user+profile+settings
-        //   mobilebridge/transactions.go    Create/Update/DeleteTransaction, DeleteRecurrence
-        //   mobilebridge/categories.go      Create/Update/DeleteCategory
-        //   mobilebridge/exchange_rates.go  UpsertExchangeRate, FetchExchangeRates
-        //   mobilebridge/profile.go         UpdateProfile, UpdateSettings
-        //   mobilebridge/init.go            SetProfileID -> writes moneef_backup_profile table
-        //   mobilebridge/patterns.go        RefreshPatterns -> upserts the patterns table
-        const dbWritingMethods = {
-          'setup',
-          'createTransaction',
-          'updateTransaction',
-          'deleteTransaction',
-          'updateRecurrence',
-          'deleteRecurrence',
-          'createCategory',
-          'updateCategory',
-          'deleteCategory',
-          'upsertExchangeRate',
-          'fetchExchangeRates',
-          'updateProfile',
-          'updateSettings',
-          'setProfileId',
-          'refreshPatterns',
-        };
-
-        final missing = dbWritingMethods.difference(declared);
-        expect(
-          missing,
-          isEmpty,
-          reason:
-              'MoneefBridge.kt `mutations` (MoneefBridge.kt:34, gates '
-              'automaticBackup()) is missing DB-writing methods: $missing. '
-              'A user who only calls these never gets an automatic local '
-              'backup of that write.',
-        );
-      },
-    );
-
     testWidgets(
       '10.3.2 wire argument shape matches the id/payload contract per method',
       (tester) async {

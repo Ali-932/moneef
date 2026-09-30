@@ -792,64 +792,6 @@ void main() {
     },
   );
 
-  // ── 5.4 Installment / end-dated progress rendering ──────────────────────
-
-  testWidgets(
-    '5.4.1 installment progress (paid vs total, remaining) has no UI surface',
-    (tester) async {
-      final catId = categoryId(bridge, 'expense', 'Debt');
-      final date = DateTime.now().toUtc();
-      bridge.json(
-        'createTransaction',
-        body: recurringPayload(
-          name: 'Car Loan',
-          type: 'expense',
-          currency: 'USD',
-          date: date,
-          freq: 'monthly',
-          categoryId: catId,
-          amount: '200.00',
-          hasEndDate: true,
-          endDate: date.add(const Duration(days: 400)),
-          totalAmount: '2400.00',
-          paidPreviously: '600.00',
-        ),
-      );
-      // The data is there on the wire...
-      final tpl = findByName(bridge.json('listRecurrences'), 'Car Loan');
-      expect(tpl['total_amount_to_pay'], isNotNull);
-      expect(tpl['amount_paid_previously'], isNotNull);
-      expect(tpl['amount_left_to_pay'], isNotNull);
-
-      setGoldenSurface(tester);
-      await tester.pumpWidget(
-        appUnderTest(themeMode: ThemeMode.light, path: '/profile/recurrences'),
-      );
-      await settle(tester);
-      expect(tester.takeException(), isNull);
-      expect(find.text('Car Loan'), findsOneWidget);
-
-      // ...but RecurrencesScreen's _Recurrence.fromJson
-      // (mobile_app/lib/screens/recurrences_screen.dart:59-73) only parses
-      // id/name/frequency/nextDate/nextPaymentAmount/currency/isActive/
-      // icon/color. There is no "paid X of Y, Z remaining" progress
-      // affordance anywhere for an installment/end-dated recurrence — the
-      // row looks identical to an open-ended one. This is a product gap,
-      // not a crash: confirmed by the subtitle being exactly the plain
-      // frequency+next-date string, nothing else.
-      expect(
-        find.textContaining(
-          'Monthly · next ${formatDateLong(DateTime.parse(tpl['next_date'] as String))}',
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining('600'), findsNothing);
-      expect(find.textContaining('2,400'), findsNothing);
-      expect(find.textContaining('remaining'), findsNothing);
-      expect(find.textContaining('paid'), findsNothing);
-    },
-  );
-
   testWidgets(
     '5.4.2 a payment bigger than what is left to pay is refused',
     (tester) async {

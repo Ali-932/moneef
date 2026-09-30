@@ -7,11 +7,8 @@ This document is the **single source of truth** for every call available to
 the Flutter layer: signatures, request/response JSON schemas, errors,
 Kotlin invocation, and Dart caller.
 
-> **REST analog.** Each entry in this doc is the in-process equivalent of an
-> HTTP endpoint served by `cmd/api` (routes in `internal/routes/`). The body of a `POST` request
-> becomes the `payload []byte` argument; the JSON response body becomes the
-> returned `[]byte`. URL path params become `int64` arguments. Query params
-> become fields inside the JSON request payload.
+> **Calling convention.** Requests are JSON bytes (`payload []byte`),
+> responses are JSON bytes (`[]byte`), and IDs are `int64` arguments.
 
 ---
 
@@ -486,8 +483,7 @@ does not belong to the profile.
 
 ### `ListTransactions(payload) → []byte`
 
-Filtered, paginated list. **Replaces the HTTP `GET /transactions?…` query
-params** with a single JSON object.
+Filtered, paginated list. Filters go in a single JSON object.
 
 **Request JSON (all optional):**
 
@@ -545,9 +541,8 @@ Pass `{}` (or empty bytes) to list everything.
 }
 ```
 
-> **No `next`/`previous` URLs.** The HTTP paginator emits them; gomobile
-> drops them because they're meaningless in-process. Compute pagination
-> state from `page` + `per_page` directly.
+> **No `next`/`previous` URLs.** Compute pagination state from `page` +
+> `per_page` directly.
 
 ---
 
@@ -706,8 +701,7 @@ The Android bridge schedules the existing automatic local backup after success.
 ### `DeleteRecurrence(id) error`
 
 Deletes the recurrence template. Already-booked transactions referring to
-it stay but `recurrence_template_id` becomes a dangling FK (matches HTTP
-behavior).
+it stay but `recurrence_template_id` becomes a dangling FK.
 
 ---
 
@@ -969,8 +963,8 @@ detectors run today:
 `RefreshPatterns` runs the detectors and returns the patterns, with icons,
 sorted by `final_score DESC`. It stores nothing. The app calls it whenever
 the Patterns tab opens or a transaction changes, so results always match the
-current data. `Patterns()` only reads rows the HTTP server stored; the mobile
-bridge never writes them, so on mobile it returns `[]`.
+current data. `Patterns()` only reads previously-stored rows; nothing in this
+codebase writes them, so it always returns `[]`. Use `RefreshPatterns`.
 
 ### Pattern type catalog
 
@@ -990,9 +984,9 @@ UI to pick an icon / template / explanation:
 
 ### `Patterns() → []byte`
 
-Reads patterns stored by the HTTP server for the active profile. **No
-DB-write.** Sorted by `final_score DESC`. The mobile bridge never stores
-patterns, so on mobile this returns `[]`; use `RefreshPatterns`.
+Reads previously-stored pattern rows for the active profile. **No
+DB-write.** Sorted by `final_score DESC`. Nothing in this codebase stores
+patterns, so this always returns `[]`; use `RefreshPatterns`.
 
 **Request:** no args.
 
@@ -1216,8 +1210,7 @@ list on a dedicated screen.
 
 ### `GetProfile() → []byte`
 
-Merges `Profile` + `User` records (the HTTP handler does this server-side;
-the shim does the same merge in-process).
+Merges `Profile` + `User` records into one JSON object in-process.
 
 **Response JSON:**
 
@@ -1292,7 +1285,7 @@ Partial update. All fields optional pointers — omit to leave unchanged.
 ### `ListCurrencies() → []byte`
 
 All supported currencies, ordered by code. Needs `Init` only (no active
-profile), same as the public `GET /api/v1/currencies`.
+profile).
 
 **Response JSON:**
 

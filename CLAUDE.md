@@ -4,17 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-**Backend**
+**Go core**
 ```bash
-go run ./cmd/api/          # start API server
-go run . seed              # seed categories, currencies, users
-go run . seed-transactions # seed realistic transaction data
-go run . seed-merchants    # seed merchant icon lookups
-go run . fetch-rates       # fetch exchange rates
-go test ./...              # all tests
-go test ./tests/...        # integration tests only
-go test ./tests/ -run TestSuiteName/TestName  # single test
-air                        # hot-reload (uses .air.toml)
+go build ./...              # build the core (mobilebridge/ excluded, see Build tags)
+go test ./...                # unit tests
 ```
 
 **Mobile binding (`mobilebridge/`)**
@@ -33,36 +26,38 @@ flutter test --exclude-tags screenshots   # unit/widget/e2e tests
 tool/design_review.sh                     # analyze + tests + screenshot goldens
 ```
 
+The `.aar` `flutter run` links is prebuilt and git-ignored — rebuild it with
+`gomobile bind` (above) after any change under `mobilebridge/` or `internal/`
+before handing the app back over.
+
 ## Architecture
 
-Personal finance app. Two runtime modes:
-1. **Standalone HTTP server** — `cmd/api/main.go` on configured port
-2. **Mobile binding** — `mobilebridge/` (gomobile `.aar`) calls the same services in-process; the Flutter app reaches it through Kotlin `MethodChannel`s (`moneef/api`, `moneef/backups`). No HTTP on mobile. Full API: `mobilebridge/API.md`.
+Personal finance app, mobile-only. No HTTP server, no login, no network
+sync — everything runs in-process on the phone.
 
-**Startup sequence (HTTP server):**
 ```
-db.Connect() → db.MigrateModels() → iconlookup.LoadCache() → routes.SetupRoutes() → ListenAndServe()
+Flutter UI (mobile_app/) → Kotlin MethodChannels (moneef/api, moneef/backups)
+  → mobilebridge/ (gomobile .aar, JSON bytes in/out, int64 IDs)
+  → internal/<feature>/{dto,service,repository}
+  → SQLite via GORM
 ```
+
+Full bridge API: `mobilebridge/API.md`.
 
 **Feature layer pattern:**
 ```
-handler.go → dto/ → service/ → repository/
+mobilebridge/<feature>.go → dto/ → service/ → repository/
 ```
 
-**Route groups:**
-- Unprotected: `POST /api/v1/setup`, `GET /api/v1/currencies`, `GET /api/v1/healthz`
-- Protected: everything else — requires `X-Profile-ID: <uint>` header
+**Startup sequence:** `mobilebridge.Init(dbPath, profileID)` → `db.Connect()` → `db.MigrateModels()` → seed icons/categories/currencies → ready. See `mobilebridge/init.go`.
 
-## Auth
-
-No JWT. Header-based identity only. `pkg/middleware/ProfileMiddleware` reads `X-Profile-ID` header, queries DB for `Profile` (with `User` preloaded), injects `ContextKeyProfileID` and `ContextKeyUserID` into request context. Handlers read via `r.Context().Value(middleware.ContextKeyProfileID).(uint)`.
+Go starts on Android with `time.Local = UTC`; Kotlin calls `SetTimeZone(TimeZone.getDefault().id)` before `Init`. Dates are stored as UTC.
 
 ## Build tags
 
 - `mobilebridge/` is gated `//go:build android || smoke` — invisible to plain `go build ./...` / `go test ./...`.
 - `smoke` builds the binding on the host: `mobilebridge/_smoke/` (smoke driver) and `mobilebridge/_e2e/` (c-shared lib the Flutter e2e tests load over `dart:ffi`). `_`-prefixed dirs are skipped by `./...`.
-- `internal/background.Run`: goroutine on server/CLI, synchronous on `android || smoke` (so derived writes can't race a backup/restore).
-- `cmd/api/` and `cmd/run.go` are `//go:build !android`.
+- `internal/background.Run`: goroutine by default, synchronous on `android || smoke` (so derived writes can't race a backup/restore).
 
 ## Database
 
@@ -71,41 +66,38 @@ No JWT. Header-based identity only. `pkg/middleware/ProfileMiddleware` reads `X-
 - Migrations: `db.MigrateModels()` runs `AutoMigrate` on every startup — no versioning tool
 - Also creates FTS5 virtual table `icon_lookups_fts` with triggers for merchant icon search
 - Money fields: always `types.Money` (shopspring/decimal), never `float64`
-- DB path: `db_path` from env/`.env`; if empty, `os.UserConfigDir()/moneef/db.sqlite`. On mobile, `mobilebridge.Init(dbPath, ...)` passes it in.
+- Categories are soft-deleted; preload with `models.WithDeleted` where deleted categories still need to show (e.g. on old transactions)
+- DB path: passed in by the caller. `mobilebridge.Init(dbPath, profileID)` sets it; there is no server/CLI path that defaults it anymore
 
 ## Config
 
-`internal/config/config.go` — singleton via `sync.Once`. Loads `.env` via `godotenv`. Keys:
-- `port` — default `:8000`
-- `db_path` — defaults to the OS config dir (see Database)
-- `exchange_rate_api_key` — for currency rates
+`internal/config/config.go` — singleton via `sync.Once`. Holds only `DBPath`, set through `mobilebridge.Init`. The exchange-rate API key is not process config: it's a per-user setting (the user's own free exchangerate-api.com key, entered in Settings and stored in the DB — see `internal/users`); rates can also be set manually.
 
 ## Testing
 
-Integration tests live in `/tests/`: `httptest.Server` + real Chi router + real in-memory SQLite. No mocking. Exceptions: pure helpers may have co-located unit tests (e.g. `internal/analysis/utils`), and binding tests sit in `mobilebridge/*_test.go` (need `-tags smoke`).
+No `/tests/` directory — this is a mobile app, not a server. Tests live next to the code they cover:
 
-- Test DB: `file:memdb_<timestamp>?mode=memory&cache=shared`, fresh per suite, full `AutoMigrate` run
-- `db.DB` global is swapped for test DB, restored in `Cleanup()`
-- Test requests include `X-Profile-ID: 1` directly (header auth)
-- Seed helpers in `tests/test_utils.go`: `seedTestData()`, pointer helpers (`PtrBool`, `PtrString`, `MoneyFromFloat`, etc.)
+- Pure Go helpers have co-located unit tests (e.g. `internal/analysis/utils`, `internal/iconlookup`) — run with plain `go test ./...`
+- Bridge tests sit in `mobilebridge/*_test.go`, need `go test -tags smoke ./mobilebridge/`
+- Flutter unit/widget tests: `flutter test --exclude-tags screenshots`
+- Flutter e2e tests drive the real Go core over `dart:ffi`, loading `build/libmoneef_e2e.so` — build it first (see Commands)
+- Screenshot goldens are tagged `screenshots` and excluded from the default `flutter test` run
 
 ## Key Packages
 
 | Path | Role |
 |---|---|
-| `internal/models/` | All GORM models (User, Profile, Transaction, Pattern, Currency, etc.) |
+| `internal/models/` | All GORM models (Profile, Transaction, Account, Pattern, Currency, etc.) |
 | `internal/db/` | DB connection + migration |
-| `internal/routes/` | Chi router setup |
 | `internal/config/` | Config singleton, currency/country constants, merchant data |
+| `internal/accounts/` | Accounts, transfers, set-balance, currency exchange |
+| `internal/currencies/` | Currency list + exchange rate fetch/upsert |
 | `internal/iconlookup/` | In-memory cache + FTS5 for merchant icon/color lookups |
 | `internal/analysis/` | Spending charts, daily spend, period comparison |
 | `internal/patterns/` | Spending pattern detection engine |
-| `pkg/middleware/` | `ProfileMiddleware` (header-based auth injection), context keys |
-| `pkg/pagination/` | Generic `Paginate[T]()` using GORM + query params |
+| `internal/background/` | `Run(task)` — async by default, sync on mobile (build-tag split) |
 | `pkg/types/` | `Money` type alias for `shopspring/decimal.Decimal` |
-| `pkg/utils/` | `WriteJsonError`, password hashing, date/frequency helpers, currency utils |
-| `internal/background/` | `Run(task)` — async on server, sync on mobile (build-tag split) |
-| `cmd/` | Cobra dev CLI (root `main.go`): `seed`, `seed-transactions`, `seed-merchants`, `fetch-rates`, `run`; `cmd/api/` is the server |
+| `pkg/utils/` | Currency conversion, HTTP retry helper for the exchange-rate API, string helpers |
 | `mobilebridge/` | gomobile binding exposing the Go core to Flutter; JSON bytes in/out, `int64` IDs |
 | `mobile_app/` | Flutter mobile client (Riverpod + go_router + freezed) over the native bridge |
 

@@ -117,8 +117,16 @@ Future<void> settle(
 /// goldens show real text/icons instead of Ahem/tofu boxes. Call once from
 /// `setUpAll`.
 Future<void> loadRealFonts() async {
-  final flutterRoot =
-      Platform.environment['FLUTTER_ROOT'] ?? '/home/james/flutter';
+  // `flutter test` always exports FLUTTER_ROOT (see flutter/bin/internal/
+  // shared.sh) before spawning the test process, so this is only unset if
+  // the test binary is invoked some other way.
+  final flutterRoot = Platform.environment['FLUTTER_ROOT'];
+  if (flutterRoot == null) {
+    throw StateError(
+      'FLUTTER_ROOT is not set. Run screenshot tests via `flutter test`, '
+      'which exports it automatically.',
+    );
+  }
   final materialFonts = '$flutterRoot/bin/cache/artifacts/material_fonts';
 
   await _loadFont('MaterialIcons', [

@@ -96,7 +96,7 @@ class Fixtures {
         {
           ...income,
           'id': 7,
-          'name': 'حافز نفط الوسط',
+          'name': 'Performance bonus',
           'currency_code': 'IQD',
           'next_payment_amount': '600000.00',
           'next_date': DateTime.utc(2026, 10, 11).toIso8601String(),
@@ -104,7 +104,7 @@ class Fixtures {
         {
           ...income,
           'id': 8,
-          'name': 'راتب نفط',
+          'name': 'Salary',
           'currency_code': 'IQD',
           'next_payment_amount': '623000.00',
           'next_date': DateTime.utc(2026, 10, 26).toIso8601String(),

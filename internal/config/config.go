@@ -5,14 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port               string
-	ExchangeRateApiKey string
-	DBPath             string
+	DBPath string
 }
 
 var (
@@ -22,7 +18,6 @@ var (
 
 func GetConfig() *Config {
 	once.Do(func() {
-		_ = godotenv.Load()
 		dbPath := getEnv("db_path", "")
 		if dbPath == "" {
 			configDir, err := os.UserConfigDir()
@@ -33,9 +28,7 @@ func GetConfig() *Config {
 		}
 
 		config = &Config{
-			Port:               getEnv("port", ":8000"),
-			ExchangeRateApiKey: getEnv("exchange_rate_api_key", ""),
-			DBPath:             dbPath,
+			DBPath: dbPath,
 		}
 	})
 
@@ -49,5 +42,3 @@ func getEnv(key, defaultValue string) string {
 
 	return defaultValue
 }
-
-
