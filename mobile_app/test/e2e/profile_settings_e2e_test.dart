@@ -92,7 +92,7 @@ void main() {
   // 8.2 Change default currency → getSettings updated; home totals/labels
   // and add-transaction default currency follow
   testWidgets('8.2 change default currency updates settings + home; '
-      'add-transaction default currency does NOT follow (bug)', (tester) async {
+      'add-transaction default currency follows', (tester) async {
     setGoldenSurface(tester);
     await tester.pumpWidget(
       appUnderTest(themeMode: ThemeMode.light, path: '/profile'),
@@ -138,23 +138,13 @@ void main() {
     expect(find.textContaining('€'), findsWidgets); // formatMoney(_, 'EUR')
     expect(find.textContaining(r'$'), findsNothing);
 
-    // Add-transaction default currency should follow the new default too,
-    // per product intent (a new expense should default to the user's
-    // chosen currency). It does not:
-    // lib/screens/add_transaction_screen.dart:52 hardcodes
-    // `String _currencyCode = 'USD';` and only ever hydrates it from a
-    // loaded transaction (`widget.initialId != null` branch, line 148) —
-    // never from `settingsProvider` for a brand-new transaction. Confirmed
-    // app bug; assertion below is expected (and left) failing.
+    // A new expense starts in the new default currency. The chip's label
+    // merges with its text child, hence the prefix match.
     await tester.tap(find.byTooltip('Add transaction'));
     await settle(tester);
     expect(
-      find.bySemanticsLabel('Currency: EUR. Tap to change.'),
+      find.bySemanticsLabel(RegExp(r'^Currency: EUR\. Tap to change\.')),
       findsOneWidget,
-      reason:
-          'BUG: add_transaction_screen.dart never hydrates _currencyCode '
-          'from settingsProvider for a new transaction (hardcoded to USD '
-          'at line 52) — shows "Currency: USD" instead of the new default.',
     );
   });
 

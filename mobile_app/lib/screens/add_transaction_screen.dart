@@ -160,6 +160,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.initialId == null && !_hydrated) {
+      // New transactions start in the default currency from settings. Wait out
+      // a refresh so a just-changed default doesn't hydrate from the old value.
+      final settings = ref.watch(settingsProvider);
+      if (settings.hasValue && !settings.isLoading) {
+        if (!_isDirty) _currencyCode = settings.requireValue.currencyCode;
+        _hydrated = true;
+      }
+    }
     if (widget.initialId != null && !_hydrated) {
       final async = ref.watch(transactionByIdProvider(widget.initialId!));
       return async.when(
