@@ -593,6 +593,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         );
         return;
       }
+      if (paid != null && total != null && paid + _runningTotal > total) {
+        setState(
+          () => _paidVsTotalError =
+              'Only ${formatMoney(total - paid, _currencyCode)} is left to pay',
+        );
+        return;
+      }
     }
 
     final draft = TransactionDraft(

@@ -61,6 +61,7 @@ object MoneefBridge {
                 "init" -> {
                     val dbPath = call.argument<String>("dbPath")!!
                     val profileId = (call.argument<Number>("profileId") ?: 0).toLong()
+                    Mobilebridge.setTimeZone(java.util.TimeZone.getDefault().id)
                     Mobilebridge.init(dbPath, profileId)
                     result.success(null)
                 }

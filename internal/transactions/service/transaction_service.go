@@ -181,11 +181,7 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p dto.CreateTransactionRecurr
 	TransactionTotalAmountMoney := types.Money(TransactionTotalAmount)
 	log.Printf("💰 [SERVICE] Total amount for next payment: %s", TransactionTotalAmountMoney.String())
 
-	nextDate, err := utils.CalculateNextOccurrence(p.StartDate, p.Frequency)
-	if err != nil {
-		log.Printf("❌ [SERVICE] Failed to calculate next occurrence: %v", err)
-		return 0, err
-	}
+	nextDate := addFrequency(p.StartDate, p.Frequency)
 
 	var nextPaymentAmount types.Money
 	var AmountLeftToPay *types.Money
@@ -194,15 +190,13 @@ func CreateTransactionRecurrentWithTx(tx *gorm.DB, p dto.CreateTransactionRecurr
 		if p.TotalAmountToPay == nil || p.AmountPaidPreviously == nil {
 			return 0, fmt.Errorf("total_amount_to_pay and amount_paid_previously are required for finite recurrence")
 		}
-		paidRemaining := p.TotalAmountToPay.Sub(*p.AmountPaidPreviously)
-		if decimal.Decimal(paidRemaining).LessThan(TransactionTotalAmount) {
-			nextPaymentAmount = types.Money(paidRemaining)
-		} else {
-			nextPaymentAmount = TransactionTotalAmountMoney
+		left := p.TotalAmountToPay.Sub(*p.AmountPaidPreviously).Sub(TransactionTotalAmount)
+		if left.IsNegative() {
+			return 0, fmt.Errorf("this payment is more than the %s left to pay", left.Add(TransactionTotalAmount))
 		}
-		amountLeft := types.Money(paidRemaining)
-		amountLeft = amountLeft.MathOperation(TransactionTotalAmountMoney, decimal.Decimal.Sub)
+		amountLeft := types.Money(left)
 		AmountLeftToPay = &amountLeft
+		nextPaymentAmount = types.Money(decimal.Min(left, TransactionTotalAmount))
 		log.Printf("💰 [SERVICE] Amount left to pay: %s", AmountLeftToPay.String())
 	} else {
 		log.Println("♾️ [SERVICE] Processing infinite recurrence")
@@ -467,14 +461,17 @@ func daysInMonth(y int, m time.Month) int {
 	return time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC).Day()
 }
 
+// addFrequency steps on the phone's calendar (local midnight is the previous
+// day in UTC) and returns UTC, the way dates are stored.
 func addFrequency(t time.Time, freq string) time.Time {
+	t = t.Local()
 	switch freq {
 	case "daily":
-		return t.AddDate(0, 0, 1)
+		t = t.AddDate(0, 0, 1)
 	case "weekly":
-		return t.AddDate(0, 0, 7)
+		t = t.AddDate(0, 0, 7)
 	case "bi-weekly":
-		return t.AddDate(0, 0, 14)
+		t = t.AddDate(0, 0, 14)
 	case "monthly":
 		y, m, _ := t.Date()
 		targetYear, targetMonth := y, m+1
@@ -483,15 +480,14 @@ func addFrequency(t time.Time, freq string) time.Time {
 			targetMonth = 1
 		}
 		day := min(t.Day(), daysInMonth(targetYear, targetMonth))
-		return time.Date(targetYear, targetMonth, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+		t = time.Date(targetYear, targetMonth, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
 	case "yearly":
 		y, m, d := t.Date()
 		targetYear := y + 1
 		day := min(d, daysInMonth(targetYear, m))
-		return time.Date(targetYear, m, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
-	default:
-		return t
+		t = time.Date(targetYear, m, day, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
 	}
+	return t.UTC()
 }
 
 func subFrequency(t time.Time, freq string) time.Time {

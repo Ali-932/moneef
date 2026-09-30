@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -41,6 +42,16 @@ func Init(dbPath string, profileIDArg int64) error {
 		return err
 	}
 	return initDatabase(dbPath, profileIDArg)
+}
+
+// SetTimeZone gives Go the phone's time zone; on Android Go starts in UTC.
+func SetTimeZone(name string) error {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		return err
+	}
+	time.Local = loc
+	return nil
 }
 
 func initDatabase(dbPath string, profileIDArg int64) error {

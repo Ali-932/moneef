@@ -857,52 +857,32 @@ void main() {
   );
 
   testWidgets(
-    '5.4.2 BUG amount_left_to_pay goes negative on the final partial installment',
+    '5.4.2 a payment bigger than what is left to pay is refused',
     (tester) async {
-      // internal/transactions/service/transaction_service.go:177-186:
-      //   paidRemaining := total.Sub(paidPreviously)              // 10.00
-      //   if paidRemaining < perPeriodAmount { nextPayment = paidRemaining } // 10.00 (correct clamp)
-      //   amountLeft := paidRemaining.Sub(perPeriodAmount)        // 10.00 - 20.00 = -10.00 (WRONG)
-      // amountLeft should be computed against the *clamped* nextPayment
-      // (10.00), not the raw per-period category total (20.00), so a
-      // "remaining balance" ends up negative once the last installment is
-      // smaller than a regular one.
+      // Only 10.00 is left on this loan, so a 20.00 installment is refused
+      // instead of being saved in full with a negative balance.
       final catId = categoryId(bridge, 'expense', 'Debt');
       final date = DateTime.now().toUtc();
-      bridge.json(
-        'createTransaction',
-        body: recurringPayload(
-          name: 'Almost Paid Off Loan',
-          type: 'expense',
-          currency: 'USD',
-          date: date,
-          freq: 'monthly',
-          categoryId: catId,
-          amount: '20.00', // per-period installment
-          hasEndDate: true,
-          endDate: date.add(const Duration(days: 60)),
-          totalAmount: '100.00',
-          paidPreviously: '90.00', // only 10.00 left to pay off in total
+      expect(
+        () => bridge.json(
+          'createTransaction',
+          body: recurringPayload(
+            name: 'Almost Paid Off Loan',
+            type: 'expense',
+            currency: 'USD',
+            date: date,
+            freq: 'monthly',
+            categoryId: catId,
+            amount: '20.00',
+            hasEndDate: true,
+            endDate: date.add(const Duration(days: 60)),
+            totalAmount: '100.00',
+            paidPreviously: '90.00',
+          ),
         ),
+        throwsA(anything),
       );
-
-      final tpl = findByName(
-        bridge.json('listRecurrences'),
-        'Almost Paid Off Loan',
-      );
-      // Correctly clamped: can't be charged more than what's left.
-      expect(
-        Decimal.parse(tpl['next_payment_amount'] as String),
-        Decimal.parse('10.00'),
-      );
-      final amountLeft = Decimal.parse(tpl['amount_left_to_pay'] as String);
-      expect(
-        amountLeft,
-        Decimal.parse('0.00'),
-        reason:
-            'BUG: after the final (clamped) installment, amount_left_to_pay '
-            'should be 0.00 but the core computed $amountLeft',
-      );
+      expect(bridge.json('listRecurrences'), isEmpty);
     },
   );
 }
