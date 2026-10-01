@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens extracted from `mobile_app/design/*.png` so screens stay
-/// visually consistent. Add new tokens here rather than inlining `Color`
-/// literals in screens.
+/// Design tokens so screens stay visually consistent. Add new tokens here
+/// rather than inlining `Color` literals in screens.
 ///
 /// `AppColors` is a [ThemeExtension]: widgets resolve the active palette via
 /// `AppColors.of(context)` (light or dark). Because ThemeExtensions lerp,

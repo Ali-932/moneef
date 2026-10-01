@@ -14,8 +14,8 @@ double relativeLuminance(Color c) {
 /// against [bg]. Theme-independent by construction: a category's hex color
 /// has nothing to do with the app's current light/dark theme, so the old
 /// version's `inkColor` parameter (which flips per-theme) let a bright
-/// midtone background pair with a near-white "ink" in dark mode. Matches
-/// DESIGN.md §2 ("foreground auto-picked ... by luminance").
+/// midtone background pair with a near-white "ink" in dark mode. The
+/// foreground is auto-picked by luminance instead.
 Color wcagForeground(Color bg) {
   double ratio(Color fg) {
     final a = relativeLuminance(bg), b = relativeLuminance(fg);

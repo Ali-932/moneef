@@ -1,2 +1,2 @@
-mobile_app/design/** linguist-vendored
+# Keep the vendored icon package out of GitHub's language stats.
 mobile_app/third_party/** linguist-vendored

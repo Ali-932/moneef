@@ -39,12 +39,6 @@ android {
     }
 
     buildTypes {
-        debug {
-            // Install the reproducible backup proof alongside the real app.
-            if (providers.gradleProperty("backupProof").orNull == "true") {
-                applicationIdSuffix = ".backupproof"
-            }
-        }
         release {
             signingConfig = signingConfigs.getByName(if (keystore != null) "release" else "debug")
         }

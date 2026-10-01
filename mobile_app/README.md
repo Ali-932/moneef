@@ -5,15 +5,8 @@ how to build the whole project. This file covers app-specific tooling only.
 
 ## Screenshots
 
-To regenerate the grids from the saved screenshot goldens, install `rsvg-convert`
-from librsvg and run:
-
-```sh
-python3 tool/generate_screenshot_grid.py
-python3 tool/generate_screenshot_grid.py --check
-```
-
-If the goldens are missing or the UI has changed, refresh them first:
+The README grids in `docs/screenshots/` are built from the screenshot goldens.
+If the UI has changed, refresh the goldens first:
 
 ```sh
 flutter test test/screenshots --update-goldens --tags screenshots
@@ -32,13 +25,9 @@ updates preserve the existing installation and data.
 
 ## Branding
 
-The approved Fold M source is `assets/branding/moneef-icon.svg`. To regenerate
-the app logo and Android icon sizes, install `rsvg-convert` from librsvg and run:
-
-```sh
-python3 tool/generate_branding.py
-python3 tool/generate_branding.py --check
-```
+The logo source is `assets/branding/moneef-icon.svg`. The Flutter painter in
+`lib/widgets/branding/moneef_logo.dart` and the Android icon resources were
+exported from it by hand.
 
 Startup checks:
 

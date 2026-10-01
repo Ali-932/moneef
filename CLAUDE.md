@@ -23,7 +23,7 @@ go build -tags smoke -buildmode=c-shared -o build/libmoneef_e2e.so ./mobilebridg
 flutter pub get
 flutter run
 flutter test --exclude-tags screenshots   # unit/widget/e2e tests
-tool/design_review.sh                     # analyze + tests + screenshot goldens
+flutter test test/screenshots --update-goldens --tags screenshots   # refresh screenshot goldens
 ```
 
 The `.aar` `flutter run` links is prebuilt and git-ignored — rebuild it with
@@ -103,11 +103,12 @@ No `/tests/` directory — this is a mobile app, not a server. Tests live next t
 
 ## Design Context
 
-`mobile_app/` is the Flutter mobile client. Its design system is documented in:
-- `mobile_app/PRODUCT.md` — register: **product**; users, purpose, brand
-  personality (calm/trustworthy/precise), anti-references, design principles.
-- `mobile_app/DESIGN.md` — visual system (colors, typography, components) when present.
-- Visual tokens live in `mobile_app/lib/theme.dart` (`AppColors`, `AppRadii`,
-  `AppMotion`).
+`mobile_app/` is the Flutter mobile client. Visual tokens live in
+`mobile_app/lib/theme.dart` (`AppColors`, `AppRadii`, `AppMotion`); that file is
+the only design source of truth. Brand: calm, trustworthy, precise; violet
+`#6C5CE7` mark, Manrope type.
 
-Use the `/impeccable` skill for any mobile UI design work so it loads this context.
+The repo deliberately has no other agent-facing files (no DESIGN.md, PRODUCT.md,
+generators, or design mockups). Don't add any.
+
+Use the `/impeccable` skill for any mobile UI design work.
