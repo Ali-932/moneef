@@ -42,9 +42,12 @@ func TestUpdateRecurrenceOffline(t *testing.T) {
 		ID int64 `json:"id"`
 	}
 	must(json.Unmarshal(category, &cat))
+	// Yesterday, so the next monthly occurrence is always in the future and
+	// nothing extra gets booked on creation.
+	start := time.Now().UTC().AddDate(0, 0, -1).Truncate(24 * time.Hour).Add(12 * time.Hour)
 	body, _ := json.Marshal(map[string]any{
 		"transaction_name": "Rent", "currency_code": "USD", "transaction_type": "expense",
-		"date": "2026-09-01T12:00:00Z", "is_recurrent": true, "recurrent_freq": "monthly",
+		"date": start.Format(time.RFC3339), "is_recurrent": true, "recurrent_freq": "monthly",
 		"transaction_categories": []map[string]any{{"category_id": cat.ID, "amount": "500.00"}},
 	})
 	_, err = CreateTransaction(body)
@@ -78,7 +81,7 @@ func TestUpdateRecurrenceOffline(t *testing.T) {
 	}
 	var booked []models.Transaction
 	must(dbHandle.Where("profile_id = ?", profileID).Find(&booked).Error)
-	if len(booked) != 1 || booked[0].Name != "Rent" || booked[0].Date.Day() != 1 {
+	if len(booked) != 1 || booked[0].Name != "Rent" || booked[0].Date.Day() != start.Day() {
 		t.Fatal("editing the template modified recorded transactions")
 	}
 	for _, bad := range []map[string]any{
