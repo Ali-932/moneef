@@ -22,8 +22,8 @@
 </p>
 
 Moneef is a deliberately minimal personal finance tracker for Android. I have made this since I wanted
-a financial tracking app with only the feature I actually need
-All data served on the phone, in a local SQLite database.
+a financial tracking app with only the features I actually need.
+All data stays on the phone, in a local SQLite database.
 
 ## Screenshots
 
