@@ -28,6 +28,16 @@ android {
         versionName = flutter.versionName
     }
 
+    val keystore = providers.environmentVariable("MONEEF_KEYSTORE").orNull
+    if (keystore != null) {
+        signingConfigs.create("release") {
+            storeFile = file(keystore)
+            storePassword = providers.environmentVariable("MONEEF_KEYSTORE_PASSWORD").get()
+            keyAlias = "moneef"
+            keyPassword = storePassword // keytool's PKCS12 keystores use one password
+        }
+    }
+
     buildTypes {
         debug {
             // Install the reproducible backup proof alongside the real app.
@@ -36,8 +46,7 @@ android {
             }
         }
         release {
-            // Debug signing for now so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (keystore != null) "release" else "debug")
         }
     }
 }
