@@ -327,15 +327,15 @@ void main() {
 
   testWidgets('2.1.3c recurring monthly, no end date', (tester) async {
     await createRecurringNoEnd(tester, 'Streaming plan', 'Monthly');
-    await expectRecurrenceGap(bridge, 'monthly');
-    final gap = recurrenceTimeline(bridge)
-        .map((e) => DateTime.parse(e['date'] as String))
-        .toList()
-      ..sort();
+    // In a 31-day month the next occurrence is 31 days out, just past the
+    // 30-day timeline window — so, as for yearly, assert cadence via next_date.
+    await expectRecurrenceGap(bridge, 'monthly', minOccurrences: 1);
+    final rec = allRecurrences(bridge).first;
+    final nextDate = DateTime.parse(rec['next_date'] as String);
     expect(
-      gap[1].difference(gap[0]).inDays,
+      nextDate.difference(DateTime.now().toUtc()).inDays,
       inInclusiveRange(27, 31),
-      reason: 'monthly cadence should land ~one calendar month apart',
+      reason: 'monthly next_date should land ~one calendar month after creation',
     );
   });
 
